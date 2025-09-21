@@ -4,41 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
 import { AdminLoginBackground } from "./admin-login-background";
 import { ForgotPasswordLink } from "./forgot-password-link";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 
 interface AdminLoginFormProps {
     onLoginSuccess?: () => void;
 }
 
 export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
+    const [showPassword, setShowPassword] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
-    const navigate = useNavigate();
+    const { loginWithCredentials, isLoading, error } = useAdminAuth();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError("");
-
-        try {
-            // Aquí puedes agregar tu lógica de autenticación
-            if (username === "admin" && password === "123456") {
-                localStorage.setItem("adminToken", "admin-authenticated");
-                onLoginSuccess?.();
-                navigate({ to: "/admin/dashboard" });
-            } else {
-                setError("Credenciales incorrectas");
-            }
-        } catch (err) {
-            setError("Error al iniciar sesión");
-        } finally {
-            setIsLoading(false);
-        }
+        await loginWithCredentials(username, password, "/admin/dashboard");
+        onLoginSuccess?.();
     };
 
     return (
@@ -57,12 +40,12 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
                         <form onSubmit={handleLogin} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="username" className="text-gray-700">
-                                    Nombre de Usuario
+                                    Correo electrónico
                                 </Label>
                                 <Input
                                     id="username"
-                                    type="text"
-                                    placeholder="Nombre de Usuario"
+                                    type="email"
+                                    placeholder="Correo electrónico"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="h-12 rounded-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
