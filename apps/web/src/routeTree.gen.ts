@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TodosRouteImport } from './routes/todos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
+import { Route as AdminPersonalIndexRouteImport } from './routes/admin/personal/index'
 
 const TodosRoute = TodosRouteImport.update({
   id: '/todos',
@@ -28,35 +32,93 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSedesIndexRoute = AdminSedesIndexRouteImport.update({
+  id: '/admin/sedes/',
+  path: '/admin/sedes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPersonalIndexRoute = AdminPersonalIndexRouteImport.update({
+  id: '/admin/personal/',
+  path: '/admin/personal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/todos': typeof TodosRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/personal': typeof AdminPersonalIndexRoute
+  '/admin/sedes': typeof AdminSedesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/todos': typeof TodosRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/personal': typeof AdminPersonalIndexRoute
+  '/admin/sedes': typeof AdminSedesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/todos': typeof TodosRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/personal/': typeof AdminPersonalIndexRoute
+  '/admin/sedes/': typeof AdminSedesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/todos'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/todos'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/personal'
+    | '/admin/sedes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/todos'
-  id: '__root__' | '/' | '/dashboard' | '/todos'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/todos'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/personal'
+    | '/admin/sedes'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/todos'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/personal/'
+    | '/admin/sedes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   TodosRoute: typeof TodosRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminPersonalIndexRoute: typeof AdminPersonalIndexRoute
+  AdminSedesIndexRoute: typeof AdminSedesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/sedes/': {
+      id: '/admin/sedes/'
+      path: '/admin/sedes'
+      fullPath: '/admin/sedes'
+      preLoaderRoute: typeof AdminSedesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/personal/': {
+      id: '/admin/personal/'
+      path: '/admin/personal'
+      fullPath: '/admin/personal'
+      preLoaderRoute: typeof AdminPersonalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +179,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   TodosRoute: TodosRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminPersonalIndexRoute: AdminPersonalIndexRoute,
+  AdminSedesIndexRoute: AdminSedesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
