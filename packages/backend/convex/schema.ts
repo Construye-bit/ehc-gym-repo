@@ -3,12 +3,12 @@ import { v } from "convex/values";
 
 export default defineSchema({
     // ==================== USUARIOS Y AUTENTICACIÓN ====================
-    
+
     users: defineTable({
+        clerk_id: v.string(),
         name: v.string(),
         email: v.string(),
         phone: v.optional(v.string()),
-        created_at: v.number(), // epoch ms
         updated_at: v.number(),
         active: v.boolean(),
     }).index("by_email", ["email"]),
@@ -52,9 +52,9 @@ export default defineSchema({
         .index("by_user_active", ["user_id", "active"])
         .index("by_user_role", ["user_id", "role"])
         .index("by_role", ["role"]),
-        
-        
-        // ==================== DIRECCIONES ====================
+
+
+    // ==================== DIRECCIONES ====================
     cities: defineTable({
         country: v.string(),
         state_region: v.string(),
@@ -66,7 +66,7 @@ export default defineSchema({
     })
         .index("by_name", ["name"])
         .index("by_postal_code", ["postal_code"]),
-    
+
     addresses: defineTable({
         city_id: v.id("cities"),
         main_address: v.string(), // "Calle 19 # 11-44"
@@ -80,9 +80,9 @@ export default defineSchema({
         .index("by_city", ["city_id"])
         .index("by_city_active", ["city_id", "active"])
         .index("by_coordinates", ["latitude", "longitude"]),
-        
+
     // ==================== SEDES ====================
-    
+
     branches: defineTable({
         name: v.string(),
         address_id: v.id("addresses"),
@@ -93,9 +93,9 @@ export default defineSchema({
         max_capacity: v.number(),
         current_capacity: v.optional(v.number()), // Para control en tiempo real
         status: v.union(
-            v.literal("ACTIVE"), 
-            v.literal("INACTIVE"), 
-            v.literal("UNDER_CONSTRUCTION"), 
+            v.literal("ACTIVE"),
+            v.literal("INACTIVE"),
+            v.literal("UNDER_CONSTRUCTION"),
             v.literal("TEMPORARILY_CLOSED")
         ),
         opening_date: v.optional(v.number()),
@@ -118,7 +118,7 @@ export default defineSchema({
         .index("by_creator", ["created_by_user_id"]),
 
     // ==================== ENTRENADORES ====================
-    
+
     trainers: defineTable({
         person_id: v.id("persons"),
         user_id: v.optional(v.id("users")), // Si el entrenador tiene cuenta de usuario
@@ -139,9 +139,9 @@ export default defineSchema({
             sunday: v.optional(v.object({ start: v.string(), end: v.string() })),
         }),
         status: v.union(
-            v.literal("ACTIVE"), 
-            v.literal("INACTIVE"), 
-            v.literal("ON_VACATION"), 
+            v.literal("ACTIVE"),
+            v.literal("INACTIVE"),
+            v.literal("ON_VACATION"),
             v.literal("SUSPENDED"),
             v.literal("TERMINATED")
         ),
@@ -155,8 +155,8 @@ export default defineSchema({
         .index("by_employee_code", ["employee_code"])
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
- 
-	// ==================== EJEMPLO SIMPLE ====================
+
+    // ==================== EJEMPLO SIMPLE ====================
     todos: defineTable({
         text: v.string(),
         completed: v.boolean(),
