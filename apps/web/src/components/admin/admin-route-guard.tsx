@@ -11,12 +11,12 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!isAuthenticated()) {
+        if (!isAuthenticated) {
             navigate({ to: "/admin/login" });
         }
     }, [isAuthenticated, navigate]);
 
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
         return null; // o un componente de loading
     }
 
