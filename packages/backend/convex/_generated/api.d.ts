@@ -16,8 +16,11 @@ import type {
 import type * as branches from "../branches.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as persons_mutations from "../persons/mutations.js";
 import type * as privateData from "../privateData.js";
 import type * as todos from "../todos.js";
+import type * as trainers_mutations from "../trainers/mutations.js";
+import type * as trainers_queries from "../trainers/queries.js";
 import type * as users from "../users.js";
 
 /**
@@ -32,8 +35,11 @@ declare const fullApi: ApiFromModules<{
   branches: typeof branches;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  "persons/mutations": typeof persons_mutations;
   privateData: typeof privateData;
   todos: typeof todos;
+  "trainers/mutations": typeof trainers_mutations;
+  "trainers/queries": typeof trainers_queries;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

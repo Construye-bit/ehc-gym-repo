@@ -14,10 +14,9 @@ export default defineSchema({
     }).index("by_email", ["email"]),
 
     persons: defineTable({
-        user_id: v.optional(v.id("users")), // Conecta con users si es necesario
+        user_id: v.id("users"), // Conecta con users si es necesario
         name: v.string(),
         last_name: v.string(),
-        phone: v.string(),
         born_date: v.string(),
         document_type: v.union(v.literal("CC"), v.literal("TI"), v.literal("CE"), v.literal("PASSPORT")),
         document_number: v.string(),
