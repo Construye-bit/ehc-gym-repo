@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { ArrowLeft, ArrowRight, User, CreditCard, Building2, Save, X, Check } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { useAction, useQuery } from "convex/react";
+import { api } from "@ehc-gym2/backend/convex/_generated/api";
 
 // ===== TIPOS =====
 interface UserData {
@@ -142,10 +145,11 @@ const Select: React.FC<SelectProps> = ({ value, onValueChange, children, classNa
 interface SelectItemProps {
     value: string;
     children: React.ReactNode;
+    disabled?: boolean;
 }
 
-const SelectItem: React.FC<SelectItemProps> = ({ value, children }) => (
-    <option value={value}>{children}</option>
+const SelectItem: React.FC<SelectItemProps> = ({ value, children, disabled = false }) => (
+    <option value={value} disabled={disabled}>{children}</option>
 );
 
 // Badge Component
@@ -280,7 +284,7 @@ const SpecialtyTags: React.FC<SpecialtyTagsProps> = ({ specialties, onAdd, onRem
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                className="text-black outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
             />
             {specialties.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -333,8 +337,13 @@ export default function NewTrainerForm() {
         specialties: [],
     });
 
+    // Usar la action completa para crear entrenador
+    const createTrainerComplete = useAction(api.trainers.mutations.createTrainerComplete);
+
+    // Obtener las sedes desde la base de datos
+    const branches = useQuery(api.branches.list);
+
     // Constantes
-    const BRANCHES: string[] = ["Tunja", "Bogotá", "Sogamoso"];
     const DOCUMENT_TYPES: Array<{ value: DocumentType; label: string }> = [
         { value: "CC", label: "Cédula de Ciudadanía" },
         { value: "TI", label: "Tarjeta de Identidad" },
@@ -413,6 +422,8 @@ export default function NewTrainerForm() {
         if (step === 3) {
             if (!workData.branch) {
                 newErrors.branch = 'La sede es requerida';
+            } else if (branches && !branches.some(branch => branch.name === workData.branch && branch.status === "ACTIVE")) {
+                newErrors.branch = 'La sede seleccionada no está disponible';
             }
         }
 
@@ -438,20 +449,30 @@ export default function NewTrainerForm() {
 
         setIsLoading(true);
         try {
-            // Simular llamada a API
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const formData = {
-                ...userData,
-                ...personalData,
-                ...workData,
-            };
-
-            console.log('Datos del nuevo entrenador:', formData);
-            alert('¡Entrenador creado exitosamente!');
-
+            // Usar la mutation completa
+            const result = await createTrainerComplete({
+                userData: {
+                    userName: userData.userName,
+                    userEmail: userData.userEmail,
+                    userPhone: userData.userPhone,
+                },
+                personalData: {
+                    personName: personalData.personName,
+                    personLastName: personalData.personLastName,
+                    personBornDate: personalData.personBornDate,
+                    personDocumentType: personalData.personDocumentType,
+                    personDocumentNumber: personalData.personDocumentNumber,
+                },
+                workData: {
+                    branch: workData.branch,
+                    specialties: workData.specialties,
+                },
+            });
+            if (!result?.success) throw new Error(result?.data?.message || "No se pudo crear el entrenador");
+            toast.success(result.data?.message || '¡Entrenador creado exitosamente!');
         } catch (error) {
             console.error('Error al crear entrenador:', error);
+            toast.error('Error al crear entrenador');
         } finally {
             setIsLoading(false);
         }
@@ -474,6 +495,7 @@ export default function NewTrainerForm() {
                                 error={errors.userName}
                             >
                                 <Input
+                                    className="text-black"
                                     placeholder="usuario123"
                                     value={userData.userName}
                                     onChange={(e) => updateUserData('userName', e.target.value)}
@@ -487,6 +509,7 @@ export default function NewTrainerForm() {
                                 error={errors.userEmail}
                             >
                                 <Input
+                                    className="text-black"
                                     type="email"
                                     placeholder="usuario@example.com"
                                     value={userData.userEmail}
@@ -497,6 +520,7 @@ export default function NewTrainerForm() {
 
                             <FormField label="Número de celular">
                                 <Input
+                                    className="text-black"
                                     placeholder="300 123 4567"
                                     value={userData.userPhone}
                                     onChange={(e) => updateUserData('userPhone', e.target.value)}
@@ -520,6 +544,7 @@ export default function NewTrainerForm() {
                                 error={errors.personName}
                             >
                                 <Input
+                                    className="text-black"
                                     placeholder="Juan"
                                     value={personalData.personName}
                                     onChange={(e) => updatePersonalData('personName', e.target.value)}
@@ -533,6 +558,7 @@ export default function NewTrainerForm() {
                                 error={errors.personLastName}
                             >
                                 <Input
+                                    className="text-black"
                                     placeholder="Pérez"
                                     value={personalData.personLastName}
                                     onChange={(e) => updatePersonalData('personLastName', e.target.value)}
@@ -546,6 +572,7 @@ export default function NewTrainerForm() {
                                 error={errors.personBornDate}
                             >
                                 <Input
+                                    className="text-black"
                                     type="date"
                                     value={personalData.personBornDate}
                                     onChange={(e) => updatePersonalData('personBornDate', e.target.value)}
@@ -572,6 +599,7 @@ export default function NewTrainerForm() {
                                 error={errors.personDocumentNumber}
                             >
                                 <Input
+                                    className="text-black"
                                     placeholder="12345678"
                                     value={personalData.personDocumentNumber}
                                     onChange={(e) => updatePersonalData('personDocumentNumber', e.target.value)}
@@ -601,11 +629,23 @@ export default function NewTrainerForm() {
                                     error={!!errors.branch}
                                 >
                                     <SelectItem value="">Selecciona una sede</SelectItem>
-                                    {BRANCHES.map((branch) => (
-                                        <SelectItem key={branch} value={branch}>
-                                            {branch}
+                                    {branches === undefined ? (
+                                        <SelectItem value="" disabled>
+                                            Cargando sedes...
                                         </SelectItem>
-                                    ))}
+                                    ) : branches.filter(branch => branch.status === "ACTIVE").length === 0 ? (
+                                        <SelectItem value="" disabled>
+                                            No hay sedes disponibles
+                                        </SelectItem>
+                                    ) : (
+                                        branches
+                                            .filter(branch => branch.status === "ACTIVE")
+                                            .map((branch) => (
+                                                <SelectItem key={branch._id} value={branch.name}>
+                                                    {branch.name}
+                                                </SelectItem>
+                                            ))
+                                    )}
                                 </Select>
                             </FormField>
 

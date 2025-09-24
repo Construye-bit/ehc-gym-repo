@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const addBranch = mutation({
@@ -33,7 +33,7 @@ export const addBranch = mutation({
         // Verificar si el usuario tiene rol de SUPER_ADMIN
         const roleAssignment = await ctx.db
             .query("role_assignments")
-            .filter((q) => 
+            .filter((q) =>
                 q.and(
                     q.eq(q.field("user_id"), user._id),
                     q.eq(q.field("role"), "SUPER_ADMIN"),
@@ -70,5 +70,12 @@ export const addBranch = mutation({
             branchId,
             message: "Sede creada exitosamente"
         };
+    },
+});
+
+export const list = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("branches").collect();
     },
 });

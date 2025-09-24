@@ -2,20 +2,26 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { api } from "@ehc-gym2/backend/convex/_generated/api";
 
 
 // Tipos
 interface Trainer {
-    id: string;
-    name: string;
-    last_name: string;
+    _id: string;
     employee_code: string;
-    phone: string;
-    branch: string;
     status: 'ACTIVE' | 'INACTIVE' | 'ON_VACATION';
-    hire_date: string;
+    hire_date: number;
+    person?: {
+        name: string;
+        last_name: string;
+        document_type: string;
+        document_number: string;
+    } | null;
+    branch?: {
+        name: string;
+    } | null;
 }
 
 type TrainerStatus = Trainer['status'];
@@ -34,17 +40,6 @@ const STATUS_LABELS: Record<TrainerStatus, string> = {
     ON_VACATION: "De Vacaciones"
 };
 
-// Datos mock
-const MOCK_TRAINERS: Trainer[] = Array.from({ length: 23 }).map((_, i) => ({
-    id: `trainer_${i + 1}`,
-    name: `Nombre ${i + 1}`,
-    last_name: `Apellido ${i + 1}`,
-    employee_code: `EMP${1000 + i}`,
-    phone: `30012345${String(i).padStart(2, "0")}`,
-    branch: `Sede ${((i % 3) + 1)}`,
-    status: (["ACTIVE", "INACTIVE", "ON_VACATION"] as const)[i % 3],
-    hire_date: "2023-01-01",
-}));
 
 // Componente de fila de entrenador
 interface TrainerRowProps {
@@ -54,18 +49,18 @@ interface TrainerRowProps {
 
 const TrainerRow: React.FC<TrainerRowProps> = ({ trainer, onViewTrainer }) => {
     return (
-        <tr key={trainer.id} className="hover:bg-yellow-50 transition-colors">
+        <tr key={trainer._id} className="hover:bg-yellow-50 transition-colors">
             <td className="px-4 py-3 text-sm font-mono text-gray-900">
                 {trainer.employee_code}
             </td>
             <td className="px-4 py-3 text-sm text-gray-900">
-                {trainer.name} {trainer.last_name}
+                {trainer.person ? `${trainer.person.name} ${trainer.person.last_name}` : "-"}
             </td>
             <td className="px-4 py-3 text-sm text-gray-600">
-                {trainer.phone}
+                {trainer.person ? trainer.person.document_number : "-"}
             </td>
             <td className="px-4 py-3 text-sm text-gray-600">
-                {trainer.branch}
+                {trainer.branch ? trainer.branch.name : "-"}
             </td>
             <td className="px-4 py-3 text-sm">
                 <span className={STATUS_STYLES[trainer.status]}>
@@ -73,7 +68,7 @@ const TrainerRow: React.FC<TrainerRowProps> = ({ trainer, onViewTrainer }) => {
                 </span>
             </td>
             <td className="px-4 py-3 text-sm text-gray-600">
-                {new Date(trainer.hire_date).toLocaleDateString('es-ES')}
+                {trainer.hire_date ? new Date(trainer.hire_date).toLocaleDateString('es-ES') : "-"}
             </td>
             <td className="px-4 py-3 text-right">
                 <Button
@@ -165,12 +160,14 @@ interface PaginationProps {
     currentPage: number;
     totalPages: number;
     onPageChange: (page: number) => void;
+    trainers: Trainer[];
 }
 
 const Pagination: React.FC<PaginationProps> = ({
     currentPage,
     totalPages,
     onPageChange,
+    trainers,
 }) => {
     return (
         <div className="flex justify-between items-center py-4 px-6 border-t border-gray-200">
@@ -201,9 +198,9 @@ const Pagination: React.FC<PaginationProps> = ({
             </div>
 
             <div className="text-sm text-gray-500">
-                Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, MOCK_TRAINERS.length)} -{" "}
-                {Math.min(currentPage * PAGE_SIZE, MOCK_TRAINERS.length)} de{" "}
-                {MOCK_TRAINERS.length} entrenadores
+                Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, trainers.length)} -{" "}
+                {Math.min(currentPage * PAGE_SIZE, trainers.length)} de{" "}
+                {trainers.length} entrenadores
             </div>
         </div>
     );
@@ -211,11 +208,12 @@ const Pagination: React.FC<PaginationProps> = ({
 
 // Componente principal
 export function TrainersManagementContent() {
+    const trainers = useQuery(api.trainers.queries.getAllWithDetails, {}) ?? [];
+    console.log("Entrenadores desde Convex:", trainers);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const totalPages = Math.ceil(MOCK_TRAINERS.length / PAGE_SIZE);
-    const currentTrainers = MOCK_TRAINERS.slice(
+    const PAGE_SIZE = 8;
+    const totalPages = Math.ceil(trainers.length / PAGE_SIZE);
+    const currentTrainers = trainers.slice(
         (currentPage - 1) * PAGE_SIZE,
         currentPage * PAGE_SIZE
     );
@@ -227,12 +225,7 @@ export function TrainersManagementContent() {
 
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
-            setIsLoading(true);
-            // Simular carga
-            setTimeout(() => {
-                setCurrentPage(page);
-                setIsLoading(false);
-            }, 300);
+            setCurrentPage(page);
         }
     };
 
@@ -266,12 +259,12 @@ export function TrainersManagementContent() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <TableHeader />
                         <tbody className="bg-white divide-y divide-gray-100">
-                            {isLoading ? (
+                            {trainers === undefined ? (
                                 <LoadingState />
                             ) : currentTrainers.length > 0 ? (
                                 currentTrainers.map((trainer) => (
                                     <TrainerRow
-                                        key={trainer.id}
+                                        key={trainer._id}
                                         trainer={trainer}
                                         onViewTrainer={handleViewTrainer}
                                     />
@@ -282,13 +275,12 @@ export function TrainersManagementContent() {
                         </tbody>
                     </table>
                 </div>
-
-                {/* Paginación */}
                 {totalPages > 1 && (
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={handlePageChange}
+                        trainers={trainers}
                     />
                 )}
             </Card>

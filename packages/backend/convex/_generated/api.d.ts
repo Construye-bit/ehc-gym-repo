@@ -19,8 +19,10 @@ import type * as http from "../http.js";
 import type * as persons_mutations from "../persons/mutations.js";
 import type * as privateData from "../privateData.js";
 import type * as todos from "../todos.js";
+import type * as trainers_errors from "../trainers/errors.js";
 import type * as trainers_mutations from "../trainers/mutations.js";
 import type * as trainers_queries from "../trainers/queries.js";
+import type * as trainers_utils from "../trainers/utils.js";
 import type * as users from "../users.js";
 
 /**
@@ -38,8 +40,10 @@ declare const fullApi: ApiFromModules<{
   "persons/mutations": typeof persons_mutations;
   privateData: typeof privateData;
   todos: typeof todos;
+  "trainers/errors": typeof trainers_errors;
   "trainers/mutations": typeof trainers_mutations;
   "trainers/queries": typeof trainers_queries;
+  "trainers/utils": typeof trainers_utils;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

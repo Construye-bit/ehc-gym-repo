@@ -11,7 +11,9 @@ export default defineSchema({
         phone: v.optional(v.string()),
         updated_at: v.number(),
         active: v.boolean(),
-    }).index("by_email", ["email"]),
+    })
+        .index("by_email", ["email"])
+        .index("by_clerk_id", ["clerk_id"]), // <-- agrega este índice
 
     persons: defineTable({
         user_id: v.id("users"), // Conecta con users si es necesario
@@ -121,14 +123,14 @@ export default defineSchema({
     trainers: defineTable({
         person_id: v.id("persons"),
         user_id: v.optional(v.id("users")), // Si el entrenador tiene cuenta de usuario
-        branch_id: v.id("branches"),
+        branch_id: v.optional(v.id("branches")),
         employee_code: v.string(), // Código único de empleado
         specialties: v.array(v.string()), // ["Yoga", "CrossFit", "Pilates"]
         hire_date: v.number(),
         contract_end_date: v.optional(v.number()),
         salary: v.optional(v.number()),
         hourly_rate: v.optional(v.number()),
-        work_schedule: v.object({
+        work_schedule: v.optional(v.object({
             monday: v.optional(v.object({ start: v.string(), end: v.string() })),
             tuesday: v.optional(v.object({ start: v.string(), end: v.string() })),
             wednesday: v.optional(v.object({ start: v.string(), end: v.string() })),
@@ -136,13 +138,11 @@ export default defineSchema({
             friday: v.optional(v.object({ start: v.string(), end: v.string() })),
             saturday: v.optional(v.object({ start: v.string(), end: v.string() })),
             sunday: v.optional(v.object({ start: v.string(), end: v.string() })),
-        }),
+        })),
         status: v.union(
             v.literal("ACTIVE"),
             v.literal("INACTIVE"),
             v.literal("ON_VACATION"),
-            v.literal("SUSPENDED"),
-            v.literal("TERMINATED")
         ),
         created_at: v.number(),
         updated_at: v.number(),
