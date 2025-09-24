@@ -1,0 +1,61 @@
+// convex/emails/sender.ts
+import { action } from "../_generated/server";
+import { v } from "convex/values";
+import { Resend } from 'resend';
+import { getWelcomeTrainerEmailTemplate } from './templates';
+
+export const sendWelcomeTrainerEmail = action({
+    args: {
+        trainerName: v.string(),
+        email: v.string(),
+        temporaryPassword: v.string(),
+        employeeCode: v.string(),
+    },
+    handler: async (ctx, { trainerName, email, temporaryPassword, employeeCode }) => {
+        // Verificar que la clave de Resend esté configurada
+        const resendApiKey = process.env.RESEND_API_KEY;
+        if (!resendApiKey) {
+            throw new Error("RESEND_API_KEY no está configurado en las variables de entorno");
+        }
+
+        const resend = new Resend(resendApiKey);
+
+        try {
+            console.log(`Enviando email de bienvenida a: ${email}`);
+
+            const emailTemplate = getWelcomeTrainerEmailTemplate(
+                trainerName,
+                email,
+                temporaryPassword,
+                employeeCode
+            );
+
+            const result = await resend.emails.send({
+                from: process.env.FROM_EMAIL || 'EHC Gym <noreply@ehcgym.com>',
+                to: [email],
+                subject: emailTemplate.subject,
+                html: emailTemplate.html,
+                text: emailTemplate.text,
+            });
+
+            console.log(`Email enviado exitosamente:`, result);
+
+            return {
+                success: true,
+                emailId: result.data?.id,
+                message: "Email de bienvenida enviado exitosamente"
+            };
+
+        } catch (error) {
+            console.error("Error enviando email:", error);
+
+            // No lanzar error para que no falle la creación del entrenador
+            // Solo loggear el error y continuar
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : "Error desconocido al enviar email",
+                message: "Error al enviar email de bienvenida"
+            };
+        }
+    },
+});

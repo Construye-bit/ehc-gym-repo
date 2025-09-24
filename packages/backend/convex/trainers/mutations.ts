@@ -5,6 +5,8 @@ import { createClerkClient } from '@clerk/backend';
 import { AuthError, AccessDeniedError, UserNotFoundError } from "./errors";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
+import { Resend } from 'resend';
+import { getWelcomeTrainerEmailTemplate } from '../emails/templates';
 
 export const createTrainerComplete = action({
     args: {
@@ -143,7 +145,47 @@ export const createTrainerComplete = action({
                 role: "TRAINER",
                 assigned_by_user_id: assignedByUserId,
             });
-            return {
+
+            // Enviar email de bienvenida con credenciales
+            console.log("Paso 8: Enviando email de bienvenida...");
+            try {
+                // Verificar que la clave de Resend esté configurada
+                const resendApiKey = process.env.RESEND_API_KEY;
+                if (!resendApiKey) {
+                    console.log("Advertencia: RESEND_API_KEY no está configurado, saltando envío de email");
+                } else {
+                    const resend = new Resend(resendApiKey);
+                    const trainerName = `${personalData.personName} ${personalData.personLastName}`;
+
+                    console.log(`Enviando email de bienvenida a: ${userData.userEmail}`);
+
+                    const emailTemplate = getWelcomeTrainerEmailTemplate(
+                        trainerName,
+                        userData.userEmail,
+                        temporaryPassword,
+                        employeeCode
+                    );
+
+                    const result = await resend.emails.send({
+                        from: process.env.FROM_EMAIL || 'EHC Gym <onboarding@resend.dev>',
+                        to: [userData.userEmail],
+                        subject: emailTemplate.subject,
+                        html: emailTemplate.html,
+                        text: emailTemplate.text,
+                    });
+
+                    if (result.data) {
+                        console.log(`Email enviado exitosamente con ID: ${result.data.id}`);
+                    } else if (result.error) {
+                        console.log(`Error al enviar email:`, result.error);
+                    } else {
+                        console.log(`Email enviado, respuesta:`, result);
+                    }
+                }
+            } catch (emailError) {
+                console.error("Error enviando email de bienvenida:", emailError);
+                // No fallar la creación del entrenador por error de email
+            } return {
                 success: true,
                 data: {
                     trainerId,
