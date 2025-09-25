@@ -14,8 +14,10 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminTrainersIndexRouteImport } from './routes/admin/trainers/index'
 import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
 import { Route as AdminPersonalIndexRouteImport } from './routes/admin/personal/index'
+import { Route as AdminTrainersNewRouteImport } from './routes/admin/trainers/new'
 
 const TodosRoute = TodosRouteImport.update({
   id: '/todos',
@@ -42,6 +44,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/admin/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTrainersIndexRoute = AdminTrainersIndexRouteImport.update({
+  id: '/admin/trainers/',
+  path: '/admin/trainers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSedesIndexRoute = AdminSedesIndexRouteImport.update({
   id: '/admin/sedes/',
   path: '/admin/sedes/',
@@ -52,6 +59,11 @@ const AdminPersonalIndexRoute = AdminPersonalIndexRouteImport.update({
   path: '/admin/personal/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTrainersNewRoute = AdminTrainersNewRouteImport.update({
+  id: '/admin/trainers/new',
+  path: '/admin/trainers/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,8 +71,10 @@ export interface FileRoutesByFullPath {
   '/todos': typeof TodosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
+  '/admin/trainers': typeof AdminTrainersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,8 +82,10 @@ export interface FileRoutesByTo {
   '/todos': typeof TodosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
+  '/admin/trainers': typeof AdminTrainersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,8 +94,10 @@ export interface FileRoutesById {
   '/todos': typeof TodosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal/': typeof AdminPersonalIndexRoute
   '/admin/sedes/': typeof AdminSedesIndexRoute
+  '/admin/trainers/': typeof AdminTrainersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,8 +107,10 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/trainers/new'
     | '/admin/personal'
     | '/admin/sedes'
+    | '/admin/trainers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,8 +118,10 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/trainers/new'
     | '/admin/personal'
     | '/admin/sedes'
+    | '/admin/trainers'
   id:
     | '__root__'
     | '/'
@@ -107,8 +129,10 @@ export interface FileRouteTypes {
     | '/todos'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/trainers/new'
     | '/admin/personal/'
     | '/admin/sedes/'
+    | '/admin/trainers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,8 +141,10 @@ export interface RootRouteChildren {
   TodosRoute: typeof TodosRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminTrainersNewRoute: typeof AdminTrainersNewRoute
   AdminPersonalIndexRoute: typeof AdminPersonalIndexRoute
   AdminSedesIndexRoute: typeof AdminSedesIndexRoute
+  AdminTrainersIndexRoute: typeof AdminTrainersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/trainers/': {
+      id: '/admin/trainers/'
+      path: '/admin/trainers'
+      fullPath: '/admin/trainers'
+      preLoaderRoute: typeof AdminTrainersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/sedes/': {
       id: '/admin/sedes/'
       path: '/admin/sedes'
@@ -172,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPersonalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/trainers/new': {
+      id: '/admin/trainers/new'
+      path: '/admin/trainers/new'
+      fullPath: '/admin/trainers/new'
+      preLoaderRoute: typeof AdminTrainersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -181,8 +221,10 @@ const rootRouteChildren: RootRouteChildren = {
   TodosRoute: TodosRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminTrainersNewRoute: AdminTrainersNewRoute,
   AdminPersonalIndexRoute: AdminPersonalIndexRoute,
   AdminSedesIndexRoute: AdminSedesIndexRoute,
+  AdminTrainersIndexRoute: AdminTrainersIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

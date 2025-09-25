@@ -1,5 +1,4 @@
 import {
-    mutation,
     query,
     internalMutation,
     internalQuery,
@@ -118,7 +117,7 @@ export async function userQuery(
 ): Promise<Doc<"users"> | null> {
     return await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", clerkUserId))
+        .withIndex("by_clerk_id", (q) => q.eq("clerk_id", clerkUserId))
         .unique();
 }
 
