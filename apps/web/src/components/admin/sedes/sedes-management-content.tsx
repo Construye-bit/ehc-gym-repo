@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { SedeCard } from "./sede-card";
 import { DeleteSedeConfirmDialog } from "./delete-sede-confirm-dialog";
+import { AddSedeModal } from "./add-sede-modal";
 import { useState } from "react";
-// import { AddSedeModal } from "./add-sede-modal";
 // import { EditSedeModal } from "./edit-sede-modal";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
@@ -29,6 +29,7 @@ export function SedesManagementContent() {
     const [deletingSedeId, setDeletingSedeId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [sedeToDelete, setSedeToDelete] = useState<SedeData | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Consumir la query real de branches
     const branchesData = useQuery(api.branches.queries.getAllWithDetails);
@@ -54,8 +55,7 @@ export function SedesManagementContent() {
     })) || [];
 
     const handleAddSede = () => {
-        // TODO: Implementar mutación para agregar sede
-        alert("Función de agregar sede en desarrollo");
+        setIsAddModalOpen(true);
     };
 
     const handleEditSede = (id: string) => {
@@ -173,14 +173,14 @@ export function SedesManagementContent() {
                 isDeleting={deletingSedeId !== null}
             />
 
-            {/* Modals - Temporalmente deshabilitados hasta implementar las mutaciones */}
-            {/* 
+            {/* Add Sede Modal */}
             <AddSedeModal
                 isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onAdd={handleAddSede}
+                onOpenChange={setIsAddModalOpen}
             />
 
+            {/* Edit Modal - Temporalmente deshabilitado hasta implementar */}
+            {/* 
             <EditSedeModal
                 isOpen={isEditModalOpen}
                 onClose={handleCloseEditModal}
