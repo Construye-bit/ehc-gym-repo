@@ -71,7 +71,7 @@ export default function NewTrainerForm() {
     // Hooks
     const navigate = useNavigate();
     const createTrainerComplete = useAction(api.trainers.mutations.createTrainerComplete);
-    const branches = useQuery(api.branches.list);
+    const branches = useQuery(api.branches.queries.list);
 
     // Constantes
     const DOCUMENT_TYPES: Array<{ value: DocumentType; label: string }> = [

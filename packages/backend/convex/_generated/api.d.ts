@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as branches_errors from "../branches/errors.js";
+import type * as branches_mutations from "../branches/mutations.js";
 import type * as branches_queries from "../branches/queries.js";
 import type * as branches_utils from "../branches/utils.js";
 import type * as emails_sender from "../emails/sender.js";
@@ -39,6 +40,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   "branches/errors": typeof branches_errors;
+  "branches/mutations": typeof branches_mutations;
   "branches/queries": typeof branches_queries;
   "branches/utils": typeof branches_utils;
   "emails/sender": typeof emails_sender;

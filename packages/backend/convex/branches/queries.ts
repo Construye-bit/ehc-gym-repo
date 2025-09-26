@@ -93,3 +93,10 @@ export const getAllWithDetails = query({
         return branchesWithDetails;
     },
 });
+
+export const list = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("branches").collect();
+    },
+});
