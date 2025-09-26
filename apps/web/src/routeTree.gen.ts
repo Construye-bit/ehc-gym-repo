@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminForgotPasswordRouteImport } from './routes/admin/forgot-password'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminTrainersIndexRouteImport } from './routes/admin/trainers/index'
 import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminForgotPasswordRoute = AdminForgotPasswordRouteImport.update({
+  id: '/admin/forgot-password',
+  path: '/admin/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal/': typeof AdminPersonalIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/admin/dashboard'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/trainers/new'
     | '/admin/personal'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/admin/dashboard'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/trainers/new'
     | '/admin/personal'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/admin/dashboard'
+    | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/trainers/new'
     | '/admin/personal/'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminTrainersNewRoute: typeof AdminTrainersNewRoute
   AdminPersonalIndexRoute: typeof AdminPersonalIndexRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/forgot-password': {
+      id: '/admin/forgot-password'
+      path: '/admin/forgot-password'
+      fullPath: '/admin/forgot-password'
+      preLoaderRoute: typeof AdminForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/dashboard': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminTrainersNewRoute: AdminTrainersNewRoute,
   AdminPersonalIndexRoute: AdminPersonalIndexRoute,
