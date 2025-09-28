@@ -203,7 +203,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold text-gray-900">
+                        <DialogTitle className="text-2xl font-bold text-white">
                             Añadir Nueva Sede
                         </DialogTitle>
                     </DialogHeader>
@@ -244,7 +244,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Ubicación */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <MapPin className="h-5 w-5" />
                                 Ubicación
                             </h3>
@@ -349,7 +349,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Horarios y Capacidad */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
                                 Horarios y Capacidad
                             </h3>
@@ -407,7 +407,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Servicios */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Servicios Disponibles</h3>
+                            <h3 className="text-lg font-semibold text-white">Servicios Disponibles</h3>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {Object.entries({

@@ -18,6 +18,7 @@ import { Route as AdminTrainersIndexRouteImport } from './routes/admin/trainers/
 import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
 import { Route as AdminPersonalIndexRouteImport } from './routes/admin/personal/index'
 import { Route as AdminTrainersNewRouteImport } from './routes/admin/trainers/new'
+import { Route as AdminTrainersEditRouteImport } from './routes/admin/trainers/edit'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -64,6 +65,11 @@ const AdminTrainersNewRoute = AdminTrainersNewRouteImport.update({
   path: '/admin/trainers/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTrainersEditRoute = AdminTrainersEditRouteImport.update({
+  id: '/admin/trainers/edit',
+  path: '/admin/trainers/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal': typeof AdminPersonalIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
   '/admin/trainers/new': typeof AdminTrainersNewRoute
   '/admin/personal/': typeof AdminPersonalIndexRoute
   '/admin/sedes/': typeof AdminSedesIndexRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/forgot-password'
     | '/admin/login'
+    | '/admin/trainers/edit'
     | '/admin/trainers/new'
     | '/admin/personal'
     | '/admin/sedes'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/forgot-password'
     | '/admin/login'
+    | '/admin/trainers/edit'
     | '/admin/trainers/new'
     | '/admin/personal'
     | '/admin/sedes'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/forgot-password'
     | '/admin/login'
+    | '/admin/trainers/edit'
     | '/admin/trainers/new'
     | '/admin/personal/'
     | '/admin/sedes/'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminTrainersEditRoute: typeof AdminTrainersEditRoute
   AdminTrainersNewRoute: typeof AdminTrainersNewRoute
   AdminPersonalIndexRoute: typeof AdminPersonalIndexRoute
   AdminSedesIndexRoute: typeof AdminSedesIndexRoute
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTrainersNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/trainers/edit': {
+      id: '/admin/trainers/edit'
+      path: '/admin/trainers/edit'
+      fullPath: '/admin/trainers/edit'
+      preLoaderRoute: typeof AdminTrainersEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
   AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminTrainersEditRoute: AdminTrainersEditRoute,
   AdminTrainersNewRoute: AdminTrainersNewRoute,
   AdminPersonalIndexRoute: AdminPersonalIndexRoute,
   AdminSedesIndexRoute: AdminSedesIndexRoute,

@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2 } from "lucide-react";
+import { TrainerDetailsModal } from "./trainer-details-modal";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -294,8 +295,11 @@ const Pagination: React.FC<PaginationProps> = ({
 export function TrainersManagementContent() {
     const trainers = useQuery(api.trainers.queries.getAllWithDetails, {}) ?? [];
     const deleteTrainerAction = useAction(api.trainers.mutations.deleteTrainerComplete);
+    const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [deletingTrainerId, setDeletingTrainerId] = useState<Id<"trainers"> | null>(null);
+    const [selectedTrainerId, setSelectedTrainerId] = useState<Id<"trainers"> | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const PAGE_SIZE = 8;
     const totalPages = Math.ceil(trainers.length / PAGE_SIZE);
     const currentTrainers = trainers.slice(
@@ -304,14 +308,15 @@ export function TrainersManagementContent() {
     );
 
     const handleViewTrainer = (trainer: Trainer) => {
-        console.log('Ver entrenador:', trainer);
-        // Aquí iría la lógica para ver el detalle del entrenador
+        setSelectedTrainerId(trainer._id);
+        setIsDetailsModalOpen(true);
     };
 
     const handleEditTrainer = (trainer: Trainer) => {
-        console.log('Editar entrenador:', trainer);
-        // Aquí iría la lógica para editar el entrenador
-        // Por ejemplo: navigate a la página de edición
+        navigate({
+            to: '/admin/trainers/edit',
+            search: { trainerId: trainer._id }
+        });
     };
 
     const handleDeleteTrainer = async (trainer: Trainer) => {
@@ -355,6 +360,11 @@ export function TrainersManagementContent() {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
+    };
+
+    const handleCloseDetailsModal = () => {
+        setIsDetailsModalOpen(false);
+        setSelectedTrainerId(null);
     };
 
     return (
@@ -415,6 +425,13 @@ export function TrainersManagementContent() {
                     />
                 )}
             </Card>
+
+            {/* Modal de detalles del entrenador */}
+            <TrainerDetailsModal
+                trainerId={selectedTrainerId}
+                isOpen={isDetailsModalOpen}
+                onClose={handleCloseDetailsModal}
+            />
         </div>
     );
 }

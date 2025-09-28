@@ -46,7 +46,7 @@ export function DeleteSedeConfirmDialog({
                     </div>
                     <AlertDialogDescription className="text-left">
                         ¿Estás seguro de que quieres eliminar la sede{" "}
-                        <span className="font-semibold text-gray-900">"{sedeName}"</span>?
+                        <span className="font-semibold text-white">"{sedeName}"</span>?
                         <br />
                         <br />
                         <span className="text-red-600 font-medium">
@@ -65,7 +65,7 @@ export function DeleteSedeConfirmDialog({
                     <AlertDialogAction
                         onClick={handleConfirm}
                         disabled={isDeleting}
-                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white"
                     >
                         {isDeleting ? (
                             <>

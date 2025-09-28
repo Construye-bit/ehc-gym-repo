@@ -115,7 +115,7 @@ export function AddCityModal({ isOpen, onOpenChange, onCityAdded }: AddCityModal
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
                         Añadir Nueva Ciudad
                     </DialogTitle>

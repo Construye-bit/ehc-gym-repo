@@ -386,6 +386,250 @@ function generateSecurePassword(): string {
     return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
+// ===== MUTACIONES DE EDICIÓN =====
+
+// Action para editar trainer completo (incluyendo actualización en Clerk)
+export const updateTrainerComplete = action({
+    args: {
+        trainerId: v.id("trainers"),
+        userData: v.object({
+            userName: v.string(),
+            userEmail: v.string(),
+            userPhone: v.optional(v.string()),
+        }),
+        personalData: v.object({
+            personName: v.string(),
+            personLastName: v.string(),
+            personBornDate: v.string(),
+            personDocumentType: v.string(),
+            personDocumentNumber: v.string(),
+        }),
+        workData: v.object({
+            branch: v.string(),
+            specialties: v.array(v.string()),
+        }),
+    },
+    handler: async (ctx, { trainerId, userData, personalData, workData }): Promise<{
+        success: boolean;
+        message: string;
+    }> => {
+        // Validar datos de entrada con Zod
+        const validatedUserData = validateWithZod(userDataSchema, userData, "userData");
+        const validatedPersonalData = validateWithZod(personalDataSchema, personalData, "personalData");
+        const validatedWorkData = validateWithZod(workDataSchema, workData, "workData");
+
+        // Verificar autenticación y permisos de admin
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new AuthError();
+        }
+
+        // Verificar que es admin
+        const adminCheck = await ctx.runQuery(api.trainers.queries.checkAdminPermissions, {
+            clerk_id: identity.subject
+        });
+
+        if (!adminCheck.hasPermission) {
+            throw new AccessDeniedError();
+        }
+
+        // Obtener datos actuales del trainer
+        const currentData = await ctx.runMutation(internal.trainers.mutations.getTrainerUserData, {
+            trainerId
+        });
+
+        const { trainer, person, user } = currentData;
+
+        // Verificar que la clave secreta de Clerk esté disponible
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (!clerkSecretKey) {
+            throw new Error("CLERK_SECRET_KEY no está configurado en las variables de entorno");
+        }
+
+        const clerkClient = createClerkClient({
+            secretKey: clerkSecretKey
+        });
+
+        try {
+            // No se permite cambiar el email - mantener el email original
+            // if (validatedUserData.userEmail !== user.email) {
+            //     const existingUsers = await clerkClient.users.getUserList({
+            //         emailAddress: [validatedUserData.userEmail]
+            //     });
+
+            //     if (existingUsers.data.length > 0) {
+            //         throw new AccessDeniedError("Ya existe otro usuario con este correo electrónico");
+            //     }
+            // }
+
+            // Verificar si el nuevo número de documento ya existe (solo si cambió)
+            if (validatedPersonalData.personDocumentNumber !== person.document_number) {
+                const existingPerson = await ctx.runQuery(api.trainers.queries.checkPersonByDocument, {
+                    document_number: validatedPersonalData.personDocumentNumber
+                });
+
+                if (existingPerson && existingPerson._id !== person._id) {
+                    throw new AccessDeniedError("Ya existe otra persona con este número de documento");
+                }
+            }
+
+            // 1. Actualizar usuario en Clerk (solo nombre y apellido, no email ni username)
+            const clerkUpdateData: any = {
+                firstName: validatedPersonalData.personName,
+                lastName: validatedPersonalData.personLastName,
+            };
+
+            // No se permite actualizar email ni username en edición
+            // Solo actualizar nombre y apellido
+
+            await clerkClient.users.updateUser(user.clerk_id, clerkUpdateData);
+
+            // 2. Actualizar usuario en Convex (mantener el email original)
+            await ctx.runMutation(internal.trainers.mutations.updateUserInDB, {
+                userId: user._id,
+                name: `${validatedPersonalData.personName} ${validatedPersonalData.personLastName}`,
+                email: user.email, // Mantener el email original
+            });
+
+            // 3. Actualizar persona en Convex
+            await ctx.runMutation(internal.trainers.mutations.updatePersonInDB, {
+                personId: person._id,
+                name: validatedPersonalData.personName,
+                last_name: validatedPersonalData.personLastName,
+                born_date: validatedPersonalData.personBornDate,
+                phone: validatedUserData.userPhone,
+                document_type: validatedPersonalData.personDocumentType,
+                document_number: validatedPersonalData.personDocumentNumber,
+            });
+
+            // 4. Obtener y validar nueva branch (solo si cambió)
+            if (!trainer.branch_id) {
+                throw new Error("El entrenador no tiene una sede asignada");
+            }
+
+            const currentBranch = await ctx.runQuery(api.trainers.queries.getBranchById, {
+                branchId: trainer.branch_id
+            });
+
+            let newBranchId = trainer.branch_id;
+            if (validatedWorkData.branch !== currentBranch?.name) {
+                const newBranch = await ctx.runQuery(api.trainers.queries.getBranchByName, {
+                    name: validatedWorkData.branch
+                });
+
+                if (!newBranch) {
+                    throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
+                }
+                newBranchId = newBranch._id;
+            }
+
+            // 5. Actualizar trainer - solo si newBranchId no es undefined
+            if (newBranchId) {
+                await ctx.runMutation(internal.trainers.mutations.updateTrainerInDB, {
+                    trainerId: trainer._id,
+                    branch_id: newBranchId,
+                    specialties: validatedWorkData.specialties,
+                });
+            } else {
+                throw new Error("No se pudo determinar la sede del entrenador");
+            }
+
+            return {
+                success: true,
+                message: `Entrenador ${validatedPersonalData.personName} ${validatedPersonalData.personLastName} actualizado exitosamente`
+            };
+
+        } catch (error) {
+            console.error("Error updating trainer:", error);
+
+            // Si es un error conocido, lanzarlo tal como está
+            if (error instanceof AuthError || error instanceof AccessDeniedError) {
+                throw error;
+            }
+
+            // Mejor manejo de errores de Clerk
+            if (error && typeof error === "object" && "errors" in error) {
+                const clerkError = error as any;
+                if (clerkError.errors && Array.isArray(clerkError.errors) && clerkError.errors.length > 0) {
+                    const firstError = clerkError.errors[0];
+                    throw new Error(`Error de Clerk: ${firstError.message || firstError.longMessage || "Error desconocido"}`);
+                }
+            }
+
+            // Manejo de errores estándar
+            let errorMessage = "Error desconocido";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "string") {
+                errorMessage = error;
+            } else if (error && typeof error === "object" && "message" in error) {
+                errorMessage = (error as { message: string }).message;
+            } else {
+                errorMessage = JSON.stringify(error);
+            }
+
+            throw new Error(`Error al actualizar entrenador: ${errorMessage}`);
+        }
+    },
+});
+
+// Mutaciones internas auxiliares para actualización
+export const updateUserInDB = internalMutation({
+    args: {
+        userId: v.id("users"),
+        name: v.string(),
+        email: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.userId, {
+            name: args.name,
+            email: args.email,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
+export const updatePersonInDB = internalMutation({
+    args: {
+        personId: v.id("persons"),
+        name: v.string(),
+        last_name: v.string(),
+        born_date: v.string(),
+        document_type: v.string(),
+        document_number: v.string(),
+        phone: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.personId, {
+            name: args.name,
+            last_name: args.last_name,
+            born_date: args.born_date,
+            document_type: args.document_type as any,
+            document_number: args.document_number,
+            phone: args.phone,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
+export const updateTrainerInDB = internalMutation({
+    args: {
+        trainerId: v.id("trainers"),
+        branch_id: v.id("branches"),
+        specialties: v.array(v.string()),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.trainerId, {
+            branch_id: args.branch_id,
+            specialties: args.specialties,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
 // ===== MUTACIONES DE ELIMINACIÓN =====
 
 // Action para borrar trainer completamente (usando action para manejar Clerk)
