@@ -83,7 +83,6 @@ export const getAllWithDetails = query({
                     ? {
                         name: manager.name,
                         email: manager.email,
-                        phone: manager.phone,
                     }
                     : null,
                 trainers: trainers,

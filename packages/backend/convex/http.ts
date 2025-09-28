@@ -30,7 +30,6 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
             if (existingUser && event.type === "user.created") {
                 console.warn("Overwriting user", event.data.id, "with", event.data);
             }
-            console.log("creating/updating user", event.data.id);
             await ctx.runMutation(internal.users.updateOrCreateUser, {
                 clerkUser: event.data,
             });

@@ -3,13 +3,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
+import { Edit, Trash2, Loader2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 
 // Tipos
 interface Trainer {
-    _id: string;
+    _id: Id<"trainers">;
     employee_code: string;
     status: 'ACTIVE' | 'INACTIVE' | 'ON_VACATION';
     hire_date: number;
@@ -18,6 +32,7 @@ interface Trainer {
         last_name: string;
         document_type: string;
         document_number: string;
+        phone?: string;
     } | null;
     branch?: {
         name: string;
@@ -45,9 +60,32 @@ const STATUS_LABELS: Record<TrainerStatus, string> = {
 interface TrainerRowProps {
     trainer: Trainer;
     onViewTrainer: (trainer: Trainer) => void;
+    onEditTrainer: (trainer: Trainer) => void;
+    onDeleteTrainer: (trainer: Trainer) => void;
+    isDeleting?: boolean;
+    deleteDialogOpen?: boolean;
+    setDeleteDialogOpen?: (open: boolean) => void;
 }
 
-const TrainerRow: React.FC<TrainerRowProps> = ({ trainer, onViewTrainer }) => {
+const TrainerRow: React.FC<TrainerRowProps> = ({
+    trainer,
+    onViewTrainer,
+    onEditTrainer,
+    onDeleteTrainer,
+    isDeleting = false,
+    deleteDialogOpen = false,
+    setDeleteDialogOpen
+}) => {
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const handleDeleteClick = () => {
+        setDialogOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        onDeleteTrainer(trainer);
+        setDialogOpen(false);
+    };
     return (
         <tr key={trainer._id} className="hover:bg-yellow-50 transition-colors">
             <td className="px-4 py-3 text-sm font-mono text-gray-900">
@@ -57,7 +95,7 @@ const TrainerRow: React.FC<TrainerRowProps> = ({ trainer, onViewTrainer }) => {
                 {trainer.person ? `${trainer.person.name} ${trainer.person.last_name}` : "-"}
             </td>
             <td className="px-4 py-3 text-sm text-gray-600">
-                {trainer.person ? trainer.person.document_number : "-"}
+                {trainer.person?.phone || "-"}
             </td>
             <td className="px-4 py-3 text-sm text-gray-600">
                 {trainer.branch ? trainer.branch.name : "-"}
@@ -70,15 +108,61 @@ const TrainerRow: React.FC<TrainerRowProps> = ({ trainer, onViewTrainer }) => {
             <td className="px-4 py-3 text-sm text-gray-600">
                 {trainer.hire_date ? new Date(trainer.hire_date).toLocaleDateString('es-ES') : "-"}
             </td>
-            <td className="px-4 py-3 text-right">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onViewTrainer(trainer)}
-                    className="hover:bg-yellow-50 hover:border-yellow-200"
-                >
-                    Ver
-                </Button>
+            <td className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center gap-2">
+                    <Button
+                        onClick={() => onViewTrainer(trainer)}
+                        size="sm"
+                        variant="outline"
+                        disabled={isDeleting}
+                        className="hover:bg-blue-50 border-blue-200 disabled:opacity-50 text-black hover:text-gray-900"
+                    >
+                        Ver
+                    </Button>
+                    <Button
+                        onClick={() => onEditTrainer(trainer)}
+                        size="sm"
+                        disabled={isDeleting}
+                        className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold p-2"
+                    >
+                        <Edit size={16} />
+                    </Button>
+                    <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                size="sm"
+                                disabled={isDeleting}
+                                className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 disabled:hover:bg-red-300 text-white font-semibold p-2"
+                            >
+                                {isDeleting ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Trash2 size={16} />
+                                )}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción eliminará permanentemente al entrenador{" "}
+                                    <strong>{trainer.person?.name} {trainer.person?.last_name}</strong>{" "}
+                                    (Código: {trainer.employee_code}) y todos sus datos asociados del sistema.
+                                    Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleConfirmDelete}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                    Eliminar
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </td>
         </tr>
     );
@@ -92,8 +176,8 @@ const TableHeader: React.FC = () => {
         "Teléfono",
         "Sede",
         "Estado",
-        "Fecha de Ingreso",
-        ""
+        "Fecha de Contratación",
+        "Acciones"
     ];
 
     return (
@@ -209,8 +293,9 @@ const Pagination: React.FC<PaginationProps> = ({
 // Componente principal
 export function TrainersManagementContent() {
     const trainers = useQuery(api.trainers.queries.getAllWithDetails, {}) ?? [];
-    console.log("Entrenadores desde Convex:", trainers);
+    const deleteTrainerAction = useAction(api.trainers.mutations.deleteTrainerComplete);
     const [currentPage, setCurrentPage] = useState(1);
+    const [deletingTrainerId, setDeletingTrainerId] = useState<Id<"trainers"> | null>(null);
     const PAGE_SIZE = 8;
     const totalPages = Math.ceil(trainers.length / PAGE_SIZE);
     const currentTrainers = trainers.slice(
@@ -223,7 +308,50 @@ export function TrainersManagementContent() {
         // Aquí iría la lógica para ver el detalle del entrenador
     };
 
-    const handlePageChange = (page: number) => {
+    const handleEditTrainer = (trainer: Trainer) => {
+        console.log('Editar entrenador:', trainer);
+        // Aquí iría la lógica para editar el entrenador
+        // Por ejemplo: navigate a la página de edición
+    };
+
+    const handleDeleteTrainer = async (trainer: Trainer) => {
+        try {
+            setDeletingTrainerId(trainer._id);
+
+            const result = await deleteTrainerAction({
+                trainerId: trainer._id
+            });
+
+            if (result.success) {
+                toast.success(result.message, {
+                    duration: 5000,
+                });
+            } else {
+                throw new Error('La eliminación no fue exitosa');
+            }
+        } catch (error) {
+            console.error('Error al eliminar entrenador:', error);
+
+            let errorMessage = 'Error al eliminar el entrenador';
+            if (error instanceof Error) {
+                if (error.message.includes('No autenticado')) {
+                    errorMessage = 'No tienes permisos para realizar esta acción';
+                } else if (error.message.includes('No tienes permisos')) {
+                    errorMessage = 'No tienes permisos suficientes para eliminar entrenadores';
+                } else if (error.message.includes('no encontrado')) {
+                    errorMessage = 'El entrenador no fue encontrado';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
+            toast.error(errorMessage, {
+                duration: 5000,
+            });
+        } finally {
+            setDeletingTrainerId(null);
+        }
+    }; const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
@@ -267,6 +395,9 @@ export function TrainersManagementContent() {
                                         key={trainer._id}
                                         trainer={trainer}
                                         onViewTrainer={handleViewTrainer}
+                                        onEditTrainer={handleEditTrainer}
+                                        onDeleteTrainer={handleDeleteTrainer}
+                                        isDeleting={deletingTrainerId === trainer._id}
                                     />
                                 ))
                             ) : (

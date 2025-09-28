@@ -8,7 +8,6 @@ export default defineSchema({
         clerk_id: v.string(),
         name: v.string(),
         email: v.string(),
-        phone: v.optional(v.string()),
         updated_at: v.number(),
         active: v.boolean(),
     })
@@ -22,6 +21,7 @@ export default defineSchema({
         born_date: v.string(),
         document_type: v.union(v.literal("CC"), v.literal("TI"), v.literal("CE"), v.literal("PASSPORT")),
         document_number: v.string(),
+        phone: v.optional(v.string()),
         created_at: v.number(),
         updated_at: v.number(),
         active: v.boolean(),

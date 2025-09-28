@@ -62,7 +62,7 @@ export function PersonalManagementContent({ sedeId, sedeName }: PersonalManageme
                     count: assignedTrainers.length
                 }, window.location.origin);
             }
-            
+
             window.close(); // Cierra la ventana automáticamente
         }, 1000);
     };

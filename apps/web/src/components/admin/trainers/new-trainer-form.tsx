@@ -4,37 +4,29 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
+import { z } from "zod";
 
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormField } from "@/components/ui/form-field";
 import { FormSection } from "@/components/ui/form-section";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { SpecialtyTags } from "@/components/ui/specialty-tags";
 
+// Validations
+import {
+    userDataSchema,
+    personalDataSchema,
+    workDataSchema,
+    type UserData,
+    type PersonalData,
+    type WorkData
+} from "@/lib/validations/trainers";
+
 // ===== TIPOS =====
-interface UserData {
-    userName: string;
-    userEmail: string;
-    userPhone: string;
-}
-
-interface PersonalData {
-    personName: string;
-    personLastName: string;
-    personBornDate: string;
-    personDocumentType: string;
-    personDocumentNumber: string;
-}
-
-interface WorkData {
-    branch: string;
-    specialties: string[];
-}
-
 type DocumentType = 'CC' | 'TI' | 'CE' | 'PASSPORT';
 
 interface FormErrors {
@@ -85,24 +77,33 @@ export default function NewTrainerForm() {
 
     // Handlers
     const updateUserData = (field: keyof UserData, value: string) => {
-        setUserData(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
-        }
+        const newUserData = { ...userData, [field]: value };
+        setUserData(newUserData);
+
+        // Validación en tiempo real
+        setTimeout(() => {
+            validateField(field, value, userDataSchema);
+        }, 300);
     };
 
     const updatePersonalData = (field: keyof PersonalData, value: string) => {
-        setPersonalData(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
-        }
+        const newPersonalData = { ...personalData, [field]: value };
+        setPersonalData(newPersonalData);
+
+        // Validación en tiempo real
+        setTimeout(() => {
+            validateField(field, value, personalDataSchema);
+        }, 300);
     };
 
     const updateWorkData = (field: keyof WorkData, value: string | string[]) => {
-        setWorkData(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
-        }
+        const newWorkData = { ...workData, [field]: value };
+        setWorkData(newWorkData);
+
+        // Validación en tiempo real
+        setTimeout(() => {
+            validateField(field, value, workDataSchema);
+        }, 300);
     };
 
     const addSpecialty = (specialty: string) => {
@@ -141,41 +142,56 @@ export default function NewTrainerForm() {
         });
     };
 
-    // Validaciones por paso
+    // Validar campo individual en tiempo real
+    const validateField = (fieldName: string, value: any, schema: z.ZodObject<any>) => {
+        try {
+            // Crear un objeto parcial para validar solo este campo
+            const partialData = { [fieldName]: value };
+            const fieldSchema = schema.pick({ [fieldName]: true });
+            fieldSchema.parse(partialData);
+
+            // Limpiar error si la validación es exitosa
+            if (errors[fieldName]) {
+                setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[fieldName];
+                    return newErrors;
+                });
+            }
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                setErrors(prev => ({
+                    ...prev,
+                    [fieldName]: error.issues[0]?.message || 'Error de validación'
+                }));
+            }
+        }
+    };
+
+    // Validaciones por paso usando Zod
     const validateStep = (step: number): boolean => {
         const newErrors: FormErrors = {};
 
-        if (step === 1) {
-            if (!userData.userName.trim()) {
-                newErrors.userName = 'El nombre de usuario es requerido';
-            }
-            if (!userData.userEmail.trim()) {
-                newErrors.userEmail = 'El correo electrónico es requerido';
-            } else if (!/\S+@\S+\.\S+/.test(userData.userEmail)) {
-                newErrors.userEmail = 'El correo electrónico no es válido';
-            }
-        }
+        try {
+            if (step === 1) {
+                userDataSchema.parse(userData);
+            } else if (step === 2) {
+                personalDataSchema.parse(personalData);
+            } else if (step === 3) {
+                // Validar con Zod
+                workDataSchema.parse(workData);
 
-        if (step === 2) {
-            if (!personalData.personName.trim()) {
-                newErrors.personName = 'El nombre es requerido';
+                // Validación adicional para verificar que la sede existe y está activa
+                if (branches && !branches.some(branch => branch.name === workData.branch && branch.status === "ACTIVE")) {
+                    newErrors.branch = 'La sede seleccionada no está disponible';
+                }
             }
-            if (!personalData.personLastName.trim()) {
-                newErrors.personLastName = 'El apellido es requerido';
-            }
-            if (!personalData.personBornDate) {
-                newErrors.personBornDate = 'La fecha de nacimiento es requerida';
-            }
-            if (!personalData.personDocumentNumber.trim()) {
-                newErrors.personDocumentNumber = 'El número de documento es requerido';
-            }
-        }
-
-        if (step === 3) {
-            if (!workData.branch) {
-                newErrors.branch = 'La sede es requerida';
-            } else if (branches && !branches.some(branch => branch.name === workData.branch && branch.status === "ACTIVE")) {
-                newErrors.branch = 'La sede seleccionada no está disponible';
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                error.issues.forEach((err: z.ZodIssue) => {
+                    const fieldName = err.path.join('.');
+                    newErrors[fieldName] = err.message;
+                });
             }
         }
 
@@ -195,7 +211,35 @@ export default function NewTrainerForm() {
     };
 
     const handleSubmit = async () => {
+        // Validar el paso actual
         if (!validateStep(currentStep)) {
+            return;
+        }
+
+        // Validación completa de todos los datos antes del envío
+        const newErrors: FormErrors = {};
+
+        try {
+            userDataSchema.parse(userData);
+            personalDataSchema.parse(personalData);
+            workDataSchema.parse(workData);
+
+            // Validación adicional para verificar que la sede existe y está activa
+            if (branches && !branches.some(branch => branch.name === workData.branch && branch.status === "ACTIVE")) {
+                newErrors.branch = 'La sede seleccionada no está disponible';
+            }
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                error.issues.forEach((err: z.ZodIssue) => {
+                    const fieldName = err.path.join('.');
+                    newErrors[fieldName] = err.message;
+                });
+            }
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            toast.error('Por favor, corrige los errores en el formulario antes de continuar.');
             return;
         }
 
@@ -284,7 +328,7 @@ export default function NewTrainerForm() {
                                 error={errors.userName}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     placeholder="usuario123"
                                     value={userData.userName}
                                     onChange={(e) => updateUserData('userName', e.target.value)}
@@ -297,7 +341,7 @@ export default function NewTrainerForm() {
                                 error={errors.userEmail}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     type="email"
                                     placeholder="usuario@example.com"
                                     value={userData.userEmail}
@@ -305,9 +349,12 @@ export default function NewTrainerForm() {
                                 />
                             </FormField>
 
-                            <FormField label="Número de celular">
+                            <FormField
+                                label="Número de celular"
+                                error={errors.userPhone}
+                            >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     placeholder="300 123 4567"
                                     value={userData.userPhone}
                                     onChange={(e) => updateUserData('userPhone', e.target.value)}
@@ -331,7 +378,7 @@ export default function NewTrainerForm() {
                                 error={errors.personName}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     placeholder="Juan"
                                     value={personalData.personName}
                                     onChange={(e) => updatePersonalData('personName', e.target.value)}
@@ -344,7 +391,7 @@ export default function NewTrainerForm() {
                                 error={errors.personLastName}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     placeholder="Pérez"
                                     value={personalData.personLastName}
                                     onChange={(e) => updatePersonalData('personLastName', e.target.value)}
@@ -357,7 +404,7 @@ export default function NewTrainerForm() {
                                 error={errors.personBornDate}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400"
                                     type="date"
                                     value={personalData.personBornDate}
                                     onChange={(e) => updatePersonalData('personBornDate', e.target.value)}
@@ -369,11 +416,16 @@ export default function NewTrainerForm() {
                                     value={personalData.personDocumentType}
                                     onValueChange={(value) => updatePersonalData('personDocumentType', value)}
                                 >
-                                    {DOCUMENT_TYPES.map((doc) => (
-                                        <SelectItem key={doc.value} value={doc.value}>
-                                            {doc.label}
-                                        </SelectItem>
-                                    ))}
+                                    <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
+                                        <SelectValue placeholder="Selecciona un tipo de documento" className="text-gray-500" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {DOCUMENT_TYPES.map((doc) => (
+                                            <SelectItem key={doc.value} value={doc.value}>
+                                                {doc.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
                                 </Select>
                             </FormField>
 
@@ -383,7 +435,7 @@ export default function NewTrainerForm() {
                                 error={errors.personDocumentNumber}
                             >
                                 <Input
-                                    className="text-black"
+                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
                                     placeholder="12345678"
                                     value={personalData.personDocumentNumber}
                                     onChange={(e) => updatePersonalData('personDocumentNumber', e.target.value)}
@@ -409,26 +461,29 @@ export default function NewTrainerForm() {
                                 <Select
                                     value={workData.branch}
                                     onValueChange={(value) => updateWorkData('branch', value)}
-                                    error={!!errors.branch}
                                 >
-                                    <SelectItem value="">Selecciona una sede</SelectItem>
-                                    {branches === undefined ? (
-                                        <SelectItem value="" disabled>
-                                            Cargando sedes...
-                                        </SelectItem>
-                                    ) : branches.filter(branch => branch.status === "ACTIVE").length === 0 ? (
-                                        <SelectItem value="" disabled>
-                                            No hay sedes disponibles
-                                        </SelectItem>
-                                    ) : (
-                                        branches
-                                            .filter(branch => branch.status === "ACTIVE")
-                                            .map((branch) => (
-                                                <SelectItem key={branch._id} value={branch.name}>
-                                                    {branch.name}
-                                                </SelectItem>
-                                            ))
-                                    )}
+                                    <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
+                                        <SelectValue placeholder="Selecciona una sede" className="text-gray-500" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {branches === undefined ? (
+                                            <SelectItem value="" disabled>
+                                                Cargando sedes...
+                                            </SelectItem>
+                                        ) : branches.filter(branch => branch.status === "ACTIVE").length === 0 ? (
+                                            <SelectItem value="" disabled>
+                                                No hay sedes disponibles
+                                            </SelectItem>
+                                        ) : (
+                                            branches
+                                                .filter(branch => branch.status === "ACTIVE")
+                                                .map((branch) => (
+                                                    <SelectItem key={branch._id} value={branch.name}>
+                                                        {branch.name}
+                                                    </SelectItem>
+                                                ))
+                                        )}
+                                    </SelectContent>
                                 </Select>
                             </FormField>
 
@@ -449,14 +504,14 @@ export default function NewTrainerForm() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50 p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <Link to="/admin/trainers">
                         <Button
                             variant="outline"
-                            className="flex items-center gap-2 cursor-pointer hover:bg-yellow-100 hover:border-yellow-400 hover:text-yellow-700 transition-colors"
+                            className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
                         >
                             <ArrowLeft size={18} />
                             <span>Volver</span>
@@ -482,7 +537,7 @@ export default function NewTrainerForm() {
                 </div>
 
                 {/* Navigation Buttons */}
-                <Card className="border-0 shadow-sm">
+                <Card className="bg-white border border-gray-200 shadow-sm">
                     <CardContent className="pt-6">
                         <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
                             <div>
@@ -491,7 +546,7 @@ export default function NewTrainerForm() {
                                         type="button"
                                         variant="outline"
                                         onClick={handlePrev}
-                                        className="flex items-center gap-2"
+                                        className="flex items-center gap-2 border-yellow-300 text-gray-700 hover:bg-yellow-50 hover:border-yellow-400 hover:text-yellow-900 transition-colors"
                                     >
                                         <ArrowLeft size={16} />
                                         Anterior
@@ -503,7 +558,7 @@ export default function NewTrainerForm() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="hover:bg-gray-50 hover:border-yellow-400 hover:text-yellow-700 cursor-pointer"
+                                    className="border-yellow-300 text-gray-700 hover:bg-yellow-50 hover:border-yellow-400 cursor-pointer hover:text-yellow-900 transition-colors"
                                     onClick={() => {
                                         resetForm();
                                         navigate({ to: '/admin/trainers' });
@@ -516,7 +571,7 @@ export default function NewTrainerForm() {
                                     <Button
                                         type="button"
                                         onClick={handleNext}
-                                        className="flex items-center gap-2"
+                                        className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500 hover:border-yellow-600"
                                     >
                                         Siguiente
                                         <ArrowRight size={16} />
@@ -526,7 +581,7 @@ export default function NewTrainerForm() {
                                         type="button"
                                         onClick={handleSubmit}
                                         disabled={isLoading}
-                                        className="flex items-center gap-2"
+                                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 disabled:bg-gray-400 disabled:border-gray-400"
                                     >
                                         {isLoading ? (
                                             <>

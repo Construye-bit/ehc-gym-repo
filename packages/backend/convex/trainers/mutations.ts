@@ -1,12 +1,22 @@
 // convex/trainers/mutations.ts
-import { mutation, action, query } from "../_generated/server";
+import { mutation, action, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { createClerkClient } from '@clerk/backend';
 import { AuthError, AccessDeniedError, UserNotFoundError } from "./errors";
 import { api } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { Resend } from 'resend';
 import { getWelcomeTrainerEmailTemplate } from '../emails/templates';
+import {
+    userDataSchema,
+    personalDataSchema,
+    workDataSchema,
+    createUserSchema,
+    createPersonSchema,
+    createTrainerSchema,
+    validateWithZod
+} from './validations';
 
 export const createTrainerComplete = action({
     args: {
@@ -39,6 +49,11 @@ export const createTrainerComplete = action({
             message: string;
         };
     }> => {
+        // Validar datos de entrada con Zod
+        const validatedUserData = validateWithZod(userDataSchema, userData, "userData");
+        const validatedPersonalData = validateWithZod(personalDataSchema, personalData, "personalData");
+        const validatedWorkData = validateWithZod(workDataSchema, workData, "workData");
+
         // Verificar autenticación y permisos de admin
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) {
@@ -46,7 +61,7 @@ export const createTrainerComplete = action({
         }
 
         // Verificar que es admin (usando clerk_id en lugar de user_id)
-        const adminCheck = await ctx.runQuery(api.trainers.mutations.checkAdminPermissions, {
+        const adminCheck = await ctx.runQuery(api.trainers.queries.checkAdminPermissions, {
             clerk_id: identity.subject
         });
 
@@ -68,7 +83,7 @@ export const createTrainerComplete = action({
 
             // Verificar si el email ya existe en Clerk
             const existingUsers = await clerkClient.users.getUserList({
-                emailAddress: [userData.userEmail]
+                emailAddress: [validatedUserData.userEmail]
             });
 
             if (existingUsers.data.length > 0) {
@@ -76,8 +91,8 @@ export const createTrainerComplete = action({
             }
 
             // Verificar si el número de documento ya existe
-            const existingPerson = await ctx.runQuery(api.trainers.mutations.checkPersonByDocument, {
-                document_number: personalData.personDocumentNumber
+            const existingPerson = await ctx.runQuery(api.trainers.queries.checkPersonByDocument, {
+                document_number: validatedPersonalData.personDocumentNumber
             });
 
             if (existingPerson) {
@@ -88,10 +103,10 @@ export const createTrainerComplete = action({
             const temporaryPassword = generateSecurePassword();
 
             const clerkUserData: any = {
-                emailAddress: [userData.userEmail],
-                username: userData.userName,
-                firstName: personalData.personName,
-                lastName: personalData.personLastName,
+                emailAddress: [validatedUserData.userEmail],
+                username: validatedUserData.userName,
+                firstName: validatedPersonalData.personName,
+                lastName: validatedPersonalData.personLastName,
                 password: temporaryPassword,
                 skipPasswordChecks: true,
             };
@@ -101,28 +116,28 @@ export const createTrainerComplete = action({
             // 2. Crear usuario en Convex
             const userId: Id<"users"> = await ctx.runMutation(api.trainers.mutations.createUserInDB, {
                 clerk_id: clerkUser.id,
-                name: `${personalData.personName} ${personalData.personLastName}`,
-                email: userData.userEmail,
-                phone: userData.userPhone,
+                name: `${validatedPersonalData.personName} ${validatedPersonalData.personLastName}`,
+                email: validatedUserData.userEmail,
             });
 
             // 3. Crear persona en Convex
             const personId: Id<"persons"> = await ctx.runMutation(api.trainers.mutations.createPersonInDB, {
                 user_id: userId,
-                name: personalData.personName,
-                last_name: personalData.personLastName,
-                born_date: personalData.personBornDate,
-                document_type: personalData.personDocumentType,
-                document_number: personalData.personDocumentNumber,
+                name: validatedPersonalData.personName,
+                last_name: validatedPersonalData.personLastName,
+                born_date: validatedPersonalData.personBornDate,
+                phone: validatedUserData.userPhone,
+                document_type: validatedPersonalData.personDocumentType,
+                document_number: validatedPersonalData.personDocumentNumber,
             });
 
             // 4. Obtener y validar branch
-            const branch = await ctx.runQuery(api.trainers.mutations.getBranchByName, {
-                name: workData.branch
+            const branch = await ctx.runQuery(api.trainers.queries.getBranchByName, {
+                name: validatedWorkData.branch
             });
 
             if (!branch) {
-                throw new AccessDeniedError(`La sede "${workData.branch}" no existe`);
+                throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
             }
 
             // 5. Generar código de empleado único
@@ -134,7 +149,7 @@ export const createTrainerComplete = action({
                 user_id: userId,
                 branch_id: branch._id,
                 employee_code: employeeCode,
-                specialties: workData.specialties,
+                specialties: validatedWorkData.specialties,
             });
 
             // 7. Asignar rol de TRAINER
@@ -155,20 +170,20 @@ export const createTrainerComplete = action({
                     console.log("Advertencia: RESEND_API_KEY no está configurado, saltando envío de email");
                 } else {
                     const resend = new Resend(resendApiKey);
-                    const trainerName = `${personalData.personName} ${personalData.personLastName}`;
+                    const trainerName = `${validatedPersonalData.personName} ${validatedPersonalData.personLastName}`;
 
-                    console.log(`Enviando email de bienvenida a: ${userData.userEmail}`);
+                    console.log(`Enviando email de bienvenida a: ${validatedUserData.userEmail}`);
 
                     const emailTemplate = getWelcomeTrainerEmailTemplate(
                         trainerName,
-                        userData.userEmail,
+                        validatedUserData.userEmail,
                         temporaryPassword,
                         employeeCode
                     );
 
                     const result = await resend.emails.send({
                         from: process.env.FROM_EMAIL || 'EHC Gym <onboarding@resend.dev>',
-                        to: [userData.userEmail],
+                        to: [validatedUserData.userEmail],
                         subject: emailTemplate.subject,
                         html: emailTemplate.html,
                         text: emailTemplate.text,
@@ -238,14 +253,15 @@ export const createUserInDB = mutation({
         clerk_id: v.string(),
         name: v.string(),
         email: v.string(),
-        phone: v.optional(v.string()),
     },
     handler: async (ctx, args): Promise<Id<"users">> => {
+        // Validar datos de entrada
+        const validatedData = validateWithZod(createUserSchema, args, "createUserInDB");
+
         return await ctx.db.insert("users", {
-            clerk_id: args.clerk_id,
-            name: args.name,
-            email: args.email,
-            phone: args.phone,
+            clerk_id: validatedData.clerk_id,
+            name: validatedData.name,
+            email: validatedData.email,
             updated_at: Date.now(),
             active: true,
         });
@@ -260,15 +276,20 @@ export const createPersonInDB = mutation({
         born_date: v.string(),
         document_type: v.string(),
         document_number: v.string(),
+        phone: v.optional(v.string()),
     },
     handler: async (ctx, args): Promise<Id<"persons">> => {
+        // Validar datos de entrada
+        const validatedData = validateWithZod(createPersonSchema, args, "createPersonInDB");
+
         return await ctx.db.insert("persons", {
             user_id: args.user_id,
-            name: args.name,
-            last_name: args.last_name,
-            born_date: args.born_date,
-            document_type: args.document_type as any,
-            document_number: args.document_number,
+            name: validatedData.name,
+            last_name: validatedData.last_name,
+            born_date: validatedData.born_date,
+            document_type: validatedData.document_type as any,
+            document_number: validatedData.document_number,
+            phone: validatedData.phone,
             created_at: Date.now(),
             updated_at: Date.now(),
             active: true,
@@ -285,12 +306,15 @@ export const createTrainerInDB = mutation({
         specialties: v.array(v.string()),
     },
     handler: async (ctx, args): Promise<Id<"trainers">> => {
+        // Validar datos de entrada
+        const validatedData = validateWithZod(createTrainerSchema, args, "createTrainerInDB");
+
         return await ctx.db.insert("trainers", {
             person_id: args.person_id,
             user_id: args.user_id,
             branch_id: args.branch_id,
-            employee_code: args.employee_code,
-            specialties: args.specialties,
+            employee_code: validatedData.employee_code,
+            specialties: validatedData.specialties,
             hire_date: Date.now(),
             status: "ACTIVE",
             created_at: Date.now(),
@@ -343,77 +367,6 @@ export const generateEmployeeCode = mutation({
     },
 });
 
-// Queries auxiliares para ser usadas desde la action
-export const checkPersonByDocument = query({
-    args: {
-        document_number: v.string(),
-    },
-    handler: async (ctx, args) => {
-        return await ctx.db
-            .query("persons")
-            .filter((q) => q.eq(q.field("document_number"), args.document_number))
-            .first();
-    },
-});
-
-export const getBranchByName = query({
-    args: {
-        name: v.string(),
-    },
-    handler: async (ctx, args) => {
-        return await ctx.db
-            .query("branches")
-            .filter((q) => q.eq(q.field("name"), args.name))
-            .first();
-    },
-});
-
-export const getUserByClerkId = query({
-    args: {
-        clerk_id: v.string(),
-    },
-    handler: async (ctx, args) => {
-        return await ctx.db
-            .query("users")
-            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", args.clerk_id))
-            .first();
-    },
-});
-
-export const checkAdminPermissions = query({
-    args: {
-        clerk_id: v.string(),
-    },
-    handler: async (ctx, args) => {
-        // Buscar usuario por clerk_id
-        const currentUser = await ctx.db
-            .query("users")
-            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", args.clerk_id))
-            .first();
-
-        if (!currentUser) {
-            return { hasPermission: false, user: null };
-        }
-
-        // Buscar rol de admin
-        const adminRole = await ctx.db
-            .query("role_assignments")
-            .withIndex("by_user_active", (q) => q.eq("user_id", currentUser._id).eq("active", true))
-            .filter((q) => q.or(
-                q.eq(q.field("role"), "ADMIN"),
-                q.eq(q.field("role"), "SUPER_ADMIN")
-            ))
-            .first();
-
-        return {
-            hasPermission: !!adminRole,
-            user: currentUser,
-        };
-    },
-});
-
-
-
 function generateSecurePassword(): string {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     let password = "";
@@ -432,3 +385,198 @@ function generateSecurePassword(): string {
     // Mezclar caracteres
     return password.split('').sort(() => Math.random() - 0.5).join('');
 }
+
+// ===== MUTACIONES DE ELIMINACIÓN =====
+
+// Action para borrar trainer completamente (usando action para manejar Clerk)
+export const deleteTrainerComplete = action({
+    args: {
+        trainerId: v.id("trainers"),
+    },
+    handler: async (ctx, { trainerId }): Promise<{
+        success: boolean;
+        message: string;
+    }> => {
+        // Verificar autenticación y permisos usando queries
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new AuthError("No autenticado");
+        }
+
+        // Verificar permisos de admin
+        const adminCheck = await ctx.runQuery(api.trainers.queries.checkAdminPermissions, {
+            clerk_id: identity.subject
+        });
+
+        if (!adminCheck.hasPermission) {
+            throw new AccessDeniedError();
+        }
+
+        // Obtener datos completos del trainer
+        const userData = await ctx.runMutation(internal.trainers.mutations.getTrainerUserData, {
+            trainerId
+        });
+
+        const { trainer, person, user } = userData;
+
+        try {
+            // PASO 1: ELIMINAR DE CLERK PRIMERO (con máxima prioridad)
+            const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+            let clerkDeletionSuccess = false;
+
+            if (!clerkSecretKey) {
+                console.error('CLERK_SECRET_KEY no configurado - esto es REQUERIDO para eliminar usuarios');
+                throw new Error("Configuración de Clerk faltante - no se puede eliminar usuario");
+            }
+
+            console.log(`=== INICIANDO ELIMINACIÓN DE CLERK ===`);
+            console.log(`Clerk ID: ${user.clerk_id}`);
+            console.log(`Email: ${user.email}`);
+
+            const clerkClient = createClerkClient({
+                secretKey: clerkSecretKey
+            });
+
+            try {
+                // Verificar si el usuario existe en Clerk antes de eliminarlo
+                console.log('Verificando existencia del usuario en Clerk...');
+                const clerkUser = await clerkClient.users.getUser(user.clerk_id);
+                console.log(`✅ Usuario encontrado en Clerk: ${clerkUser.emailAddresses[0]?.emailAddress}`);
+
+                // Eliminar el usuario de Clerk usando el método deleteUser del SDK
+                console.log(`Eliminando usuario de Clerk con ID: ${user.clerk_id}...`);
+                const deleteResponse = await clerkClient.users.deleteUser(user.clerk_id);
+                console.log('✅ Usuario eliminado de Clerk exitosamente:', deleteResponse.id);
+                clerkDeletionSuccess = true;
+
+            } catch (clerkError: any) {
+                console.error('❌ ERROR ELIMINANDO DE CLERK:', {
+                    message: clerkError?.message || 'Sin mensaje',
+                    status: clerkError?.status || 'Sin status',
+                    code: clerkError?.code || 'Sin código',
+                    details: clerkError?.errors || 'Sin detalles',
+                    clerk_id: user.clerk_id
+                });
+
+                // Si el error es "not found", considerarlo como éxito
+                if (clerkError?.status === 404 || clerkError?.message?.includes('not_found')) {
+                    console.log('✅ Usuario no encontrado en Clerk (ya eliminado)');
+                    clerkDeletionSuccess = true;
+                } else {
+                    // Para otros errores, fallar la operación
+                    throw new Error(`Fallo crítico en Clerk: ${clerkError?.message || 'Error desconocido'}`);
+                }
+            }
+
+            // PASO 2: SI CLERK FUNCIONÓ, ELIMINAR DE CONVEX
+            if (clerkDeletionSuccess) {
+                console.log('=== INICIANDO ELIMINACIÓN DE CONVEX ===');
+
+                // Eliminar datos de Convex usando mutaciones internas
+                await ctx.runMutation(internal.trainers.mutations.deleteTrainerInternal, { trainerId });
+                console.log('✅ Trainer eliminado');
+
+                // Eliminar persona usando mutation interna
+                await ctx.runMutation(internal.trainers.mutations.deletePersonInternal, { personId: trainer.person_id });
+                console.log('✅ Persona eliminada');
+
+                // Eliminar roles y usuario usando mutation interna
+                await ctx.runMutation(internal.trainers.mutations.deleteUserAndRoles, { userId: user._id });
+            }
+
+            return {
+                success: true,
+                message: `Entrenador ${person.name} ${person.last_name} eliminado completamente del sistema`
+            };
+        } catch (error) {
+            console.error('Error al eliminar entrenador:', error);
+            throw new Error(`Error al eliminar entrenador: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        }
+    }
+});
+
+// Mutaciones internas para eliminación
+export const deleteTrainerInternal = internalMutation({
+    args: {
+        trainerId: v.id("trainers"),
+    },
+    handler: async (ctx, { trainerId }) => {
+        await ctx.db.delete(trainerId);
+        return { success: true };
+    }
+});
+
+export const deleteRoleAssignment = internalMutation({
+    args: {
+        roleId: v.id("role_assignments"),
+    },
+    handler: async (ctx, { roleId }) => {
+        await ctx.db.delete(roleId);
+        return { success: true };
+    }
+});
+
+export const getTrainerUserData = internalMutation({
+    args: {
+        trainerId: v.id("trainers"),
+    },
+    handler: async (ctx, { trainerId }) => {
+        // Obtener trainer
+        const trainer = await ctx.db.get(trainerId);
+        if (!trainer) {
+            throw new Error("Entrenador no encontrado");
+        }
+
+        // Obtener persona
+        const person = await ctx.db.get(trainer.person_id);
+        if (!person) {
+            throw new Error("Persona no encontrada");
+        }
+
+        // Obtener usuario
+        const user = await ctx.db.get(person.user_id);
+        if (!user) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        return {
+            trainer,
+            person,
+            user
+        };
+    }
+});
+
+export const deletePersonInternal = internalMutation({
+    args: {
+        personId: v.id("persons"),
+    },
+    handler: async (ctx, { personId }) => {
+        await ctx.db.delete(personId);
+        return { success: true };
+    }
+});
+
+export const deleteUserAndRoles = internalMutation({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }) => {
+        // Eliminar roles del usuario
+        const userRoles = await ctx.db
+            .query("role_assignments")
+            .withIndex("by_user_active", (q) =>
+                q.eq("user_id", userId).eq("active", true)
+            )
+            .collect();
+
+        for (const role of userRoles) {
+            await ctx.db.delete(role._id);
+        }
+
+        // Eliminar usuario
+        await ctx.db.delete(userId);
+
+        return { success: true };
+    }
+});
