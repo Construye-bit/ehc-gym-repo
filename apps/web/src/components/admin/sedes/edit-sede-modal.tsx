@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 import { AddCityModal } from "./add-city-modal";
 import { AddAddressModal } from "./add-address-modal";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
@@ -197,8 +198,11 @@ export function EditSedeModal({ isOpen, onOpenChange, branchId }: EditSedeModalP
             onOpenChange(false);
         } catch (error) {
             console.error("Error al actualizar sede:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al actualizar la sede. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al actualizar sede", {
-                description: error instanceof Error ? error.message : "Ocurrió un error inesperado"
+                description: errorMessage
             });
         } finally {
             setIsLoading(false);

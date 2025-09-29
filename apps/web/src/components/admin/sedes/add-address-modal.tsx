@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 interface AddAddressModalProps {
@@ -111,8 +112,11 @@ export function AddAddressModal({ isOpen, onOpenChange, cityId, onAddressAdded }
             onAddressAdded(result.addressId);
         } catch (error) {
             console.error("Error al crear dirección:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al crear la dirección. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al crear dirección", {
-                description: error instanceof Error ? error.message : "Ocurrió un error inesperado"
+                description: errorMessage
             });
         } finally {
             setIsLoading(false);

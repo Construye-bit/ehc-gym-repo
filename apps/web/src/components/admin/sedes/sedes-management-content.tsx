@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 
 type SedeData = {
     _id: string;
@@ -91,8 +92,11 @@ export function SedesManagementContent() {
             setSedeToDelete(null);
         } catch (error) {
             console.error("Error al eliminar sede:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al intentar eliminar la sede. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al eliminar sede", {
-                description: "Ocurrió un error al intentar eliminar la sede. Por favor, inténtalo de nuevo."
+                description: errorMessage
             });
         } finally {
             setDeletingSedeId(null);

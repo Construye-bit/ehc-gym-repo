@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 
 interface AddCityModalProps {
     isOpen: boolean;
@@ -91,8 +92,11 @@ export function AddCityModal({ isOpen, onOpenChange, onCityAdded }: AddCityModal
             onCityAdded(result.cityId);
         } catch (error) {
             console.error("Error al crear ciudad:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al crear la ciudad. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al crear ciudad", {
-                description: error instanceof Error ? error.message : "Ocurrió un error inesperado"
+                description: errorMessage
             });
         } finally {
             setIsLoading(false);
