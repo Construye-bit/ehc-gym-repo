@@ -3,6 +3,12 @@ import { requireSuperAdmin } from "./utils";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mustGetCurrentUser } from "../users";
+import {
+    createBranchSchema,
+    updateBranchSchema,
+    deleteBranchSchema,
+    validateWithZod
+} from './validations';
 
 export const create = mutation({
     args: {
@@ -34,24 +40,13 @@ export const create = mutation({
         await requireSuperAdmin(ctx);
         const user = await mustGetCurrentUser(ctx);
 
-        // Validar formato de horas
-        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-        if (!timeRegex.test(args.opening_time)) {
-            throw new Error("Formato de hora de apertura inválido. Use HH:MM");
-        }
-        if (!timeRegex.test(args.closing_time)) {
-            throw new Error("Formato de hora de cierre inválido. Use HH:MM");
-        }
-
-        // Validar capacidad
-        if (args.max_capacity <= 0) {
-            throw new Error("La capacidad máxima debe ser un número positivo");
-        }
+        // Validar datos de entrada con Zod
+        const validatedData = validateWithZod(createBranchSchema, args, "create branch");
 
         // Verificar que no existe una sede con el mismo nombre
         const existingBranch = await ctx.db
             .query("branches")
-            .filter((q) => q.eq(q.field("name"), args.name))
+            .filter((q) => q.eq(q.field("name"), validatedData.name))
             .first();
 
         if (existingBranch) {
@@ -59,14 +54,14 @@ export const create = mutation({
         }
 
         // Verificar que la dirección existe
-        const address = await ctx.db.get(args.address_id);
+        const address = await ctx.db.get(validatedData.address_id as Id<"addresses">);
         if (!address) {
             throw new Error("Dirección no encontrada");
         }
 
         // Verificar que el manager existe si se proporciona
-        if (args.manager_id) {
-            const manager = await ctx.db.get(args.manager_id);
+        if (validatedData.manager_id) {
+            const manager = await ctx.db.get(validatedData.manager_id as Id<"users">);
             if (!manager) {
                 throw new Error("Usuario administrador no encontrado");
             }
@@ -75,21 +70,21 @@ export const create = mutation({
         const now = Date.now();
 
         const branchId = await ctx.db.insert("branches", {
-            name: args.name,
-            address_id: args.address_id,
-            phone: args.phone,
-            email: args.email,
-            opening_time: args.opening_time,
-            closing_time: args.closing_time,
-            max_capacity: args.max_capacity,
+            name: validatedData.name,
+            address_id: validatedData.address_id as Id<"addresses">,
+            phone: validatedData.phone,
+            email: validatedData.email,
+            opening_time: validatedData.opening_time,
+            closing_time: validatedData.closing_time,
+            max_capacity: validatedData.max_capacity,
             current_capacity: 0, // Iniciar en 0
-            status: args.status || "ACTIVE",
-            opening_date: args.opening_date,
-            manager_id: args.manager_id,
+            status: validatedData.status,
+            opening_date: validatedData.opening_date,
+            manager_id: validatedData.manager_id as Id<"users"> | undefined,
             created_by_user_id: user._id,
             created_at: now,
             updated_at: now,
-            metadata: args.metadata,
+            metadata: validatedData.metadata,
         });
 
         return { success: true, branchId };
@@ -123,26 +118,16 @@ export const update = mutation({
             wifi_available: v.optional(v.boolean()),
         })),
     },
-    handler: async (ctx, { branchId, ...updates }) => {
+    handler: async (ctx, args) => {
         await requireSuperAdmin(ctx);
 
-        const branch = await ctx.db.get(branchId);
+        // Validar datos de entrada con Zod
+        const validatedData = validateWithZod(updateBranchSchema, args, "update branch");
+        const { branchId, ...updates } = validatedData;
+
+        const branch = await ctx.db.get(branchId as Id<"branches">);
         if (!branch) {
             throw new Error("Sede no encontrada");
-        }
-
-        // Validar formato de horas si se están actualizando
-        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-        if (updates.opening_time && !timeRegex.test(updates.opening_time)) {
-            throw new Error("Formato de hora de apertura inválido. Use HH:MM");
-        }
-        if (updates.closing_time && !timeRegex.test(updates.closing_time)) {
-            throw new Error("Formato de hora de cierre inválido. Use HH:MM");
-        }
-
-        // Validar capacidad
-        if (updates.max_capacity !== undefined && updates.max_capacity <= 0) {
-            throw new Error("La capacidad máxima debe ser un número positivo");
         }
 
         // Verificar nombre único si se está actualizando
@@ -152,7 +137,7 @@ export const update = mutation({
                 .filter((q) =>
                     q.and(
                         q.eq(q.field("name"), updates.name!),
-                        q.neq(q.field("_id"), branchId)
+                        q.neq(q.field("_id"), branchId as Id<"branches">)
                     )
                 )
                 .first();
@@ -164,7 +149,7 @@ export const update = mutation({
 
         // Verificar que la nueva dirección existe si se está actualizando
         if (updates.address_id) {
-            const address = await ctx.db.get(updates.address_id);
+            const address = await ctx.db.get(updates.address_id as Id<"addresses">);
             if (!address) {
                 throw new Error("Dirección no encontrada");
             }
@@ -172,14 +157,16 @@ export const update = mutation({
 
         // Verificar que el nuevo manager existe si se está actualizando
         if (updates.manager_id) {
-            const manager = await ctx.db.get(updates.manager_id);
+            const manager = await ctx.db.get(updates.manager_id as Id<"users">);
             if (!manager) {
                 throw new Error("Usuario administrador no encontrado");
             }
         }
 
-        await ctx.db.patch(branchId, {
+        await ctx.db.patch(branchId as Id<"branches">, {
             ...updates,
+            address_id: updates.address_id as Id<"addresses"> | undefined,
+            manager_id: updates.manager_id as Id<"users"> | undefined,
             updated_at: Date.now(),
         });
 

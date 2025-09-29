@@ -53,7 +53,6 @@ export const updateOrCreateUser = internalMutation({
             await ctx.db.patch(userRecord._id, {
                 name: `${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`,
                 email: clerkUser.email_addresses[0]?.email_address || "",
-                phone: clerkUser.phone_numbers?.[0]?.phone_number,
                 updated_at: now,
                 active: true,
             });
@@ -65,7 +64,6 @@ export const updateOrCreateUser = internalMutation({
             clerk_id: clerkUser.id,
             name: `${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`,
             email: clerkUser.email_addresses[0]?.email_address || "",
-            phone: clerkUser.phone_numbers?.[0]?.phone_number,
             updated_at: now,
             active: true,
         });
@@ -106,6 +104,53 @@ export const deleteUser = internalMutation({
 
         // Delete user
         await ctx.db.delete(userRecord._id);
+    },
+});
+
+/** Delete user completamente (incluye Clerk) */
+export const deleteUserComplete = internalMutation({
+    args: { userId: v.id("users") },
+    async handler(ctx, { userId }) {
+        const userRecord = await ctx.db.get(userId);
+        if (!userRecord) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        // Verificar que la clave secreta de Clerk esté disponible
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (!clerkSecretKey) {
+            throw new Error("CLERK_SECRET_KEY no está configurado");
+        }
+
+        const { createClerkClient } = await import('@clerk/backend');
+        const clerkClient = createClerkClient({
+            secretKey: clerkSecretKey
+        });
+
+        try {
+            // 1. Eliminar usuario de Clerk
+            await clerkClient.users.deleteUser(userRecord.clerk_id);
+        } catch (clerkError) {
+            console.error('Error eliminando usuario de Clerk:', clerkError);
+            // Continuar con la eliminación local aunque falle Clerk
+        }
+
+        // 2. Eliminar asignaciones de roles
+        const roleAssignments = await ctx.db
+            .query("role_assignments")
+            .withIndex("by_user_active", (q) =>
+                q.eq("user_id", userId).eq("active", true)
+            )
+            .collect();
+
+        for (const role of roleAssignments) {
+            await ctx.db.delete(role._id);
+        }
+
+        // 3. Eliminar usuario local
+        await ctx.db.delete(userId);
+
+        return { success: true };
     },
 });
 

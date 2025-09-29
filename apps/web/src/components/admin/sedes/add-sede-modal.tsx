@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 import { AddCityModal } from "./add-city-modal";
 import { AddAddressModal } from "./add-address-modal";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
@@ -158,8 +159,11 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
             onOpenChange(false);
         } catch (error) {
             console.error("Error al crear sede:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al crear la sede. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al crear sede", {
-                description: error instanceof Error ? error.message : "Ocurrió un error inesperado"
+                description: errorMessage
             });
         } finally {
             setIsLoading(false);
@@ -203,7 +207,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold text-gray-900">
+                        <DialogTitle className="text-2xl font-bold text-white">
                             Añadir Nueva Sede
                         </DialogTitle>
                     </DialogHeader>
@@ -244,7 +248,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Ubicación */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <MapPin className="h-5 w-5" />
                                 Ubicación
                             </h3>
@@ -349,7 +353,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Horarios y Capacidad */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
                                 Horarios y Capacidad
                             </h3>
@@ -407,7 +411,7 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
 
                         {/* Servicios */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Servicios Disponibles</h3>
+                            <h3 className="text-lg font-semibold text-white">Servicios Disponibles</h3>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {Object.entries({

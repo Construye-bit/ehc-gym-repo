@@ -3,11 +3,12 @@ import { Plus, Loader2 } from "lucide-react";
 import { SedeCard } from "./sede-card";
 import { DeleteSedeConfirmDialog } from "./delete-sede-confirm-dialog";
 import { AddSedeModal } from "./add-sede-modal";
+import { EditSedeModal } from "./edit-sede-modal";
 import { useState } from "react";
-// import { EditSedeModal } from "./edit-sede-modal";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 
 type SedeData = {
     _id: string;
@@ -30,6 +31,8 @@ export function SedesManagementContent() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [sedeToDelete, setSedeToDelete] = useState<SedeData | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSedeId, setEditingSedeId] = useState<string | null>(null);
 
     // Consumir la query real de branches
     const branchesData = useQuery(api.branches.queries.getAllWithDetails);
@@ -59,8 +62,13 @@ export function SedesManagementContent() {
     };
 
     const handleEditSede = (id: string) => {
-        // TODO: Implementar mutación para editar sede
-        alert("Función de editar sede en desarrollo");
+        setEditingSedeId(id);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setIsEditModalOpen(false);
+        setEditingSedeId(null);
     };
 
     const handleDeleteSede = (id: string) => {
@@ -84,8 +92,11 @@ export function SedesManagementContent() {
             setSedeToDelete(null);
         } catch (error) {
             console.error("Error al eliminar sede:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al intentar eliminar la sede. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al eliminar sede", {
-                description: "Ocurrió un error al intentar eliminar la sede. Por favor, inténtalo de nuevo."
+                description: errorMessage
             });
         } finally {
             setDeletingSedeId(null);
@@ -179,15 +190,14 @@ export function SedesManagementContent() {
                 onOpenChange={setIsAddModalOpen}
             />
 
-            {/* Edit Modal - Temporalmente deshabilitado hasta implementar */}
-            {/* 
-            <EditSedeModal
-                isOpen={isEditModalOpen}
-                onClose={handleCloseEditModal}
-                onEdit={handleUpdateSede}
-                sede={selectedSede}
-            />
-            */}
+            {/* Edit Sede Modal */}
+            {editingSedeId && (
+                <EditSedeModal
+                    isOpen={isEditModalOpen}
+                    onOpenChange={setIsEditModalOpen}
+                    branchId={editingSedeId}
+                />
+            )}
         </>
     );
 }

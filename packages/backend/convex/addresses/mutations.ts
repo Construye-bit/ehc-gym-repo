@@ -2,6 +2,8 @@ import { mutation } from "../_generated/server";
 import { requireSuperAdmin } from "./utils";
 import { v } from "convex/values";
 import { InvalidCoordinatesError } from "./errors";
+import { validateWithZod, createAddressSchema, updateAddressSchema, deactivateAddressSchema } from "./validations";
+import { Id } from "../_generated/dataModel";
 
 export const create = mutation({
     args: {
@@ -14,23 +16,11 @@ export const create = mutation({
     handler: async (ctx, args) => {
         await requireSuperAdmin(ctx);
 
-        // Validar coordenadas si se proporcionan
-        if (args.latitude !== undefined || args.longitude !== undefined) {
-            if (args.latitude === undefined || args.longitude === undefined) {
-                throw new InvalidCoordinatesError("Debe proporcionar tanto latitud como longitud");
-            }
-
-            if (args.latitude < -90 || args.latitude > 90) {
-                throw new InvalidCoordinatesError("La latitud debe estar entre -90 y 90");
-            }
-
-            if (args.longitude < -180 || args.longitude > 180) {
-                throw new InvalidCoordinatesError("La longitud debe estar entre -180 y 180");
-            }
-        }
+        // Validar datos con Zod (incluye validación de coordenadas)
+        const validatedData = validateWithZod(createAddressSchema, args, "crear dirección");
 
         // Verificar que la ciudad existe
-        const city = await ctx.db.get(args.city_id);
+        const city = await ctx.db.get(validatedData.city_id as Id<"cities">);
         if (!city) {
             throw new Error("Ciudad no encontrada");
         }
@@ -38,11 +28,11 @@ export const create = mutation({
         const now = Date.now();
 
         const addressId = await ctx.db.insert("addresses", {
-            city_id: args.city_id,
-            main_address: args.main_address,
-            reference: args.reference,
-            latitude: args.latitude,
-            longitude: args.longitude,
+            city_id: validatedData.city_id as Id<"cities">,
+            main_address: validatedData.main_address,
+            reference: validatedData.reference,
+            latitude: validatedData.latitude,
+            longitude: validatedData.longitude,
             created_at: now,
             updated_at: now,
             active: true,
@@ -65,39 +55,25 @@ export const update = mutation({
     handler: async (ctx, { addressId, ...updates }) => {
         await requireSuperAdmin(ctx);
 
+        // Validar datos con Zod (incluye validación de coordenadas)
+        const validatedData = validateWithZod(updateAddressSchema, updates, "actualizar dirección");
+
         const address = await ctx.db.get(addressId);
         if (!address) {
             throw new Error("Dirección no encontrada");
         }
 
-        // Validar coordenadas si se están actualizando
-        if (updates.latitude !== undefined || updates.longitude !== undefined) {
-            const newLat = updates.latitude !== undefined ? updates.latitude : address.latitude;
-            const newLon = updates.longitude !== undefined ? updates.longitude : address.longitude;
-
-            if ((newLat !== undefined && newLon === undefined) || (newLat === undefined && newLon !== undefined)) {
-                throw new InvalidCoordinatesError("Debe proporcionar tanto latitud como longitud");
-            }
-
-            if (newLat !== undefined && newLat !== null && (newLat < -90 || newLat > 90)) {
-                throw new InvalidCoordinatesError("La latitud debe estar entre -90 y 90");
-            }
-
-            if (newLon !== undefined && newLon !== null && (newLon < -180 || newLon > 180)) {
-                throw new InvalidCoordinatesError("La longitud debe estar entre -180 y 180");
-            }
-        }
-
         // Verificar que la nueva ciudad existe si se está actualizando
-        if (updates.city_id) {
-            const city = await ctx.db.get(updates.city_id);
+        if (validatedData.city_id) {
+            const city = await ctx.db.get(validatedData.city_id as Id<"cities">);
             if (!city) {
                 throw new Error("Ciudad no encontrada");
             }
         }
 
         await ctx.db.patch(addressId, {
-            ...updates,
+            ...validatedData,
+            city_id: validatedData.city_id as Id<"cities"> | undefined,
             updated_at: Date.now(),
         });
 
@@ -130,7 +106,10 @@ export const deactivate = mutation({
     handler: async (ctx, { addressId }) => {
         await requireSuperAdmin(ctx);
 
-        await ctx.db.patch(addressId, {
+        // Validar datos con Zod
+        const validatedData = validateWithZod(deactivateAddressSchema, { addressId }, "desactivar dirección");
+
+        await ctx.db.patch(validatedData.addressId as Id<"addresses">, {
             active: false,
             updated_at: Date.now(),
         });

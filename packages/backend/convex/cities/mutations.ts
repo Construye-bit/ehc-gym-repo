@@ -2,6 +2,7 @@ import { mutation } from "../_generated/server";
 import { requireSuperAdmin } from "./utils";
 import { v } from "convex/values";
 import { CityAlreadyExistsError } from "./errors";
+import { validateWithZod, createCitySchema, updateCitySchema } from "./validations";
 
 export const create = mutation({
     args: {
@@ -14,14 +15,17 @@ export const create = mutation({
     handler: async (ctx, args) => {
         await requireSuperAdmin(ctx);
 
+        // Validar datos con Zod
+        const validatedData = validateWithZod(createCitySchema, args, "crear ciudad");
+
         // Verificar si ya existe una ciudad con el mismo nombre en la misma región
         const existingCity = await ctx.db
             .query("cities")
             .filter((q) =>
                 q.and(
-                    q.eq(q.field("name"), args.name),
-                    q.eq(q.field("state_region"), args.state_region),
-                    q.eq(q.field("country"), args.country)
+                    q.eq(q.field("name"), validatedData.name),
+                    q.eq(q.field("state_region"), validatedData.state_region),
+                    q.eq(q.field("country"), validatedData.country)
                 )
             )
             .first();
@@ -33,11 +37,11 @@ export const create = mutation({
         const now = Date.now();
 
         const cityId = await ctx.db.insert("cities", {
-            country: args.country,
-            state_region: args.state_region,
-            name: args.name,
-            type: args.type,
-            postal_code: args.postal_code,
+            country: validatedData.country,
+            state_region: validatedData.state_region,
+            name: validatedData.name,
+            type: validatedData.type,
+            postal_code: validatedData.postal_code,
             created_at: now,
             updated_at: now,
         });
@@ -58,20 +62,23 @@ export const update = mutation({
     handler: async (ctx, { cityId, ...updates }) => {
         await requireSuperAdmin(ctx);
 
+        // Validar datos con Zod
+        const validatedData = validateWithZod(updateCitySchema, updates, "actualizar ciudad");
+
         const city = await ctx.db.get(cityId);
         if (!city) {
             throw new Error("Ciudad no encontrada");
         }
 
         // Si se está actualizando el nombre, verificar duplicados
-        if (updates.name && updates.name !== city.name) {
+        if (validatedData.name && validatedData.name !== city.name) {
             const existingCity = await ctx.db
                 .query("cities")
                 .filter((q) =>
                     q.and(
-                        q.eq(q.field("name"), updates.name!),
-                        q.eq(q.field("state_region"), updates.state_region || city.state_region),
-                        q.eq(q.field("country"), updates.country || city.country),
+                        q.eq(q.field("name"), validatedData.name!),
+                        q.eq(q.field("state_region"), validatedData.state_region || city.state_region),
+                        q.eq(q.field("country"), validatedData.country || city.country),
                         q.neq(q.field("_id"), cityId)
                     )
                 )
@@ -83,7 +90,7 @@ export const update = mutation({
         }
 
         await ctx.db.patch(cityId, {
-            ...updates,
+            ...validatedData,
             updated_at: Date.now(),
         });
 

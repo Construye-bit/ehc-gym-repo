@@ -9,8 +9,8 @@ interface FormSectionProps {
 }
 
 const FormSection: React.FC<FormSectionProps> = ({ icon, title, description, children }) => (
-    <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-4">
+    <Card className="bg-white border border-gray-200 shadow-sm">
+        <CardHeader className="pb-4 bg-gray-50 border-b border-gray-100">
             <CardTitle className="flex items-center gap-3 text-xl text-gray-900">
                 <div className="p-2 bg-yellow-100 rounded-lg text-yellow-600">
                     {icon}
@@ -18,14 +18,14 @@ const FormSection: React.FC<FormSectionProps> = ({ icon, title, description, chi
                 <div>
                     {title}
                     {description && (
-                        <p className="text-sm font-normal text-gray-500 mt-1">
+                        <p className="text-sm font-normal text-gray-600 mt-1">
                             {description}
                         </p>
                     )}
                 </div>
             </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 bg-white">
             {children}
         </CardContent>
     </Card>

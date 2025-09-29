@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight, User, CreditCard, Building2, Save } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { z } from "zod";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { FormField } from "@/components/ui/form-field";
 import { FormSection } from "@/components/ui/form-section";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { SpecialtyTags } from "@/components/ui/specialty-tags";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Validations
 import {
@@ -33,12 +35,17 @@ interface FormErrors {
     [key: string]: string;
 }
 
+interface EditTrainerFormProps {
+    trainerId: Id<"trainers">;
+}
+
 // ===== COMPONENTE PRINCIPAL =====
 
-export default function NewTrainerForm() {
+export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
     // Estados
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isInitializing, setIsInitializing] = useState<boolean>(true);
     const [errors, setErrors] = useState<FormErrors>({});
 
     const [userData, setUserData] = useState<UserData>({
@@ -62,8 +69,9 @@ export default function NewTrainerForm() {
 
     // Hooks
     const navigate = useNavigate();
-    const createTrainerComplete = useAction(api.trainers.mutations.createTrainerComplete);
+    const updateTrainerComplete = useAction(api.trainers.mutations.updateTrainerComplete);
     const branches = useQuery(api.branches.queries.list);
+    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetails, { trainerId });
 
     // Constantes
     const DOCUMENT_TYPES: Array<{ value: DocumentType; label: string }> = [
@@ -74,6 +82,39 @@ export default function NewTrainerForm() {
     ];
 
     const totalSteps: number = 3;
+
+    // Inicializar formulario con datos existentes
+    useEffect(() => {
+        if (trainerDetails && isInitializing) {
+            const { person, user, branch, specialties } = trainerDetails;
+
+            if (user && person) {
+                // Extraer username del nombre completo o usar el email como base
+                const username = user.name.replace(/\s+/g, '').toLowerCase();
+
+                setUserData({
+                    userName: username,
+                    userEmail: user.email,
+                    userPhone: person.phone || "",
+                });
+
+                setPersonalData({
+                    personName: person.name,
+                    personLastName: person.last_name,
+                    personBornDate: person.born_date,
+                    personDocumentType: person.document_type as DocumentType,
+                    personDocumentNumber: person.document_number,
+                });
+
+                setWorkData({
+                    branch: branch?.name || "",
+                    specialties: specialties || [],
+                });
+
+                setIsInitializing(false);
+            }
+        }
+    }, [trainerDetails, isInitializing]);
 
     // Handlers
     const updateUserData = (field: keyof UserData, value: string) => {
@@ -120,28 +161,6 @@ export default function NewTrainerForm() {
         }));
     };
 
-    // Función para limpiar el formulario
-    const resetForm = () => {
-        setCurrentStep(1);
-        setErrors({});
-        setUserData({
-            userName: "",
-            userEmail: "",
-            userPhone: "",
-        });
-        setPersonalData({
-            personName: "",
-            personLastName: "",
-            personBornDate: "",
-            personDocumentType: "CC",
-            personDocumentNumber: "",
-        });
-        setWorkData({
-            branch: "",
-            specialties: [],
-        });
-    };
-
     // Validar campo individual en tiempo real
     const validateField = (fieldName: string, value: any, schema: z.ZodObject<any>) => {
         try {
@@ -174,7 +193,11 @@ export default function NewTrainerForm() {
 
         try {
             if (step === 1) {
-                userDataSchema.parse(userData);
+                // Solo validar el teléfono en Step 1, ya que username y email no son editables
+                const phoneOnlySchema = z.object({
+                    userPhone: userDataSchema.shape.userPhone
+                });
+                phoneOnlySchema.parse({ userPhone: userData.userPhone });
             } else if (step === 2) {
                 personalDataSchema.parse(personalData);
             } else if (step === 3) {
@@ -220,7 +243,11 @@ export default function NewTrainerForm() {
         const newErrors: FormErrors = {};
 
         try {
-            userDataSchema.parse(userData);
+            // Solo validar el teléfono del usuario ya que username y email no son editables
+            const phoneOnlySchema = z.object({
+                userPhone: userDataSchema.shape.userPhone
+            });
+            phoneOnlySchema.parse({ userPhone: userData.userPhone });
             personalDataSchema.parse(personalData);
             workDataSchema.parse(workData);
 
@@ -245,8 +272,9 @@ export default function NewTrainerForm() {
 
         setIsLoading(true);
         try {
-            // Usar la action completa
-            const result = await createTrainerComplete({
+            // Usar la action de actualización
+            const result = await updateTrainerComplete({
+                trainerId,
                 userData: {
                     userName: userData.userName,
                     userEmail: userData.userEmail,
@@ -266,20 +294,13 @@ export default function NewTrainerForm() {
             });
 
             if (!result?.success) {
-                throw new Error(result?.data?.message || "No se pudo crear el entrenador");
+                throw new Error(result?.message || "No se pudo actualizar el entrenador");
             }
 
-            // Éxito: mostrar toast, limpiar formulario y redirigir
-            const trainerName = `${personalData.personName} ${personalData.personLastName}`;
-            toast.success(
-                `¡Entrenador ${trainerName} creado exitosamente! Se ha enviado un correo con las credenciales.`,
-                {
-                    duration: 4000,
-                }
-            );
-
-            // Limpiar formulario
-            resetForm();
+            // Éxito: mostrar toast y redirigir
+            toast.success(result.message, {
+                duration: 4000,
+            });
 
             // Redirigir después de un breve delay para que se vea el toast
             setTimeout(() => {
@@ -287,15 +308,15 @@ export default function NewTrainerForm() {
             }, 1500);
 
         } catch (error) {
-            console.error('Error al crear entrenador:', error);
+            console.error('Error al actualizar entrenador:', error);
 
             // Extraer mensaje de error más específico
-            let errorMessage = 'Error al crear entrenador';
+            let errorMessage = 'Error al actualizar entrenador';
             if (error instanceof Error) {
-                if (error.message.includes('Ya existe un usuario con este correo')) {
-                    errorMessage = 'Ya existe un entrenador con este correo electrónico';
-                } else if (error.message.includes('Ya existe una persona con este número de documento')) {
-                    errorMessage = 'Ya existe una persona con este número de documento';
+                if (error.message.includes('Ya existe otro usuario con este correo')) {
+                    errorMessage = 'Ya existe otro entrenador con este correo electrónico';
+                } else if (error.message.includes('Ya existe otra persona con este número de documento')) {
+                    errorMessage = 'Ya existe otra persona con este número de documento';
                 } else if (error.message.includes('no existe')) {
                     errorMessage = 'La sede seleccionada no existe';
                 } else {
@@ -311,6 +332,60 @@ export default function NewTrainerForm() {
         }
     };
 
+    // Renderizar estado de carga inicial
+    if (trainerDetails === undefined || isInitializing) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
+                <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Link to="/admin/trainers">
+                            <Button
+                                variant="outline"
+                                className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
+                            >
+                                <ArrowLeft size={18} />
+                                <span>Volver</span>
+                            </Button>
+                        </Link>
+                        <div>
+                            <Skeleton className="h-8 w-64 mb-2" />
+                            <Skeleton className="h-4 w-48" />
+                        </div>
+                    </div>
+
+                    <Card className="p-6">
+                        <div className="space-y-4">
+                            <Skeleton className="h-6 w-full" />
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-6 w-1/2" />
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
+    // Si no se encontró el entrenador
+    if (trainerDetails === null) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Entrenador no encontrado</h1>
+                    <p className="text-gray-600 mb-6">El entrenador que intentas editar no existe o no tienes permisos para acceder.</p>
+                    <Link to="/admin/trainers">
+                        <Button
+                            variant="outline"
+                            className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
+                        >
+                            <ArrowLeft size={18} />
+                            <span>Volver a Entrenadores</span>
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     // Renderizar contenido por paso
     const renderStepContent = () => {
         switch (currentStep) {
@@ -319,7 +394,7 @@ export default function NewTrainerForm() {
                     <FormSection
                         icon={<User size={20} />}
                         title="Datos de Usuario"
-                        description="Información de acceso al sistema"
+                        description="Información de acceso al sistema (algunos campos no son editables)"
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
@@ -328,11 +403,13 @@ export default function NewTrainerForm() {
                                 error={errors.userName}
                             >
                                 <Input
-                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                                    className="bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed"
                                     placeholder="usuario123"
                                     value={userData.userName}
-                                    onChange={(e) => updateUserData('userName', e.target.value)}
+                                    readOnly
+                                    disabled
                                 />
+                                <p className="text-xs text-gray-500 mt-1">Este campo no se puede editar</p>
                             </FormField>
 
                             <FormField
@@ -341,12 +418,14 @@ export default function NewTrainerForm() {
                                 error={errors.userEmail}
                             >
                                 <Input
-                                    className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                                    className="bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed"
                                     type="email"
                                     placeholder="usuario@example.com"
                                     value={userData.userEmail}
-                                    onChange={(e) => updateUserData('userEmail', e.target.value)}
+                                    readOnly
+                                    disabled
                                 />
+                                <p className="text-xs text-gray-500 mt-1">Este campo no se puede editar</p>
                             </FormField>
 
                             <FormField
@@ -518,13 +597,18 @@ export default function NewTrainerForm() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Nuevo Entrenador</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Editar Entrenador</h1>
                         <p className="text-gray-600 mt-1">
                             Paso {currentStep} de {totalSteps}: {
                                 currentStep === 1 ? 'Datos de Usuario' :
                                     currentStep === 2 ? 'Datos Personales' : 'Datos Laborales'
                             }
                         </p>
+                        {trainerDetails && (
+                            <p className="text-sm text-gray-500">
+                                Editando: {trainerDetails.person?.name} {trainerDetails.person?.last_name} (Código: {trainerDetails.employee_code})
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -555,17 +639,15 @@ export default function NewTrainerForm() {
                             </div>
 
                             <div className="flex gap-3">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="border-yellow-300 text-gray-700 hover:bg-yellow-50 hover:border-yellow-400 cursor-pointer hover:text-yellow-900 transition-colors"
-                                    onClick={() => {
-                                        resetForm();
-                                        navigate({ to: '/admin/trainers' });
-                                    }}
-                                >
-                                    Cancelar
-                                </Button>
+                                <Link to="/admin/trainers">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="border-yellow-300 text-gray-700 hover:bg-yellow-50 hover:border-yellow-400 cursor-pointer hover:text-yellow-900 transition-colors"
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </Link>
 
                                 {currentStep < totalSteps ? (
                                     <Button
@@ -586,12 +668,12 @@ export default function NewTrainerForm() {
                                         {isLoading ? (
                                             <>
                                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                Creando...
+                                                Actualizando...
                                             </>
                                         ) : (
                                             <>
                                                 <Save size={16} />
-                                                Crear Entrenador
+                                                Actualizar Entrenador
                                             </>
                                         )}
                                     </Button>

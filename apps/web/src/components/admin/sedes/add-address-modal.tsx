@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { extractConvexErrorMessage } from "@/lib/error-utils";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 interface AddAddressModalProps {
@@ -111,8 +112,11 @@ export function AddAddressModal({ isOpen, onOpenChange, cityId, onAddressAdded }
             onAddressAdded(result.addressId);
         } catch (error) {
             console.error("Error al crear dirección:", error);
+
+            const errorMessage = extractConvexErrorMessage(error, "Ocurrió un error al crear la dirección. Por favor, inténtalo de nuevo.");
+
             toast.error("Error al crear dirección", {
-                description: error instanceof Error ? error.message : "Ocurrió un error inesperado"
+                description: errorMessage
             });
         } finally {
             setIsLoading(false);
@@ -140,7 +144,7 @@ export function AddAddressModal({ isOpen, onOpenChange, cityId, onAddressAdded }
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
                         Añadir Nueva Dirección
                     </DialogTitle>
@@ -172,7 +176,7 @@ export function AddAddressModal({ isOpen, onOpenChange, cityId, onAddressAdded }
                     </div>
 
                     <div className="space-y-3">
-                        <Label className="text-sm font-medium text-gray-700">
+                        <Label className="text-sm font-medium text-gray-100">
                             Coordenadas (opcional)
                         </Label>
                         <p className="text-xs text-gray-500">
