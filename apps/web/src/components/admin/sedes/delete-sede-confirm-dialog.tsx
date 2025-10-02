@@ -32,7 +32,7 @@ export function DeleteSedeConfirmDialog({
 
     return (
         <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="sm:max-w-[425px]">
+            <AlertDialogContent className="sm:max-w-[425px] bg-black text-black border-black-400">
                 <AlertDialogHeader>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
@@ -44,7 +44,7 @@ export function DeleteSedeConfirmDialog({
                             </AlertDialogTitle>
                         </div>
                     </div>
-                    <AlertDialogDescription className="text-left">
+                    <AlertDialogDescription className="text-left text-white">
                         ¿Estás seguro de que quieres eliminar la sede{" "}
                         <span className="font-semibold text-white">"{sedeName}"</span>?
                         <br />
@@ -58,7 +58,7 @@ export function DeleteSedeConfirmDialog({
                 <AlertDialogFooter>
                     <AlertDialogCancel
                         disabled={isDeleting}
-                        className="hover:bg-gray-50"
+                        className="bg-gray-600 hover:bg-gray-700 focus:ring-gray-600 text-white"
                     >
                         Cancelar
                     </AlertDialogCancel>

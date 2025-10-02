@@ -4,10 +4,11 @@ import { SedeCard } from "./sede-card";
 import { DeleteSedeConfirmDialog } from "./delete-sede-confirm-dialog";
 import { AddSedeModal } from "./add-sede-modal";
 import { EditSedeModal } from "./edit-sede-modal";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractConvexErrorMessage } from "@/lib/error-utils";
 
 type SedeData = {
@@ -16,14 +17,21 @@ type SedeData = {
     departamento: string;
     ciudad: string;
     direccion: string;
-    administrador: string;
-    contacto: string;
-    entrenadoresActivos: number;
-    isActive: boolean;
-    status: "ACTIVE" | "INACTIVE" | "UNDER_CONSTRUCTION" | "TEMPORARILY_CLOSED";
+    telefono: string;
+    email: string;
+    max_capacity: number;
     opening_time: string;
     closing_time: string;
-    max_capacity: number;
+    status: "ACTIVE" | "INACTIVE" | "UNDER_CONSTRUCTION" | "TEMPORARILY_CLOSED";
+    metadata: {
+        has_parking?: boolean;
+        has_pool?: boolean;
+        has_sauna?: boolean;
+        has_spa?: boolean;
+        has_locker_rooms?: boolean;
+        wifi_available?: boolean;
+    };
+    isActive: boolean;
 };
 
 export function SedesManagementContent() {
@@ -33,6 +41,7 @@ export function SedesManagementContent() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingSedeId, setEditingSedeId] = useState<string | null>(null);
+    const [selectedCity, setSelectedCity] = useState<string>("all");
 
     // Consumir la query real de branches
     const branchesData = useQuery(api.branches.queries.getAllWithDetails);
@@ -47,14 +56,14 @@ export function SedesManagementContent() {
         departamento: branch.city?.state_region || "No definido",
         ciudad: branch.city?.name || "No definida",
         direccion: branch.address?.main_address || "No definida",
-        administrador: branch.manager?.name || "Sin asignar",
-        contacto: branch.phone || branch.manager?.phone || "No disponible",
-        entrenadoresActivos: branch.trainers?.length || 0,
-        isActive: branch.status === "ACTIVE",
+        telefono: branch.phone || "No disponible",
+        email: branch.email || "No disponible",
+        max_capacity: branch.max_capacity || 0,
+        opening_time: branch.opening_time || "No definido",
+        closing_time: branch.closing_time || "No definido",
         status: branch.status,
-        opening_time: branch.opening_time,
-        closing_time: branch.closing_time,
-        max_capacity: branch.max_capacity,
+        metadata: branch.metadata || {},
+        isActive: branch.status === "ACTIVE",
     })) || [];
 
     const handleAddSede = () => {
@@ -105,7 +114,23 @@ export function SedesManagementContent() {
 
     // Estado de carga
     const isLoading = branchesData === undefined;
-    const hasAnyDeletingOperation = deletingSedeId !== null; return (
+    const hasAnyDeletingOperation = deletingSedeId !== null;
+
+    // Obtener lista única de ciudades para el filtro
+    const cities = useMemo(() => {
+        const uniqueCities = new Set(sedes.map(sede => sede.ciudad));
+        return Array.from(uniqueCities).sort();
+    }, [sedes]);
+
+    // Filtrar sedes por ciudad seleccionada
+    const filteredSedes = useMemo(() => {
+        if (selectedCity === "all") {
+            return sedes;
+        }
+        return sedes.filter(sede => sede.ciudad === selectedCity);
+    }, [sedes, selectedCity]);
+
+    return (
         <>
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header Section */}
@@ -117,15 +142,38 @@ export function SedesManagementContent() {
                         Administrador, Estas Son Las Sedes Disponibles Actualmente
                     </p>
 
-                    {/* Add Sede Button */}
-                    <Button
-                        onClick={handleAddSede}
-                        className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-scale-in"
-                        disabled={isLoading || hasAnyDeletingOperation}
-                    >
-                        <Plus size={20} />
-                        Añadir Sede
-                    </Button>
+                    {/* Filtros y botón de añadir */}
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                        {/* Filtro por ciudad */}
+                        <div className="w-full sm:w-64">
+                            <Select
+                                value={selectedCity}
+                                onValueChange={setSelectedCity}
+                            >
+                                <SelectTrigger className="bg-white border-gray-300 text-black">
+                                    <SelectValue placeholder="Filtrar por ciudad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas las ciudades</SelectItem>
+                                    {cities.map((city) => (
+                                        <SelectItem key={city} value={city}>
+                                            {city}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Add Sede Button */}
+                        <Button
+                            onClick={handleAddSede}
+                            className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-scale-in w-full sm:w-auto"
+                            disabled={isLoading || hasAnyDeletingOperation}
+                        >
+                            <Plus size={20} />
+                            Añadir Sede
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Loading State */}
@@ -137,12 +185,17 @@ export function SedesManagementContent() {
                 ) : (
                     /* Sedes Grid */
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-slide-in-right">
-                        {sedes.length === 0 ? (
+                        {filteredSedes.length === 0 ? (
                             <div className="col-span-full text-center py-12">
-                                <p className="text-gray-500 text-lg">No hay sedes disponibles</p>
+                                <p className="text-gray-500 text-lg">
+                                    {selectedCity === "all"     
+                                        ? "No hay sedes disponibles"
+                                        : `No hay sedes en ${selectedCity}`
+                                    }
+                                </p>
                             </div>
                         ) : (
-                            sedes.map((sede, index) => (
+                            filteredSedes.map((sede, index) => (
                                 <div
                                     key={sede._id}
                                     className="animate-fade-in-up"
@@ -158,11 +211,14 @@ export function SedesManagementContent() {
                                             departamento: sede.departamento,
                                             ciudad: sede.ciudad,
                                             direccion: sede.direccion,
-                                            administrador: sede.administrador,
-                                            contacto: sede.contacto,
-                                            entrenadoresActivos: sede.entrenadoresActivos,
-                                            image: "", // Sin imagen de fondo
-                                            isActive: sede.isActive
+                                            telefono: sede.telefono,
+                                            email: sede.email,
+                                            max_capacity: sede.max_capacity,
+                                            opening_time: sede.opening_time,
+                                            closing_time: sede.closing_time,
+                                            status: sede.status,
+                                            metadata: sede.metadata,
+                                            isActive: sede.isActive,
                                         }}
                                         onEdit={() => handleEditSede(sede._id)}
                                         onDelete={() => handleDeleteSede(sede._id)}
