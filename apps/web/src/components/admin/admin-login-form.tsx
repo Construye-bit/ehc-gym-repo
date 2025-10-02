@@ -48,7 +48,7 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
                                     placeholder="Correo electrónico"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="h-12 rounded-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                                    className="h-12 rounded-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500 text-black"
                                     required
                                 />
                             </div>
@@ -64,7 +64,7 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
                                         placeholder="Contraseña"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="h-12 rounded-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-10"
+                                        className="h-12 rounded-lg border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-10 text-black"
                                         required
                                     />
                                     <button

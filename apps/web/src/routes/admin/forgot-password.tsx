@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth, useClerk, useSignIn } from '@clerk/clerk-react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AdminLoginBackground } from "@/components/admin/admin-login-background";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/admin/forgot-password")({
     component: ForgotPasswordPage,
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/admin/forgot-password")({
 function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [code, setCode] = useState('');
     const [successfulCreation, setSuccessfulCreation] = useState(false);
     const [secondFactor, setSecondFactor] = useState(false);
@@ -88,10 +91,10 @@ function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md p-8 space-y-6">
+        <AdminLoginBackground>
+            <Card className="w-full max-w-md p-8 space-y-6 bg-white">
                 <div className="text-center space-y-2">
-                    <h1 className="text-2xl font-bold text-gray-900">
+                    <h1 className="text-2xl font-bold text-gray-800">
                         {!successfulCreation ? '¿Olvidó su contraseña?' : 'Restablecer contraseña'}
                     </h1>
                     <p className="text-gray-600">
@@ -106,7 +109,7 @@ function ForgotPasswordPage() {
                     {!successfulCreation && (
                         <>
                             <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                                <label htmlFor="email" className="text-sm font-medium text-gray-800">
                                     Correo electrónico
                                 </label>
                                 <input
@@ -115,7 +118,7 @@ function ForgotPasswordPage() {
                                     placeholder="ejemplo@correo.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                                     required
                                     disabled={isLoading}
                                 />
@@ -143,7 +146,7 @@ function ForgotPasswordPage() {
                                     placeholder="Ingrese el código recibido"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                                     required
                                     disabled={isLoading}
                                 />
@@ -153,16 +156,26 @@ function ForgotPasswordPage() {
                                 <label htmlFor="password" className="text-sm font-medium text-gray-700">
                                     Nueva contraseña
                                 </label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    placeholder="Ingrese su nueva contraseña"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                                    required
-                                    disabled={isLoading}
-                                />
+                                <div className="relative">                                    
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"} 
+                                        placeholder="Ingrese su nueva contraseña"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
                             </div>
 
                             <Button
@@ -200,6 +213,6 @@ function ForgotPasswordPage() {
                     </button>
                 </div>
             </Card>
-        </div>
+        </AdminLoginBackground>
     );
 }
