@@ -12,7 +12,7 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
 
     useEffect(() => {
         if (!isAuthenticated) {
-            navigate({ to: "/admin/login" });
+            navigate({ to: "/super-admin/login" });
         }
     }, [isAuthenticated, navigate]);
 

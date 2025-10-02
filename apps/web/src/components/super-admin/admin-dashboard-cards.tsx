@@ -1,11 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { 
-    Building, 
-    Users, 
+import {
+    Building,
+    Users,
     BarChart3,
-    ChevronRight 
+    ChevronRight
 } from "lucide-react";
 
 export function AdminDashboardCards() {
@@ -18,7 +18,7 @@ export function AdminDashboardCards() {
             icon: Building,
             background: "bg-gradient-to-br from-blue-400 to-blue-600",
             image: "/dashboard-sedes.jpg",
-            action: () => navigate({ to: "/admin/sedes" })
+            action: () => navigate({ to: "/super-admin/sedes" })
         },
         {
             title: "Asignación de Personal",
@@ -57,21 +57,20 @@ interface DashboardCardProps {
     size: 'large' | 'wide';
 }
 
-function DashboardCard({ 
-    title, 
-    description, 
-    icon: Icon, 
-    background, 
-    image, 
-    action, 
-    size 
+function DashboardCard({
+    title,
+    description,
+    icon: Icon,
+    background,
+    image,
+    action,
+    size
 }: DashboardCardProps) {
     return (
-        <Card className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:scale-105 ${
-            size === 'wide' ? 'h-48' : 'h-64'
-        } p-0`}> 
-            <div 
-                className={`relative w-full h-full ${background} text-white rounded-xl`} 
+        <Card className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:scale-105 ${size === 'wide' ? 'h-48' : 'h-64'
+            } p-0`}>
+            <div
+                className={`relative w-full h-full ${background} text-white rounded-xl`}
                 style={{
                     backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${image})`,
                     backgroundSize: 'cover',
@@ -91,7 +90,7 @@ function DashboardCard({
                         </div>
                         <Icon size={24} className="opacity-80" />
                     </div>
-                    
+
                     <div className="flex justify-end">
                         <Button
                             onClick={action}

@@ -22,7 +22,7 @@ export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
                 <div className="flex justify-between items-center py-4">
                     {/* Logo */}
                     <div className="flex items-center">
-                        <Link to="/admin/dashboard">
+                        <Link to="/super-admin/dashboard">
                             <img
                                 src="/logo-ehc-gym.png"
                                 alt="EHC GYM Logo"
@@ -30,17 +30,17 @@ export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
                             />
                         </Link>
                         <div className="ml-4 hidden sm:block">
-                            <h2 className="text-xl font-bold text-gray-900">Panel de Administrador</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Panel del Gerente</h2>
                         </div>
                     </div>
 
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center space-x-8">
                         <Link
-                            to="/admin/sedes"
+                            to="/super-admin/sedes"
                             className={
                                 `font-medium transition-colors px-2 py-1 rounded-lg ` +
-                                (pathname.startsWith("/admin/sedes")
+                                (pathname.startsWith("/super-admin/sedes")
                                     ? "bg-yellow-400 text-white"
                                     : "text-gray-700 hover:text-yellow-600")
                             }
@@ -48,10 +48,10 @@ export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
                             Sedes
                         </Link>
                         <Link
-                            to="/admin/trainers"
+                            to="/super-admin/trainers"
                             className={
                                 `font-medium transition-colors px-2 py-1 rounded-lg ` +
-                                (pathname.startsWith("/admin/trainers")
+                                (pathname.startsWith("/super-admin/trainers")
                                     ? "bg-yellow-400 text-white"
                                     : "text-gray-700 hover:text-yellow-600")
                             }

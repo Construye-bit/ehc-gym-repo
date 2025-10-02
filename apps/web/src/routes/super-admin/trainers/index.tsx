@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminRouteGuard } from "@/components/admin/admin-route-guard";
+import { AdminRouteGuard } from "@/components/super-admin/admin-route-guard";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
-import { AdminDashboardHeader } from "@/components/admin/admin-dashboard-header";
-import { TrainersManagementContent } from "@/components/admin/trainers/trainers-management-content";
-import { AdminPageLoader } from "@/components/admin/admin-page-loader";
+import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-header";
+import { TrainersManagementContent } from "@/components/super-admin/trainers/trainers-management-content";
+import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
 const simulateLoading = () => new Promise(resolve => setTimeout(resolve, 1500));
 
-export const Route = createFileRoute("/admin/trainers/")({
+export const Route = createFileRoute("/super-admin/trainers/")({
   component: TrainersManagementRoute,
   pendingComponent: () => <AdminPageLoader message="Cargando gestión de entrenadores..." />,
   loader: async () => {

@@ -49,7 +49,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
                     if (anyWindow.Clerk && typeof anyWindow.Clerk.setActive === "function") {
                         await anyWindow.Clerk.setActive({ session: signIn.createdSessionId });
                     }
-                    navigate({ to: redirectUrl || "/admin/dashboard" });
+                    navigate({ to: redirectUrl || "/super-admin/dashboard" });
                 } else {
                     setError("Verifica tus credenciales e inténtalo de nuevo.");
                 }
@@ -68,7 +68,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
         setError(null);
         try {
             await signOut();
-            navigate({ to: "/admin/login" });
+            navigate({ to: "/super-admin/login" });
         } catch (err) {
             setError("Error during sign out");
         } finally {

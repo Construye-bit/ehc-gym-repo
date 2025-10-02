@@ -40,15 +40,15 @@ export function AdminPageLoader({ message }: AdminPageLoaderProps) {
                 {/* Loading content */}
                 <div className="text-center">
                     <h3 className="text-xl font-bold text-gray-900 mb-3">
-                        Panel de Administrador
+                        Panel del Gerente
                     </h3>
                     <p className="text-gray-600 mb-6">
                         {message || "Cargando datos del sistema..."}
                     </p>
-                    
+
                     {/* Progress bar */}
                     <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                        <div 
+                        <div
                             className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
                             style={{ width: `${progress}%` }}
                         ></div>
@@ -58,7 +58,7 @@ export function AdminPageLoader({ message }: AdminPageLoaderProps) {
                     <p className="text-sm text-gray-500 mb-4">
                         {Math.round(progress)}% completado
                     </p>
-                    
+
                     {/* Progress dots */}
                     <div className="flex items-center justify-center gap-2">
                         <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminRouteGuard } from "@/components/admin/admin-route-guard";
+import { AdminRouteGuard } from "@/components/super-admin/admin-route-guard";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
-import { AdminDashboardHeader } from "@/components/admin/admin-dashboard-header";
-import { PersonalManagementContent } from "@/components/admin/personal/personal-management-content";
-import { AdminPageLoader } from "@/components/admin/admin-page-loader";
+import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-header";
+import { PersonalManagementContent } from "@/components/super-admin/personal/personal-management-content";
+import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
-export const Route = createFileRoute("/admin/personal/")({
+export const Route = createFileRoute("/super-admin/personal/")({
     component: PersonalManagementRoute,
     pendingComponent: () => <AdminPageLoader message="Cargando gestión de personal..." />,
     validateSearch: (search: Record<string, unknown>) => {

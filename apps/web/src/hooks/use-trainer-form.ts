@@ -254,8 +254,8 @@ export function useTrainerForm() {
 
             // Redirigir después de un breve delay para que se vea el toast
             setTimeout(() => {
-                navigate({ to: '/admin/trainers' });
-            }, 1500);
+                navigate({ to: '/super-admin/trainers' });
+            }, 1000);
 
         } catch (error) {
             console.error('Error al crear entrenador:', error);

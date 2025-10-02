@@ -139,7 +139,7 @@ export function SedesManagementContent() {
                         SEDES DISPONIBLES
                     </h1>
                     <p className="text-xl text-gray-700 mb-6">
-                        Administrador, Estas Son Las Sedes Disponibles Actualmente
+                        Gerente, Estas Son Las Sedes Disponibles Actualmente
                     </p>
 
                     {/* Filtros y botón de añadir */}
@@ -188,7 +188,7 @@ export function SedesManagementContent() {
                         {filteredSedes.length === 0 ? (
                             <div className="col-span-full text-center py-12">
                                 <p className="text-gray-500 text-lg">
-                                    {selectedCity === "all"     
+                                    {selectedCity === "all"
                                         ? "No hay sedes disponibles"
                                         : `No hay sedes en ${selectedCity}`
                                     }

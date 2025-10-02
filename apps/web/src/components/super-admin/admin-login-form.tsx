@@ -20,7 +20,7 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        await loginWithCredentials(username, password, "/admin/dashboard");
+        await loginWithCredentials(username, password, "/super-admin/dashboard");
         onLoginSuccess?.();
     };
 
@@ -30,7 +30,7 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
                 <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0">
                     <CardHeader className="text-center pb-2">
                         <CardTitle className="text-2xl font-bold text-gray-800 mb-2">
-                            Panel De Administrador
+                            Panel De Gerente
                         </CardTitle>
                         <CardTitle className="text-2xl font-bold text-gray-800 mb-2">
                             "EHC GYM"

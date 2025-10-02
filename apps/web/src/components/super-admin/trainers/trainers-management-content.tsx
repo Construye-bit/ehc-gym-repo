@@ -314,7 +314,7 @@ export function TrainersManagementContent() {
 
     const handleEditTrainer = (trainer: Trainer) => {
         navigate({
-            to: '/admin/trainers/edit',
+            to: '/super-admin/trainers/edit',
             search: { trainerId: trainer._id }
         });
     };
@@ -380,7 +380,7 @@ export function TrainersManagementContent() {
                     </p>
                 </div>
                 <div>
-                    <Link to="/admin/trainers/new">
+                    <Link to="/super-admin/trainers/new">
                         <Button
                             size="lg"
                             className="mt-4 cursor-pointer bg-yellow-400 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-colors"

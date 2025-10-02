@@ -304,7 +304,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
 
             // Redirigir después de un breve delay para que se vea el toast
             setTimeout(() => {
-                navigate({ to: '/admin/trainers' });
+                navigate({ to: '/super-admin/trainers' });
             }, 1500);
 
         } catch (error) {
@@ -338,7 +338,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center gap-4 mb-8">
-                        <Link to="/admin/trainers">
+                        <Link to="/super-admin/trainers">
                             <Button
                                 variant="outline"
                                 className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
@@ -372,7 +372,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
                 <div className="max-w-4xl mx-auto text-center">
                     <h1 className="text-2xl font-bold text-gray-900 mb-4">Entrenador no encontrado</h1>
                     <p className="text-gray-600 mb-6">El entrenador que intentas editar no existe o no tienes permisos para acceder.</p>
-                    <Link to="/admin/trainers">
+                    <Link to="/super-admin/trainers">
                         <Button
                             variant="outline"
                             className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
@@ -587,7 +587,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
-                    <Link to="/admin/trainers">
+                    <Link to="/super-admin/trainers">
                         <Button
                             variant="outline"
                             className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"
@@ -639,7 +639,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
                             </div>
 
                             <div className="flex gap-3">
-                                <Link to="/admin/trainers">
+                                <Link to="/super-admin/trainers">
                                     <Button
                                         type="button"
                                         variant="outline"

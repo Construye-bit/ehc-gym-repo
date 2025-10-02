@@ -100,7 +100,7 @@ export default function NewTrainerForm() {
                     onSubmit={handleSubmit}
                     onCancel={() => {
                         resetForm();
-                        navigate({ to: '/admin/trainers' });
+                        navigate({ to: '/super-admin/trainers' });
                     }}
                 />
             </div>

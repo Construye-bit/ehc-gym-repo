@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
-import EditTrainerForm from "@/components/admin/trainers/edit-trainer-form";
+import EditTrainerForm from "@/components/super-admin/trainers/edit-trainer-form";
 
 type TrainerEditSearchParams = {
   trainerId: string;
 };
 
-export const Route = createFileRoute("/admin/trainers/edit")({
+export const Route = createFileRoute("/super-admin/trainers/edit")({
   component: EditTrainerRoute,
   validateSearch: (search: Record<string, unknown>): TrainerEditSearchParams => {
     return {
