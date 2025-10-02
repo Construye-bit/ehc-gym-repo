@@ -392,9 +392,9 @@ export function TrainersManagementContent() {
             </div>
 
             {/* Tabla */}
-            <Card className="shadow-sm border border-gray-200 overflow-hidden">
+            <Card className="shadow-sm border-0 bg-white overflow-hidden p-0">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 border-0">
                         <TableHeader />
                         <tbody className="bg-white divide-y divide-gray-100">
                             {trainers === undefined ? (
