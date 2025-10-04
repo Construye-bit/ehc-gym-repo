@@ -61,7 +61,7 @@ export function PersonalDataStep({ personalData, errors, onUpdate }: PersonalDat
                     />
                 </FormField>
 
-                <FormField label="Tipo de documento" required>
+                <FormField label="Tipo de documento" required error={errors.personDocumentType}>
                     <Select
                         value={personalData.personDocumentType}
                         onValueChange={(value) => onUpdate('personDocumentType', value)}

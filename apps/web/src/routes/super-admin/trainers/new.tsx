@@ -5,15 +5,9 @@ import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-h
 import NewTrainerContent from "@/components/super-admin/trainers/new-trainer-content";
 import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
-const simulateLoading = () => new Promise(resolve => setTimeout(resolve, 1500));
-
 export const Route = createFileRoute("/super-admin/trainers/new")({
   component: NewTrainerRoute,
   pendingComponent: () => <AdminPageLoader message="Cargando nuevo entrenador..." />,
-  loader: async () => {
-    await simulateLoading();
-    return {};
-  }
 });
 
 function NewTrainerRoute() {

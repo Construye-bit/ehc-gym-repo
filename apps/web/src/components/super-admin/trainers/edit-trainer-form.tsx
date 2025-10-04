@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, ArrowRight, User, CreditCard, Building2, Save } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -28,15 +28,12 @@ import {
     type WorkData
 } from "@/lib/validations/trainers";
 
-// ===== TIPOS =====
-type DocumentType = 'CC' | 'TI' | 'CE' | 'PASSPORT';
-
-interface FormErrors {
-    [key: string]: string;
-}
+// Types and Constants
+import type { DocumentType, FormErrors } from "@/lib/trainer-types";
+import { DOCUMENT_TYPES } from "@/lib/trainer-constants";
 
 interface EditTrainerFormProps {
-    trainerId: Id<"trainers">;
+    trainerId: string;
 }
 
 // ===== COMPONENTE PRINCIPAL =====
@@ -71,15 +68,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
     const navigate = useNavigate();
     const updateTrainerComplete = useAction(api.trainers.mutations.updateTrainerComplete);
     const branches = useQuery(api.branches.queries.list);
-    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetails, { trainerId });
-
-    // Constantes
-    const DOCUMENT_TYPES: Array<{ value: DocumentType; label: string }> = [
-        { value: "CC", label: "Cédula de Ciudadanía" },
-        { value: "TI", label: "Tarjeta de Identidad" },
-        { value: "CE", label: "Cédula de Extranjería" },
-        { value: "PASSPORT", label: "Pasaporte" },
-    ];
+    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetails, { trainerId: trainerId as Id<"trainers"> });
 
     const totalSteps: number = 3;
 
@@ -121,30 +110,24 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
         const newUserData = { ...userData, [field]: value };
         setUserData(newUserData);
 
-        // Validación en tiempo real
-        setTimeout(() => {
-            validateField(field, value, userDataSchema);
-        }, 300);
+        // Validación en tiempo real con debounce
+        debouncedValidateField(field, value, userDataSchema);
     };
 
     const updatePersonalData = (field: keyof PersonalData, value: string) => {
         const newPersonalData = { ...personalData, [field]: value };
         setPersonalData(newPersonalData);
 
-        // Validación en tiempo real
-        setTimeout(() => {
-            validateField(field, value, personalDataSchema);
-        }, 300);
+        // Validación en tiempo real con debounce
+        debouncedValidateField(field, value, personalDataSchema);
     };
 
     const updateWorkData = (field: keyof WorkData, value: string | string[]) => {
         const newWorkData = { ...workData, [field]: value };
         setWorkData(newWorkData);
 
-        // Validación en tiempo real
-        setTimeout(() => {
-            validateField(field, value, workDataSchema);
-        }, 300);
+        // Validación en tiempo real con debounce
+        debouncedValidateField(field, value, workDataSchema);
     };
 
     const addSpecialty = (specialty: string) => {
@@ -186,6 +169,30 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
             }
         }
     };
+
+    // Debounced validation implementation
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const debouncedValidateField = useCallback((fieldName: string, value: any, schema: z.ZodObject<any>) => {
+        // Clear previous timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        // Set new timeout
+        timeoutRef.current = setTimeout(() => {
+            validateField(fieldName, value, schema);
+        }, 300);
+    }, [errors]);
+
+    // Cleanup effect to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
 
     // Validaciones por paso usando Zod
     const validateStep = (step: number): boolean => {
@@ -274,7 +281,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
         try {
             // Usar la action de actualización
             const result = await updateTrainerComplete({
-                trainerId,
+                trainerId: trainerId as Id<"trainers">,
                 userData: {
                     userName: userData.userName,
                     userEmail: userData.userEmail,
@@ -302,10 +309,8 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
                 duration: 4000,
             });
 
-            // Redirigir después de un breve delay para que se vea el toast
-            setTimeout(() => {
-                navigate({ to: '/super-admin/trainers' });
-            }, 1500);
+            // Redirigir inmediatamente
+            navigate({ to: '/super-admin/trainers' });
 
         } catch (error) {
             console.error('Error al actualizar entrenador:', error);
@@ -546,11 +551,11 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {branches === undefined ? (
-                                            <SelectItem value="" disabled>
+                                            <SelectItem value="__loading__" disabled>
                                                 Cargando sedes...
                                             </SelectItem>
                                         ) : branches.filter(branch => branch.status === "ACTIVE").length === 0 ? (
-                                            <SelectItem value="" disabled>
+                                            <SelectItem value="__no_branches__" disabled>
                                                 No hay sedes disponibles
                                             </SelectItem>
                                         ) : (

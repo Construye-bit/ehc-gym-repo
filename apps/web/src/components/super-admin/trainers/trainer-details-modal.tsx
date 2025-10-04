@@ -11,31 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { STATUS_STYLES, STATUS_LABELS, DOCUMENT_TYPE_LABELS } from "@/lib/trainer-constants";
 
 interface TrainerDetailsModalProps {
     trainerId: Id<"trainers"> | null;
     isOpen: boolean;
     onClose: () => void;
 }
-
-const STATUS_STYLES = {
-    ACTIVE: "bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium",
-    INACTIVE: "bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium",
-    ON_VACATION: "bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium"
-};
-
-const STATUS_LABELS = {
-    ACTIVE: "Activo",
-    INACTIVE: "Inactivo",
-    ON_VACATION: "De Vacaciones"
-};
-
-const DOCUMENT_TYPE_LABELS = {
-    CC: "Cédula de Ciudadanía",
-    TI: "Tarjeta de Identidad",
-    CE: "Cédula de Extranjería",
-    PASSPORT: "Pasaporte"
-};
 
 const LoadingSkeleton: React.FC = () => (
     <div className="space-y-6">
@@ -63,14 +45,11 @@ const LoadingSkeleton: React.FC = () => (
     </div>
 );
 
-export const TrainerDetailsModal: React.FC<TrainerDetailsModalProps> = ({
-    trainerId,
-    isOpen,
-    onClose,
-}) => {
+export default function TrainerDetailsModal({ trainerId, isOpen, onClose }: TrainerDetailsModalProps) {
+    // Solo ejecutar la query cuando el modal está abierto y hay un trainerId
     const trainerDetails = useQuery(
         api.trainers.queries.getTrainerDetails,
-        trainerId ? { trainerId } : "skip"
+        isOpen && trainerId ? { trainerId } : "skip"
     );
 
     if (!isOpen || !trainerId) return null;
@@ -129,9 +108,21 @@ export const TrainerDetailsModal: React.FC<TrainerDetailsModalProps> = ({
                                         Código: {trainerDetails.employee_code}
                                     </p>
                                     <div className="flex items-center gap-4 mt-3">
-                                        <span className={STATUS_STYLES[trainerDetails.status as keyof typeof STATUS_STYLES]}>
-                                            {STATUS_LABELS[trainerDetails.status as keyof typeof STATUS_LABELS]}
-                                        </span>
+                                        {(() => {
+                                            const status = trainerDetails?.status;
+                                            const statusStyle = (status && status in STATUS_STYLES)
+                                                ? STATUS_STYLES[status as keyof typeof STATUS_STYLES]
+                                                : "bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium";
+                                            const statusLabel = (status && status in STATUS_LABELS)
+                                                ? STATUS_LABELS[status as keyof typeof STATUS_LABELS]
+                                                : status || 'Desconocido';
+
+                                            return (
+                                                <span className={statusStyle}>
+                                                    {statusLabel}
+                                                </span>
+                                            );
+                                        })()}
                                         {trainerDetails.specialties.length > 0 && (
                                             <div className="flex items-center gap-2">
                                                 <Badge size={16} className="text-gray-600" />
@@ -174,7 +165,13 @@ export const TrainerDetailsModal: React.FC<TrainerDetailsModalProps> = ({
                                         <div>
                                             <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Documento</label>
                                             <p className="text-gray-800 font-medium mt-1">
-                                                {DOCUMENT_TYPE_LABELS[trainerDetails.person?.document_type as keyof typeof DOCUMENT_TYPE_LABELS]}
+                                                {(() => {
+                                                    const documentType = trainerDetails.person?.document_type;
+                                                    if (documentType && typeof documentType === 'string' && documentType in DOCUMENT_TYPE_LABELS) {
+                                                        return DOCUMENT_TYPE_LABELS[documentType as keyof typeof DOCUMENT_TYPE_LABELS];
+                                                    }
+                                                    return documentType || 'Desconocido';
+                                                })()}
                                                 <br />
                                                 <span className="font-mono text-gray-700">{trainerDetails.person?.document_number}</span>
                                             </p>
@@ -233,9 +230,21 @@ export const TrainerDetailsModal: React.FC<TrainerDetailsModalProps> = ({
                                         <div>
                                             <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Estado</label>
                                             <div className="mt-1">
-                                                <span className={STATUS_STYLES[trainerDetails.status as keyof typeof STATUS_STYLES]}>
-                                                    {STATUS_LABELS[trainerDetails.status as keyof typeof STATUS_LABELS]}
-                                                </span>
+                                                {(() => {
+                                                    const status = trainerDetails?.status;
+                                                    const statusStyle = (status && status in STATUS_STYLES)
+                                                        ? STATUS_STYLES[status as keyof typeof STATUS_STYLES]
+                                                        : "bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium";
+                                                    const statusLabel = (status && status in STATUS_LABELS)
+                                                        ? STATUS_LABELS[status as keyof typeof STATUS_LABELS]
+                                                        : status || 'Desconocido';
+
+                                                    return (
+                                                        <span className={statusStyle}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </CardContent>

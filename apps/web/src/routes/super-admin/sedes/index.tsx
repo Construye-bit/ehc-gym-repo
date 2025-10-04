@@ -5,17 +5,9 @@ import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-h
 import { SedesManagementContent } from "@/components/super-admin/sedes/sedes-management-content";
 import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
-// Función para simular carga (solo para testing)
-const simulateLoading = () => new Promise(resolve => setTimeout(resolve, 1500));
-
 export const Route = createFileRoute("/super-admin/sedes/")({
     component: SedesManagementRoute,
     pendingComponent: () => <AdminPageLoader message="Cargando gestión de sedes..." />,
-    loader: async () => {
-        // Simular carga de datos (solo para testing)
-        await simulateLoading();
-        return {};
-    }
 });
 
 function SedesManagementRoute() {

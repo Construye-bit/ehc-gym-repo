@@ -62,7 +62,7 @@ export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
                             href="#sistema"
                             className={
                                 `font-medium transition-colors px-2 py-1 rounded-lg ` +
-                                (pathname.startsWith("/admin/sistema")
+                                (pathname.startsWith("/super-admin/sistema")
                                     ? "bg-yellow-400 text-white"
                                     : "text-gray-700 hover:text-yellow-600")
                             }

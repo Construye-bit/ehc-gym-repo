@@ -206,7 +206,7 @@ export function SedesManagementContent() {
                                 >
                                     <SedeCard
                                         sede={{
-                                            id: parseInt(sede._id.slice(-8), 16), // Convertir _id a número para compatibilidad
+                                            id: sede._id, // Usar el ID original de Convex como string
                                             name: sede.name,
                                             departamento: sede.departamento,
                                             ciudad: sede.ciudad,

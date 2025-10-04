@@ -117,6 +117,21 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
             newErrors.closing_time = "La hora de cierre es requerida";
         }
 
+        // Validar orden de horarios solo si ambos están presentes
+        if (formData.opening_time && formData.closing_time) {
+            const openingMinutes = formData.opening_time.split(':').reduce((acc, time, index) => {
+                return acc + parseInt(time) * (index === 0 ? 60 : 1);
+            }, 0);
+
+            const closingMinutes = formData.closing_time.split(':').reduce((acc, time, index) => {
+                return acc + parseInt(time) * (index === 0 ? 60 : 1);
+            }, 0);
+
+            if (closingMinutes <= openingMinutes) {
+                newErrors.closing_time = "La hora de cierre debe ser posterior a la hora de apertura";
+            }
+        }
+
         const capacity = parseInt(formData.max_capacity);
         if (!formData.max_capacity || isNaN(capacity) || capacity <= 0) {
             newErrors.max_capacity = "La capacidad debe ser un número positivo";

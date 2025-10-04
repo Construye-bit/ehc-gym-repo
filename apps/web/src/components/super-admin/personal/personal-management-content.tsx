@@ -54,16 +54,35 @@ export function PersonalManagementContent({ sedeId, sedeName }: PersonalManageme
         setTimeout(() => {
             setHasChanges(false);
 
-            // Enviar mensaje a la ventana padre
-            if (window.opener && sedeId) {
-                window.opener.postMessage({
-                    type: 'PERSONAL_UPDATED',
-                    sedeId: sedeId,
-                    count: assignedTrainers.length
-                }, window.location.origin);
+            // Enviar mensaje a la ventana padre con validación
+            if (window.opener && window.opener !== window && sedeId) {
+                try {
+                    window.opener.postMessage({
+                        type: 'PERSONAL_UPDATED',
+                        sedeId: sedeId,
+                        count: assignedTrainers.length
+                    }, window.location.origin);
+                } catch (error) {
+                    console.error('Error enviando mensaje a ventana padre:', error);
+                }
             }
 
-            window.close(); // Cierra la ventana automáticamente
+            // Intentar cerrar la ventana con manejo de errores
+            try {
+                if (typeof window.close === 'function') {
+                    window.close();
+
+                    // Verificar si la ventana se cerró después de un breve timeout
+                    setTimeout(() => {
+                        if (!window.closed) {
+                            alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
+                        }
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error cerrando ventana:', error);
+                alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
+            }
         }, 1000);
     };
 
@@ -72,7 +91,22 @@ export function PersonalManagementContent({ sedeId, sedeName }: PersonalManageme
             const confirmClose = window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que deseas cerrar?');
             if (!confirmClose) return;
         }
-        window.close();
+
+        try {
+            if (typeof window.close === 'function') {
+                window.close();
+
+                // Verificar si la ventana se cerró después de un breve timeout
+                setTimeout(() => {
+                    if (!window.closed) {
+                        alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
+                    }
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Error cerrando ventana:', error);
+            alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
+        }
     };
 
     return (

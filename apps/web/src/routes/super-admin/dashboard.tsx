@@ -8,17 +8,9 @@ import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-h
 import { AdminDashboardCards } from "@/components/super-admin/admin-dashboard-cards";
 import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
-// Función para simular carga (solo para testing)
-const simulateLoading = () => new Promise(resolve => setTimeout(resolve, 1200));
-
 export const Route = createFileRoute("/super-admin/dashboard")({
     component: AdminDashboardRoute,
     pendingComponent: () => <AdminPageLoader message="Preparando dashboard..." />,
-    loader: async () => {
-        // Simular carga de datos (solo para testing)
-        await simulateLoading();
-        return {};
-    }
 });
 
 function AdminDashboardRoute() {

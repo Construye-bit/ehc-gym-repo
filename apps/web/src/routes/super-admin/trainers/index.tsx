@@ -5,15 +5,9 @@ import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-h
 import { TrainersManagementContent } from "@/components/super-admin/trainers/trainers-management-content";
 import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
-const simulateLoading = () => new Promise(resolve => setTimeout(resolve, 1500));
-
 export const Route = createFileRoute("/super-admin/trainers/")({
   component: TrainersManagementRoute,
   pendingComponent: () => <AdminPageLoader message="Cargando gestión de entrenadores..." />,
-  loader: async () => {
-    await simulateLoading();
-    return {};
-  }
 });
 
 function TrainersManagementRoute() {

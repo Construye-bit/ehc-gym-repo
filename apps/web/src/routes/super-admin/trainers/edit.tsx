@@ -55,7 +55,7 @@ function EditTrainerRoute() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <EditTrainerForm trainerId={trainerId as any} />
+      <EditTrainerForm trainerId={trainerId} />
     </div>
   );
 }

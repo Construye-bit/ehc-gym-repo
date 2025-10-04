@@ -4,7 +4,7 @@ import { Edit, Trash2, MapPin, User, Phone, Users, Loader2 } from "lucide-react"
 
 interface SedeCardProps {
     sede: {
-        id: number;
+        id: string;
         name: string;
         departamento: string;
         ciudad: string;
