@@ -145,21 +145,22 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
     };
 
     // Validar campo individual en tiempo real
-    const validateField = (fieldName: string, value: any, schema: z.ZodObject<any>) => {
+    const validateField = useCallback((fieldName: string, value: any, schema: z.ZodObject<any>) => {
         try {
             // Crear un objeto parcial para validar solo este campo
             const partialData = { [fieldName]: value };
             const fieldSchema = schema.pick({ [fieldName]: true });
             fieldSchema.parse(partialData);
 
-            // Limpiar error si la validación es exitosa
-            if (errors[fieldName]) {
-                setErrors(prev => {
+            // Limpiar error si la validación es exitosa (usando functional update)
+            setErrors(prev => {
+                if (prev[fieldName]) {
                     const newErrors = { ...prev };
                     delete newErrors[fieldName];
                     return newErrors;
-                });
-            }
+                }
+                return prev;
+            });
         } catch (error) {
             if (error instanceof z.ZodError) {
                 setErrors(prev => ({
@@ -168,7 +169,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
                 }));
             }
         }
-    };
+    }, []); // No dependencies since we use functional state updates
 
     // Debounced validation implementation
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -183,7 +184,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
         timeoutRef.current = setTimeout(() => {
             validateField(fieldName, value, schema);
         }, 300);
-    }, [errors]);
+    }, [validateField]);
 
     // Cleanup effect to prevent memory leaks
     useEffect(() => {

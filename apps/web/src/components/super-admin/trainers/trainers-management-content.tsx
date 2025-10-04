@@ -7,7 +7,7 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2 } from "lucide-react";
-import { TrainerDetailsModal } from "./trainer-details-modal";
+import TrainerDetailsModal from "./trainer-details-modal";
 import {
     AlertDialog,
     AlertDialogAction,

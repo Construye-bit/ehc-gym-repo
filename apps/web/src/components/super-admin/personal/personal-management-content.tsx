@@ -71,13 +71,8 @@ export function PersonalManagementContent({ sedeId, sedeName }: PersonalManageme
             try {
                 if (typeof window.close === 'function') {
                     window.close();
-
-                    // Verificar si la ventana se cerró después de un breve timeout
-                    setTimeout(() => {
-                        if (!window.closed) {
-                            alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
-                        }
-                    }, 100);
+                } else {
+                    alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
                 }
             } catch (error) {
                 console.error('Error cerrando ventana:', error);
@@ -95,13 +90,8 @@ export function PersonalManagementContent({ sedeId, sedeName }: PersonalManageme
         try {
             if (typeof window.close === 'function') {
                 window.close();
-
-                // Verificar si la ventana se cerró después de un breve timeout
-                setTimeout(() => {
-                    if (!window.closed) {
-                        alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
-                    }
-                }, 100);
+            } else {
+                alert('No se pudo cerrar la ventana automáticamente. Por favor, ciérrala manualmente.');
             }
         } catch (error) {
             console.error('Error cerrando ventana:', error);
