@@ -1,0 +1,39 @@
+{
+    "build": {
+        "preview": {
+            "android": {
+                "buildType": "apk"
+            },
+            "extends": "base"
+        },
+        "preview2": {
+            "android": {
+                "gradleCommand": ":app:assembleRelease"
+            },
+            "extends": "base"
+        },
+        "preview3": {
+            "developmentClient": true,
+            "extends": "base"
+        },
+        "preview4": {
+            "distribution": "internal",
+            "extends": "base"
+        },
+        "production": {
+            "env": {
+                "NODE_ENV": "production"
+            },
+            "extends": "base"
+        },
+        "base": {
+            "node": "22.19.0",
+            "cache": {
+                "disabled": false
+            }
+        }
+    },
+    "cli": {
+        "appVersionSource": "remote"
+    }
+}

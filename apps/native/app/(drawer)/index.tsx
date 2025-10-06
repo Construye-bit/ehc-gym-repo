@@ -7,7 +7,7 @@ import {
 	Unauthenticated,
 	useQuery,
 } from "convex/react";
-import { api } from "@ehc-gym2/backend/convex/_generated/api";
+import { api } from "../../../../packages/backend/convex/_generated/api"
 import { useUser } from "@clerk/clerk-expo";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -25,9 +25,8 @@ export default function Home() {
 				<View className="bg-card border border-border rounded-xl p-6 mb-6 shadow-sm">
 					<View className="flex-row items-center gap-3">
 						<View
-							className={`h-3 w-3 rounded-full ${
-								healthCheck ? "bg-green-500" : "bg-orange-500"
-							}`}
+							className={`h-3 w-3 rounded-full ${healthCheck ? "bg-green-500" : "bg-orange-500"
+								}`}
 						/>
 						<View className="flex-1">
 							<Text className="text-sm font-medium text-card-foreground">
@@ -50,10 +49,10 @@ export default function Home() {
 				</Authenticated>
 				<Unauthenticated>
 					<Link href="/(auth)/sign-in">
-						<Text>Sign in</Text>
+						<Text className="text-foreground font-medium text-base mb-2">Sign in</Text>
 					</Link>
 					<Link href="/(auth)/sign-up">
-						<Text>Sign up</Text>
+						<Text className="text-foreground font-medium text-base">Sign up</Text>
 					</Link>
 				</Unauthenticated>
 				<AuthLoading>

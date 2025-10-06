@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@ehc-gym2/backend/convex/_generated/api";
-import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
+import { api } from "../../../../packages/backend/convex/_generated/api";
+import type { Id } from "../../../../packages/backend/convex/_generated/dataModel";
 
 import { Container } from "@/components/container";
 
@@ -71,9 +71,8 @@ export default function TodosScreen() {
 								<TouchableOpacity
 									onPress={handleAddTodo}
 									disabled={!newTodoText.trim()}
-									className={`px-4 py-2 rounded-md ${
-										!newTodoText.trim() ? "bg-muted" : "bg-primary"
-									}`}
+									className={`px-4 py-2 rounded-md ${!newTodoText.trim() ? "bg-muted" : "bg-primary"
+										}`}
 								>
 									<Text className="text-white font-medium">Add</Text>
 								</TouchableOpacity>
@@ -109,11 +108,10 @@ export default function TodosScreen() {
 												/>
 											</TouchableOpacity>
 											<Text
-												className={`flex-1 ${
-													todo.completed
+												className={`flex-1 ${todo.completed
 														? "line-through text-muted-foreground"
 														: "text-foreground"
-												}`}
+													}`}
 											>
 												{todo.text}
 											</Text>

@@ -1,7 +1,8 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
 import React from "react";
+import { Container } from "@/components/container";
 
 export default function Page() {
 	const { signIn, setActive, isLoaded } = useSignIn();
@@ -39,29 +40,51 @@ export default function Page() {
 	};
 
 	return (
-		<View>
-			<Text>Sign in</Text>
-			<TextInput
-				autoCapitalize="none"
-				value={emailAddress}
-				placeholder="Enter email"
-				onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-			/>
-			<TextInput
-				value={password}
-				placeholder="Enter password"
-				secureTextEntry={true}
-				onChangeText={(password) => setPassword(password)}
-			/>
-			<TouchableOpacity onPress={onSignInPress}>
-				<Text>Continue</Text>
-			</TouchableOpacity>
-			<View style={{ display: "flex", flexDirection: "row", gap: 3 }}>
-				<Text>Don't have an account?</Text>
-				<Link href="/sign-up">
-					<Text>Sign up</Text>
-				</Link>
-			</View>
-		</View>
+		<Container>
+			<ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+				<View className="flex-1 justify-center px-6">
+					<View className="bg-card border border-border rounded-xl p-6 shadow-sm">
+						<Text className="text-foreground text-2xl font-bold text-center mb-6">Welcome Back</Text>
+						<Text className="text-muted-foreground text-center mb-6">Sign in to your account to continue</Text>
+
+						<View className="mb-4">
+							<Text className="text-foreground font-medium mb-2">Email</Text>
+							<TextInput
+								autoCapitalize="none"
+								value={emailAddress}
+								placeholder="Enter your email"
+								placeholderTextColor="#9CA3AF"
+								onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
+								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
+								keyboardType="email-address"
+							/>
+						</View>
+
+						<View className="mb-6">
+							<Text className="text-foreground font-medium mb-2">Password</Text>
+							<TextInput
+								value={password}
+								placeholder="Enter your password"
+								placeholderTextColor="#9CA3AF"
+								secureTextEntry={true}
+								onChangeText={(password) => setPassword(password)}
+								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
+							/>
+						</View>
+
+						<TouchableOpacity onPress={onSignInPress} className="bg-primary rounded-lg py-3 px-6 mb-6">
+							<Text className="text-primary-foreground font-semibold text-center">Sign In</Text>
+						</TouchableOpacity>
+
+						<View className="flex-row justify-center items-center gap-2">
+							<Text className="text-muted-foreground">Don't have an account?</Text>
+							<Link href="/sign-up">
+								<Text className="text-primary font-medium">Sign up</Text>
+							</Link>
+						</View>
+					</View>
+				</View>
+			</ScrollView>
+		</Container>
 	);
 }
