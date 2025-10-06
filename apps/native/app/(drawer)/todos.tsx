@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../../packages/backend/convex/_generated/api";
-import type { Id } from "../../../../packages/backend/convex/_generated/dataModel";
+import api from "@/api"
+import type { Id } from "@/api";
 
 import { Container } from "@/components/container";
 
@@ -109,8 +109,8 @@ export default function TodosScreen() {
 											</TouchableOpacity>
 											<Text
 												className={`flex-1 ${todo.completed
-														? "line-through text-muted-foreground"
-														: "text-foreground"
+													? "line-through text-muted-foreground"
+													: "text-foreground"
 													}`}
 											>
 												{todo.text}
