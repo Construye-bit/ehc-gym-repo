@@ -1,8 +1,10 @@
 import * as React from "react";
-import { Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
+import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Container } from "@/components/container";
+import { Button, Input, PasswordInput, Text } from "@/components/ui";
+import { signUpSchema, verificationCodeSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
 export default function SignUpScreen() {
 	const { isLoaded, signUp, setActive } = useSignUp();
@@ -10,135 +12,290 @@ export default function SignUpScreen() {
 
 	const [emailAddress, setEmailAddress] = React.useState("");
 	const [password, setPassword] = React.useState("");
+	const [loading, setLoading] = React.useState(false);
 	const [pendingVerification, setPendingVerification] = React.useState(false);
 	const [code, setCode] = React.useState("");
+	const [fieldErrors, setFieldErrors] = React.useState<{
+		email?: string;
+		password?: string;
+		code?: string;
+	}>({});
+
+	const validateForm = () => {
+		try {
+			signUpSchema.parse({
+				email: emailAddress,
+				password: password,
+			});
+			setFieldErrors({});
+			return true;
+		} catch (error) {
+			if (error instanceof ZodError) {
+				const errors: { email?: string; password?: string } = {};
+				error.issues.forEach((issue) => {
+					if (issue.path[0] === 'email') {
+						errors.email = issue.message;
+					} else if (issue.path[0] === 'password') {
+						errors.password = issue.message;
+					}
+				});
+				setFieldErrors(errors);
+			}
+			return false;
+		}
+	};
+
+	const validateVerificationCode = () => {
+		try {
+			verificationCodeSchema.parse({ code });
+			setFieldErrors({});
+			return true;
+		} catch (error) {
+			if (error instanceof ZodError) {
+				const errors: { code?: string } = {};
+				error.issues.forEach((issue) => {
+					if (issue.path[0] === 'code') {
+						errors.code = issue.message;
+					}
+				});
+				setFieldErrors(errors);
+			}
+			return false;
+		}
+	};
+
+	const clearFieldError = (field: 'email' | 'password' | 'code') => {
+		setFieldErrors(prev => ({
+			...prev,
+			[field]: undefined,
+		}));
+	};
 
 	// Handle submission of sign-up form
 	const onSignUpPress = async () => {
+		setFieldErrors({});
+
+		if (!validateForm()) {
+			return;
+		}
+
 		if (!isLoaded) return;
 
-		// Start sign-up process using email and password provided
+		setLoading(true);
+
 		try {
 			await signUp.create({
-				emailAddress,
+				emailAddress: emailAddress.trim(),
 				password,
 			});
 
-			// Send user an email with verification code
 			await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
-			// Set 'pendingVerification' to true to display second form
-			// and capture OTP code
 			setPendingVerification(true);
-		} catch (err) {
-			// See https://clerk.com/docs/custom-flows/error-handling
-			// for more info on error handling
+		} catch (err: any) {
 			console.error(JSON.stringify(err, null, 2));
+
+			if (err.errors && err.errors[0]) {
+				const errorMessage = err.errors[0].message;
+				if (errorMessage.toLowerCase().includes('email')) {
+					setFieldErrors({ email: errorMessage });
+				} else if (errorMessage.toLowerCase().includes('password')) {
+					setFieldErrors({ password: errorMessage });
+				}
+			}
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	// Handle submission of verification form
 	const onVerifyPress = async () => {
+		setFieldErrors({});
+
+		if (!validateVerificationCode()) {
+			return;
+		}
+
 		if (!isLoaded) return;
 
+		setLoading(true);
+
 		try {
-			// Use the code the user provided to attempt verification
 			const signUpAttempt = await signUp.attemptEmailAddressVerification({
 				code,
 			});
 
-			// If verification was completed, set the session to active
-			// and redirect the user
 			if (signUpAttempt.status === "complete") {
 				await setActive({ session: signUpAttempt.createdSessionId });
-				router.replace("/");
+				router.replace("/(drawer)");
 			} else {
-				// If the status is not complete, check why. User may need to
-				// complete further steps.
 				console.error(JSON.stringify(signUpAttempt, null, 2));
 			}
 		} catch (err) {
-			// See https://clerk.com/docs/custom-flows/error-handling
-			// for more info on error handling
 			console.error(JSON.stringify(err, null, 2));
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	if (pendingVerification) {
 		return (
-			<Container>
-				<ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-					<View className="flex-1 justify-center px-6">
-						<View className="bg-card border border-border rounded-xl p-6 shadow-sm">
-							<Text className="text-foreground text-2xl font-bold text-center mb-6">Verify your email</Text>
-							<Text className="text-muted-foreground text-center mb-6">We've sent a verification code to your email address.</Text>
+			<KeyboardAvoidingView
+				className="flex-1 bg-white"
+				behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+			>
+				<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-							<TextInput
-								value={code}
-								placeholder="Enter verification code"
-								placeholderTextColor="#9CA3AF"
-								onChangeText={(code) => setCode(code)}
-								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground mb-4"
-								keyboardType="number-pad"
-								textAlign="center"
-							/>
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+				>
+					{/* Logo */}
+					<View className="items-center pt-16 pb-8">
+						<Image
+							source={require('../../assets/images/logo.png')}
+							style={{ width: 180, height: 180 }}
+							resizeMode="contain"
+						/>
+					</View>
 
-							<TouchableOpacity onPress={onVerifyPress} className="bg-primary rounded-lg py-3 px-6">
-								<Text className="text-primary-foreground font-semibold text-center">Verify Email</Text>
-							</TouchableOpacity>
-						</View>
+					{/* Form Container */}
+					<View className="px-6 pt-3 pb-5">
+						<Text
+							variant="h1"
+							align="center"
+							className="text-4xl font-bold text-gray-900 mb-4"
+						>
+							Verifica tu email
+						</Text>
+
+						<Text variant="p" color="tertiary" align="center" className="text-base mb-8">
+							Hemos enviado un código de verificación a tu correo electrónico.
+						</Text>
+
+						<Input
+							label="Código de verificación"
+							value={code}
+							placeholder="000000"
+							onChangeText={(text) => {
+								setCode(text);
+								if (fieldErrors.code) {
+									clearFieldError('code');
+								}
+							}}
+							keyboardType="number-pad"
+							className="text-center text-2xl tracking-widest"
+							maxLength={6}
+							error={fieldErrors.code}
+						/>
+
+						<Button
+							onPress={onVerifyPress}
+							disabled={loading}
+							isLoading={loading}
+							className="mt-8 mb-6"
+						>
+							VERIFICAR EMAIL
+						</Button>
 					</View>
 				</ScrollView>
-			</Container>
+			</KeyboardAvoidingView>
 		);
 	}
 
 	return (
-		<Container>
-			<ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-				<View className="flex-1 justify-center px-6">
-					<View className="bg-card border border-border rounded-xl p-6 shadow-sm">
-						<Text className="text-foreground text-2xl font-bold text-center mb-6">Create Account</Text>
-						<Text className="text-muted-foreground text-center mb-6">Sign up to get started with your account</Text>
+		<KeyboardAvoidingView
+			className="flex-1 bg-white"
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+		>
+			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-						<View className="mb-4">
-							<Text className="text-foreground font-medium mb-2">Email</Text>
-							<TextInput
-								autoCapitalize="none"
-								value={emailAddress}
-								placeholder="Enter your email"
-								placeholderTextColor="#9CA3AF"
-								onChangeText={(email) => setEmailAddress(email)}
-								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
-								keyboardType="email-address"
-							/>
-						</View>
+			<ScrollView
+				className="flex-1"
+				contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+				showsVerticalScrollIndicator={false}
+				keyboardShouldPersistTaps="handled"
+			>
+				{/* Logo */}
+				<View className="items-center pt-10 pb-8">
+					<Image
+						source={require('../../assets/images/logo.png')}
+						style={{ width: 180, height: 180 }}
+						resizeMode="contain"
+					/>
+				</View>
 
-						<View className="mb-6">
-							<Text className="text-foreground font-medium mb-2">Password</Text>
-							<TextInput
-								value={password}
-								placeholder="Enter your password"
-								placeholderTextColor="#9CA3AF"
-								secureTextEntry={true}
-								onChangeText={(password) => setPassword(password)}
-								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
-							/>
-						</View>
+				{/* Form Container */}
+				<View className="px-6 pt-3 pb-5">
+					<Text
+						variant="h1"
+						align="center"
+						className="text-5xl font-bold text-gray-900 mb-4"
+						style={{ lineHeight: 60 }}
+					>
+						Crear Cuenta
+					</Text>
 
-						<TouchableOpacity onPress={onSignUpPress} className="bg-primary rounded-lg py-3 px-6 mb-6">
-							<Text className="text-primary-foreground font-semibold text-center">Create Account</Text>
-						</TouchableOpacity>
-
-						<View className="flex-row justify-center items-center gap-2">
-							<Text className="text-muted-foreground">Already have an account?</Text>
-							<Link href="/sign-in">
-								<Text className="text-primary font-medium">Sign in</Text>
-							</Link>
-						</View>
+					<View className="flex-row justify-center mb-8 flex-wrap">
+						<Text variant="p" color="tertiary" className="text-lg">
+							¿Ya tienes una cuenta?{' '}
+						</Text>
+						<Link href="./sign-in" asChild>
+							<TouchableOpacity>
+								<Text variant="p" className="text-lg text-orange-500 font-semibold">
+									Ingresar
+								</Text>
+							</TouchableOpacity>
+						</Link>
 					</View>
+
+					{/* Email Input */}
+					<Input
+						label="Correo Electrónico"
+						value={emailAddress}
+						onChangeText={(text) => {
+							setEmailAddress(text);
+							if (fieldErrors.email) {
+								clearFieldError('email');
+							}
+						}}
+						placeholder="loisbecket@gmail.com"
+						keyboardType="email-address"
+						autoCapitalize="none"
+						autoCorrect={false}
+						error={fieldErrors.email}
+					/>
+
+					{/* Password Input */}
+					<PasswordInput
+						label="Contraseña"
+						value={password}
+						onChangeText={(text) => {
+							setPassword(text);
+							if (fieldErrors.password) {
+								clearFieldError('password');
+							}
+						}}
+						placeholder="••••••••"
+						error={fieldErrors.password}
+					/>
+
+					<Text variant="small" color="tertiary" className="mb-6 text-center">
+						La contraseña debe tener al menos 8 caracteres
+					</Text>
+
+					{/* Sign Up Button */}
+					<Button
+						onPress={onSignUpPress}
+						disabled={loading}
+						isLoading={loading}
+						className="mt-4 mb-6"
+					>
+						CREAR CUENTA
+					</Button>
 				</View>
 			</ScrollView>
-		</Container>
+		</KeyboardAvoidingView>
 	);
 }

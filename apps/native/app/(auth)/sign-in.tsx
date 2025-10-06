@@ -1,90 +1,193 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
-import React from "react";
-import { Container } from "@/components/container";
+import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useState } from "react";
+import { Button, Container, Input, PasswordInput, Text } from "@/components/ui";
+import { signInSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
-export default function Page() {
+export default function SignInPage() {
 	const { signIn, setActive, isLoaded } = useSignIn();
 	const router = useRouter();
 
-	const [emailAddress, setEmailAddress] = React.useState("");
-	const [password, setPassword] = React.useState("");
+	const [emailAddress, setEmailAddress] = useState("");
+	const [password, setPassword] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [fieldErrors, setFieldErrors] = useState<{
+		email?: string;
+		password?: string;
+	}>({});
+
+	const validateForm = () => {
+		try {
+			signInSchema.parse({
+				email: emailAddress,
+				password: password,
+			});
+			setFieldErrors({});
+			return true;
+		} catch (error) {
+			if (error instanceof ZodError) {
+				const errors: { email?: string; password?: string } = {};
+				error.issues.forEach((issue) => {
+					if (issue.path[0] === 'email') {
+						errors.email = issue.message;
+					} else if (issue.path[0] === 'password') {
+						errors.password = issue.message;
+					}
+				});
+				setFieldErrors(errors);
+			}
+			return false;
+		}
+	};
+
+	const clearFieldError = (field: 'email' | 'password') => {
+		setFieldErrors(prev => ({
+			...prev,
+			[field]: undefined,
+		}));
+	};
 
 	// Handle the submission of the sign-in form
 	const onSignInPress = async () => {
+		setFieldErrors({});
+
+		if (!validateForm()) {
+			return;
+		}
+
 		if (!isLoaded) return;
 
-		// Start the sign-in process using the email and password provided
+		setLoading(true);
+
 		try {
 			const signInAttempt = await signIn.create({
-				identifier: emailAddress,
+				identifier: emailAddress.trim(),
 				password,
 			});
 
-			// If sign-in process is complete, set the created session as active
-			// and redirect the user
 			if (signInAttempt.status === "complete") {
 				await setActive({ session: signInAttempt.createdSessionId });
-				router.replace("/");
+				router.replace("/(drawer)");
 			} else {
-				// If the status isn't complete, check why. User might need to
-				// complete further steps.
 				console.error(JSON.stringify(signInAttempt, null, 2));
 			}
-		} catch (err) {
-			// See https://clerk.com/docs/custom-flows/error-handling
-			// for more info on error handling
+		} catch (err: any) {
 			console.error(JSON.stringify(err, null, 2));
+
+			// Handle specific Clerk errors
+			if (err.errors && err.errors[0]) {
+				const errorCode = err.errors[0].code;
+				if (errorCode === 'form_identifier_not_found' || errorCode === 'form_password_incorrect') {
+					setFieldErrors({
+						email: 'Verifica tu correo electrónico',
+						password: 'Verifica tu contraseña',
+					});
+				}
+			}
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	return (
-		<Container>
-			<ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-				<View className="flex-1 justify-center px-6">
-					<View className="bg-card border border-border rounded-xl p-6 shadow-sm">
-						<Text className="text-foreground text-2xl font-bold text-center mb-6">Welcome Back</Text>
-						<Text className="text-muted-foreground text-center mb-6">Sign in to your account to continue</Text>
+		<KeyboardAvoidingView
+			className="flex-1 bg-white"
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+		>
+			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-						<View className="mb-4">
-							<Text className="text-foreground font-medium mb-2">Email</Text>
-							<TextInput
-								autoCapitalize="none"
-								value={emailAddress}
-								placeholder="Enter your email"
-								placeholderTextColor="#9CA3AF"
-								onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
-								keyboardType="email-address"
-							/>
-						</View>
+			<ScrollView
+				className="flex-"
+				contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+				showsVerticalScrollIndicator={false}
+				keyboardShouldPersistTaps="handled"
+			>
+				{/* Logo */}
+				<View className="items-center pt-16 pb-8">
+					<Image
+						source={require('../../assets/images/logo.png')}
+						style={{ width: 180, height: 180 }}
+						resizeMode="contain"
+					/>
+				</View>
 
-						<View className="mb-6">
-							<Text className="text-foreground font-medium mb-2">Password</Text>
-							<TextInput
-								value={password}
-								placeholder="Enter your password"
-								placeholderTextColor="#9CA3AF"
-								secureTextEntry={true}
-								onChangeText={(password) => setPassword(password)}
-								className="bg-background border border-border rounded-lg px-4 py-3 text-foreground"
-							/>
-						</View>
+				{/* Form Container */}
+				<View className="px-6 pt-3 pb-5">
+					<Text
+						variant="h1"
+						align="center"
+						className="text-5xl font-bold text-gray-900 mb-4"
+						style={{ lineHeight: 60 }}
+					>
+						Ingresar
+					</Text>
 
-						<TouchableOpacity onPress={onSignInPress} className="bg-primary rounded-lg py-3 px-6 mb-6">
-							<Text className="text-primary-foreground font-semibold text-center">Sign In</Text>
-						</TouchableOpacity>
-
-						<View className="flex-row justify-center items-center gap-2">
-							<Text className="text-muted-foreground">Don't have an account?</Text>
-							<Link href="/sign-up">
-								<Text className="text-primary font-medium">Sign up</Text>
-							</Link>
-						</View>
+					<View className="flex-row justify-center mb-8 flex-wrap">
+						<Text variant="p" color="tertiary" className="text-lg">
+							¿No tienes una cuenta?{' '}
+						</Text>
+						<Link href="./sign-up" asChild>
+							<TouchableOpacity>
+								<Text variant="p" className="text-lg text-yellow-500 font-semibold">
+									Regístrate
+								</Text>
+							</TouchableOpacity>
+						</Link>
 					</View>
+
+					{/* Email Input */}
+					<Input
+						label="Correo Electrónico"
+						value={emailAddress}
+						onChangeText={(text) => {
+							setEmailAddress(text);
+							if (fieldErrors.email) {
+								clearFieldError('email');
+							}
+						}}
+						placeholder="loisbecket@gmail.com"
+						keyboardType="email-address"
+						autoCapitalize="none"
+						autoCorrect={false}
+						error={fieldErrors.email}
+					/>
+
+					{/* Password Input */}
+					<PasswordInput
+						label="Contraseña"
+						value={password}
+						onChangeText={(text) => {
+							setPassword(text);
+							if (fieldErrors.password) {
+								clearFieldError('password');
+							}
+						}}
+						placeholder="••••••••"
+						error={fieldErrors.password}
+					/>
+
+					{/* Forgot Password */}
+					<View className="items-center mt-3 mb-6">
+						<TouchableOpacity>
+							<Text variant="p" className="text-lg text-yellow-500 font-medium">
+								¿Olvidaste tu contraseña?
+							</Text>
+						</TouchableOpacity>
+					</View>
+
+					{/* Sign In Button */}
+					<Button
+						onPress={onSignInPress}
+						disabled={loading}
+						isLoading={loading}
+						className="mt-4 mb-6"
+					>
+						INGRESAR
+					</Button>
 				</View>
 			</ScrollView>
-		</Container>
+		</KeyboardAvoidingView>
 	);
 }
