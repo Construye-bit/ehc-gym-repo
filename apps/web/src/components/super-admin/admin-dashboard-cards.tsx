@@ -29,12 +29,12 @@ export function AdminDashboardCards() {
             action: () => console.log("Asignación de Personal")
         },
         {
-            title: "Monitoreo del Sistema",
-            description: "Supervisa el rendimiento del sistema",
+            title: "Asignacion de administradores",
+            description: "Gestiona los administradores de las sedes",
             icon: BarChart3,
             background: "bg-gradient-to-br from-gray-600 to-gray-800",
             image: "/dashboard-monitoreo.png",
-            action: () => console.log("Monitoreo del Sistema")
+            action: () => navigate({ to: "/super-admin/administrators" })
         }
     ];
 

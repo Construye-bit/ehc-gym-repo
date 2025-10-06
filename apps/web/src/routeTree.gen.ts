@@ -17,8 +17,11 @@ import { Route as SuperAdminDashboardRouteImport } from './routes/super-admin/da
 import { Route as SuperAdminTrainersIndexRouteImport } from './routes/super-admin/trainers/index'
 import { Route as SuperAdminSedesIndexRouteImport } from './routes/super-admin/sedes/index'
 import { Route as SuperAdminPersonalIndexRouteImport } from './routes/super-admin/personal/index'
+import { Route as SuperAdminAdministratorsIndexRouteImport } from './routes/super-admin/administrators/index'
 import { Route as SuperAdminTrainersNewRouteImport } from './routes/super-admin/trainers/new'
 import { Route as SuperAdminTrainersEditRouteImport } from './routes/super-admin/trainers/edit'
+import { Route as SuperAdminAdministratorsNewRouteImport } from './routes/super-admin/administrators/new'
+import { Route as SuperAdminAdministratorsEditRouteImport } from './routes/super-admin/administrators/edit'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -61,6 +64,12 @@ const SuperAdminPersonalIndexRoute = SuperAdminPersonalIndexRouteImport.update({
   path: '/super-admin/personal/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminAdministratorsIndexRoute =
+  SuperAdminAdministratorsIndexRouteImport.update({
+    id: '/super-admin/administrators/',
+    path: '/super-admin/administrators/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SuperAdminTrainersNewRoute = SuperAdminTrainersNewRouteImport.update({
   id: '/super-admin/trainers/new',
   path: '/super-admin/trainers/new',
@@ -71,6 +80,18 @@ const SuperAdminTrainersEditRoute = SuperAdminTrainersEditRouteImport.update({
   path: '/super-admin/trainers/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminAdministratorsNewRoute =
+  SuperAdminAdministratorsNewRouteImport.update({
+    id: '/super-admin/administrators/new',
+    path: '/super-admin/administrators/new',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SuperAdminAdministratorsEditRoute =
+  SuperAdminAdministratorsEditRouteImport.update({
+    id: '/super-admin/administrators/edit',
+    path: '/super-admin/administrators/edit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,8 +99,11 @@ export interface FileRoutesByFullPath {
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers': typeof SuperAdminTrainersIndexRoute
@@ -90,8 +114,11 @@ export interface FileRoutesByTo {
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers': typeof SuperAdminTrainersIndexRoute
@@ -103,8 +130,11 @@ export interface FileRoutesById {
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/super-admin/administrators/': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal/': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes/': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers/': typeof SuperAdminTrainersIndexRoute
@@ -117,8 +147,11 @@ export interface FileRouteTypes {
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/super-admin/administrators'
     | '/super-admin/personal'
     | '/super-admin/sedes'
     | '/super-admin/trainers'
@@ -129,8 +162,11 @@ export interface FileRouteTypes {
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/super-admin/administrators'
     | '/super-admin/personal'
     | '/super-admin/sedes'
     | '/super-admin/trainers'
@@ -141,8 +177,11 @@ export interface FileRouteTypes {
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/super-admin/administrators/'
     | '/super-admin/personal/'
     | '/super-admin/sedes/'
     | '/super-admin/trainers/'
@@ -154,8 +193,11 @@ export interface RootRouteChildren {
   SuperAdminDashboardRoute: typeof SuperAdminDashboardRoute
   SuperAdminForgotPasswordRoute: typeof SuperAdminForgotPasswordRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
+  SuperAdminAdministratorsEditRoute: typeof SuperAdminAdministratorsEditRoute
+  SuperAdminAdministratorsNewRoute: typeof SuperAdminAdministratorsNewRoute
   SuperAdminTrainersEditRoute: typeof SuperAdminTrainersEditRoute
   SuperAdminTrainersNewRoute: typeof SuperAdminTrainersNewRoute
+  SuperAdminAdministratorsIndexRoute: typeof SuperAdminAdministratorsIndexRoute
   SuperAdminPersonalIndexRoute: typeof SuperAdminPersonalIndexRoute
   SuperAdminSedesIndexRoute: typeof SuperAdminSedesIndexRoute
   SuperAdminTrainersIndexRoute: typeof SuperAdminTrainersIndexRoute
@@ -219,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminPersonalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/administrators/': {
+      id: '/super-admin/administrators/'
+      path: '/super-admin/administrators'
+      fullPath: '/super-admin/administrators'
+      preLoaderRoute: typeof SuperAdminAdministratorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/super-admin/trainers/new': {
       id: '/super-admin/trainers/new'
       path: '/super-admin/trainers/new'
@@ -233,6 +282,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminTrainersEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/administrators/new': {
+      id: '/super-admin/administrators/new'
+      path: '/super-admin/administrators/new'
+      fullPath: '/super-admin/administrators/new'
+      preLoaderRoute: typeof SuperAdminAdministratorsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/super-admin/administrators/edit': {
+      id: '/super-admin/administrators/edit'
+      path: '/super-admin/administrators/edit'
+      fullPath: '/super-admin/administrators/edit'
+      preLoaderRoute: typeof SuperAdminAdministratorsEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -242,8 +305,11 @@ const rootRouteChildren: RootRouteChildren = {
   SuperAdminDashboardRoute: SuperAdminDashboardRoute,
   SuperAdminForgotPasswordRoute: SuperAdminForgotPasswordRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,
+  SuperAdminAdministratorsEditRoute: SuperAdminAdministratorsEditRoute,
+  SuperAdminAdministratorsNewRoute: SuperAdminAdministratorsNewRoute,
   SuperAdminTrainersEditRoute: SuperAdminTrainersEditRoute,
   SuperAdminTrainersNewRoute: SuperAdminTrainersNewRoute,
+  SuperAdminAdministratorsIndexRoute: SuperAdminAdministratorsIndexRoute,
   SuperAdminPersonalIndexRoute: SuperAdminPersonalIndexRoute,
   SuperAdminSedesIndexRoute: SuperAdminSedesIndexRoute,
   SuperAdminTrainersIndexRoute: SuperAdminTrainersIndexRoute,

@@ -99,9 +99,13 @@ export const getAllWithDetails = query({
 export const list = query({
     args: {},
     handler: async (ctx) => {
+        await requireSuperAdmin(ctx);
         return await ctx.db.query("branches").collect();
     },
 });
+
+// Alias for compatibility with frontend
+export const getAll = list;
 
 export const getById = query({
     args: { branchId: v.id("branches") },
