@@ -350,3 +350,37 @@ export const getPostDetails = query({
     };
   },
 });
+
+/**
+ * Obtener usuarios que dieron like a una publicación
+ */
+export const getPostLikes = query({
+  args: {
+    post_id: v.id("posts"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+    
+    const likes = await ctx.db
+      .query("post_likes")
+      .withIndex("by_post", (q) => q.eq("post_id", args.post_id))
+      .order("desc")
+      .take(limit);
+
+    const usersWithLikes = await Promise.all(
+      likes.map(async (like) => {
+        const user = await ctx.db.get(like.user_id);
+        return {
+          like_id: like._id,
+          user_id: like.user_id,
+          user_name: user?.name || "Usuario",
+          user_email: user?.email,
+          liked_at: like.created_at,
+        };
+      })
+    );
+
+    return usersWithLikes;
+  },
+});
