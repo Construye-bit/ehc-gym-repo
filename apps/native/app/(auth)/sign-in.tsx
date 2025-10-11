@@ -170,11 +170,13 @@ export default function SignInPage() {
 
 					{/* Forgot Password */}
 					<View className="items-center mt-3 mb-6">
-						<TouchableOpacity>
-							<Text variant="p" className="text-lg text-yellow-500 font-medium">
-								¿Olvidaste tu contraseña?
-							</Text>
-						</TouchableOpacity>
+						<Link href="./forgot-password" asChild>
+							<TouchableOpacity>
+								<Text variant="p" className="text-lg text-yellow-500 font-medium">
+									¿Olvidaste tu contraseña?
+								</Text>
+							</TouchableOpacity>
+						</Link>
 					</View>
 
 					{/* Sign In Button */}
