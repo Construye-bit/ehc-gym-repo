@@ -23,12 +23,14 @@ export const Input = React.forwardRef<TextInput, InputProps>(({
             )}
             <TextInput
                 ref={ref}
+                accessibilityLabel={label}
+                {...(error && { accessibilityInvalid: true })}
                 className={`bg-white border ${error ? 'border-red-500' : 'border-gray-300'} rounded-xl px-4 py-3.5 text-base text-gray-900 ${className}`}
                 placeholderTextColor="#9CA3AF"
                 {...props}
             />
             {error && (
-                <Text variant="p" className="mt-1 text-sm text-red-500">
+                <Text variant="p" className="mt-1 text-sm text-red-500" accessibilityLiveRegion="polite" accessibilityRole="alert">
                     {error}
                 </Text>
             )}

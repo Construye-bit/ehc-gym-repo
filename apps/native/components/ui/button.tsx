@@ -10,7 +10,7 @@ interface ButtonProps extends PressableProps {
 }
 
 export const Button = React.forwardRef<
-    typeof Pressable,
+    React.ComponentRef<typeof Pressable>,
     ButtonProps
 >(({
     children,

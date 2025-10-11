@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
+import { View, TextInput, TextInputProps } from 'react-native';
 import { Text } from './Text';
 
 interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {

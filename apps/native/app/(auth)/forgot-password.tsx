@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -55,14 +55,6 @@ export default function ForgotPasswordPage() {
             });
 
             setEmailSent(true);
-
-            // Navigate to reset password screen after a short delay
-            setTimeout(() => {
-                router.push({
-                    pathname: './reset-password',
-                    params: { email: emailAddress.trim() }
-                });
-            }, 2000);
         } catch (err: any) {
             console.error(JSON.stringify(err, null, 2));
 
@@ -82,6 +74,20 @@ export default function ForgotPasswordPage() {
     const handleGoBack = () => {
         router.back();
     };
+
+    // Handle automatic navigation after email is sent
+    useEffect(() => {
+        if (emailSent) {
+            const timer = setTimeout(() => {
+                router.push({
+                    pathname: './reset-password',
+                    params: { email: emailAddress.trim() }
+                });
+            }, 2000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [emailSent, emailAddress, router]);
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -174,7 +180,7 @@ export default function ForgotPasswordPage() {
                             <Button
                                 onPress={() => router.push({
                                     pathname: './reset-password',
-                                    params: { email: emailAddress }
+                                    params: { email: emailAddress.trim() }
                                 })}
                                 className="mt-4"
                             >

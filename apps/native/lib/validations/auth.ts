@@ -4,10 +4,10 @@ import { z } from 'zod';
 export const signInSchema = z.object({
     email: z
         .string({ message: 'El correo electrónico es obligatorio' })
-        .min(1, 'El correo electrónico es obligatorio')
-        .email('Por favor ingresa un correo electrónico válido')
         .trim()
-        .toLowerCase(),
+        .toLowerCase()
+        .min(1, 'El correo electrónico es obligatorio')
+        .email('Por favor ingresa un correo electrónico válido'),
     password: z
         .string({ message: 'La contraseña es obligatoria' })
         .min(1, 'La contraseña es obligatoria'),
@@ -17,14 +17,18 @@ export const signInSchema = z.object({
 export const signUpSchema = z.object({
     email: z
         .string({ message: 'El correo electrónico es obligatorio' })
-        .min(1, 'El correo electrónico es obligatorio')
-        .email('Por favor ingresa un correo electrónico válido')
         .trim()
-        .toLowerCase(),
+        .toLowerCase()
+        .min(1, 'El correo electrónico es obligatorio')
+        .email('Por favor ingresa un correo electrónico válido'),
     password: z
         .string({ message: 'La contraseña es obligatoria' })
         .min(8, 'La contraseña debe tener al menos 8 caracteres')
-        .max(100, 'La contraseña es demasiado larga'),
+        .max(100, 'La contraseña es demasiado larga')
+        .regex(/[A-Z]/, 'La contraseña debe contener al menos una letra mayúscula')
+        .regex(/[a-z]/, 'La contraseña debe contener al menos una letra minúscula')
+        .regex(/[0-9]/, 'La contraseña debe contener al menos un número')
+        .regex(/[^A-Za-z0-9]/, 'La contraseña debe contener al menos un carácter especial'),
 });
 
 // Schema para código de verificación

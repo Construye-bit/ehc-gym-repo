@@ -29,6 +29,7 @@ export default function ResetPasswordPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
+    const [prereqError, setPrereqError] = useState<string | undefined>();
     const [fieldErrors, setFieldErrors] = useState<{
         code?: string;
         newPassword?: string;
@@ -63,15 +64,23 @@ export default function ResetPasswordPage() {
     };
 
     const handleResetPassword = async () => {
-        // Clear previous field errors
+        // Clear previous errors
         setFieldErrors({});
+        setPrereqError(undefined);
 
-        // Validate form
-        if (!validateForm()) {
+        // Check prerequisites first
+        if (!email) {
+            setPrereqError('No se encontró el email. Por favor regresa e intenta de nuevo.');
             return;
         }
 
-        if (!isLoaded || !email) {
+        if (!isLoaded) {
+            setPrereqError('Cargando... Por favor espera un momento.');
+            return;
+        }
+
+        // Validate form
+        if (!validateForm()) {
             return;
         }
 
@@ -88,7 +97,7 @@ export default function ResetPasswordPage() {
             if (result.status === 'complete') {
                 // Set the active session
                 await setActive({ session: result.createdSessionId });
-                
+
                 setStep('success');
 
                 // Navigate to home after a delay (the _layout will handle the redirect)
@@ -117,7 +126,17 @@ export default function ResetPasswordPage() {
     };
 
     const handleResendCode = async () => {
-        if (!isLoaded || !email) {
+        // Clear previous errors
+        setPrereqError(undefined);
+
+        // Check prerequisites first
+        if (!email) {
+            setPrereqError('No se encontró el email. Por favor regresa e intenta de nuevo.');
+            return;
+        }
+
+        if (!isLoaded) {
+            setPrereqError('Cargando... Por favor espera un momento.');
             return;
         }
 
@@ -227,18 +246,29 @@ export default function ResetPasswordPage() {
                         error={fieldErrors.confirmPassword}
                     />
 
+                    {prereqError && (
+                        <View className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                            <View className="flex-row items-center">
+                                <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                                <Text className="ml-2 text-red-700 text-sm flex-1">
+                                    {prereqError}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
                     <Button
                         onPress={handleResetPassword}
-                        disabled={loading}
-                        isLoading={loading}
+                        disabled={loading || !isLoaded || !email}
+                        isLoading={loading || !isLoaded}
                         className="mt-6 mb-6"
                     >
-                        {loading ? 'CAMBIANDO...' : 'CAMBIAR CONTRASEÑA'}
+                        {!isLoaded ? 'CARGANDO...' : loading ? 'CAMBIANDO...' : 'CAMBIAR CONTRASEÑA'}
                     </Button>
 
                     <TouchableOpacity
                         onPress={handleResendCode}
-                        disabled={resendLoading || loading}
+                        disabled={resendLoading || loading || !isLoaded || !email}
                         className="flex-row items-center justify-center py-3"
                     >
                         <Text variant="p" color="tertiary">
@@ -246,7 +276,7 @@ export default function ResetPasswordPage() {
                         </Text>
                         <Text
                             variant="p"
-                            className={`font-medium ${resendLoading || loading
+                            className={`font-medium ${resendLoading || loading || !isLoaded || !email
                                 ? 'text-gray-400'
                                 : 'text-yellow-500'
                                 }`}

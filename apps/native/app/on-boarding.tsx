@@ -45,13 +45,14 @@ export default function OnBoardingScreen() {
     }, []);
 
     const onGetStarted = () => {
+        // Early return if not loaded
+        if (!isLoaded) return;
+
         // Check if user is authenticated
-        if (isLoaded) {
-            if (isSignedIn) {
-                router.replace('/(drawer)');
-            } else {
-                router.replace('/(auth)/sign-in');
-            }
+        if (isSignedIn) {
+            router.replace('/(drawer)');
+        } else {
+            router.replace('/(auth)/sign-in');
         }
     };
 
@@ -71,9 +72,9 @@ export default function OnBoardingScreen() {
                     source={require('../assets/images/on-boarding.png')}
                     className="w-full h-full"
                     resizeMode="cover"
+                    accessible={true}
+                    accessibilityLabel="Onboarding welcome image showing health and wellness"
                 />
-                {/* Gradient overlay for better text readability */}
-                <View className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/60 to-transparent" />
             </View>
 
             {/* Bottom content */}
@@ -98,11 +99,12 @@ export default function OnBoardingScreen() {
                 {/* Main button */}
                 <Button
                     onPress={onGetStarted}
+                    disabled={!isLoaded}
                     className="w-full mt-1 mb-1"
                     accessibilityLabel="Start now with exercise"
                     accessibilityHint="Navigate to sign in screen or main page"
                 >
-                    EMPIEZA AHORA
+                    {isLoaded ? 'EMPIEZA AHORA' : 'CARGANDO...'}
                 </Button>
             </View>
         </SafeAreaView>

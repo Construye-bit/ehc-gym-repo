@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useImperativeHandle } from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
 import { Text } from './Text';
 
@@ -22,6 +22,8 @@ export const CodeInput = React.forwardRef<TextInput, CodeInputProps>(({
     const inputRef = useRef<TextInput>(null);
     const [isFocused, setIsFocused] = useState(false);
 
+    useImperativeHandle(ref, () => inputRef.current!, []);
+
     const handleChangeText = (text: string) => {
         // Only allow numbers
         const numbers = text.replace(/\D/g, '');
@@ -41,12 +43,12 @@ export const CodeInput = React.forwardRef<TextInput, CodeInputProps>(({
             <View
                 key={index}
                 className={`w-12 h-14 border-2 rounded-xl items-center justify-center mx-1 ${isActive
-                        ? 'border-yellow-500 bg-yellow-50'
-                        : isFilled
-                            ? 'border-yellow-400 bg-white'
-                            : error
-                                ? 'border-red-500 bg-white'
-                                : 'border-gray-300 bg-white'
+                    ? 'border-yellow-500 bg-yellow-50'
+                    : isFilled
+                        ? 'border-yellow-400 bg-white'
+                        : error
+                            ? 'border-red-500 bg-white'
+                            : 'border-gray-300 bg-white'
                     }`}
             >
                 <Text className="text-2xl font-semibold text-gray-900">

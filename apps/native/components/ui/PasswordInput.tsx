@@ -9,7 +9,10 @@ interface PasswordInputProps extends TextInputProps {
     className?: string;
 }
 
-export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(({
+export const PasswordInput = React.forwardRef<
+    React.ComponentRef<typeof TextInput>,
+    PasswordInputProps
+>(({
     label,
     error,
     className = '',
@@ -36,6 +39,8 @@ export const PasswordInput = React.forwardRef<TextInput, PasswordInputProps>(({
                     onPress={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-3.5"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                 >
                     <Ionicons
                         name={showPassword ? 'eye-off-outline' : 'eye-outline'}
