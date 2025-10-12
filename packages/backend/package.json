@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "convex dev",
-    "dev:setup": "convex dev --configure --until-success"
+    "dev:setup": "convex dev --configure --until-success",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "@types/node": "^24.3.0",
-    "typescript": "^5.9.2"
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@clerk/backend": "^2.14.0",

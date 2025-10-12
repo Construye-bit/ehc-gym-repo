@@ -155,6 +155,84 @@ export default defineSchema({
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
 
+
+    // ==================== ADMINISTRADORES ====================
+    admins: defineTable({
+        person_id: v.id("persons"),
+        user_id: v.optional(v.id("users")),
+        branch_id: v.optional(v.id("branches")),
+        status: v.union(v.literal("ACTIVE"), v.literal("INACTIVE")),
+        created_by_user_id: v.id("users"),
+        created_at: v.number(),
+        updated_at: v.number(),
+        active: v.boolean(),
+    })
+        .index("by_person", ["person_id"])
+        .index("by_user", ["user_id"])
+        .index("by_branch", ["branch_id"])
+        .index("by_status", ["status"])
+        .index("by_creator", ["created_by_user_id"]),
+
+
+    // ==================== CLIENTES ====================
+    clients: defineTable({
+        person_id: v.id("persons"),
+        user_id: v.optional(v.id("users")),
+        status: v.union(v.literal("ACTIVE"), v.literal("INACTIVE")),
+        is_payment_active: v.boolean(),
+        join_date: v.number(),
+        end_date: v.optional(v.number()),
+        created_by_user_id: v.id("users"),
+        created_at: v.number(),
+        updated_at: v.number(),
+        active: v.boolean(),
+    })
+        .index("by_person", ["person_id"])
+        .index("by_user", ["user_id"])
+        .index("by_status", ["status"])
+        .index("by_payment_active", ["is_payment_active"])
+        .index("by_creator", ["created_by_user_id"]),
+
+
+    // ==================== RELACIÓN CLIENTE–SEDE (múltiples sedes) ====================
+    client_branches: defineTable({
+        client_id: v.id("clients"),
+        branch_id: v.id("branches"),
+        active: v.boolean(),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_client", ["client_id"])
+        .index("by_branch", ["branch_id"])
+        .index("by_client_active", ["client_id", "active"])
+        .index("by_branch_active", ["branch_id", "active"]),
+
+
+    // ==================== INVITACIONES (invitar amigo) ====================
+    invitations: defineTable({
+        inviter_client_id: v.id("clients"),
+        invitee_name: v.string(),
+        invitee_email: v.optional(v.string()),
+        invitee_phone: v.optional(v.string()),
+        preferred_branch_id: v.optional(v.id("branches")),
+        token: v.string(),
+        status: v.union(
+            v.literal("PENDING"),
+            v.literal("REDEEMED"),
+            v.literal("EXPIRED"),
+            v.literal("CANCELED")
+        ),
+        expires_at: v.number(),
+        active: v.boolean(),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_inviter_client", ["inviter_client_id"])
+        .index("by_token", ["token"])
+        .index("by_preferred_branch", ["preferred_branch_id"])
+        .index("by_status", ["status"]),
+
+
     // ==================== EJEMPLO SIMPLE ====================
     todos: defineTable({
         text: v.string(),
