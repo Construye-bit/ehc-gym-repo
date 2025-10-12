@@ -157,48 +157,6 @@ export default defineSchema({
         .index("by_employee_code", ["employee_code"])
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
-    // ==================== PUBLICACIONES ====================
-
-    // ==================== PUBLICACIONES ====================
-
-    posts: defineTable({
-        trainer_id: v.id("trainers"),
-        user_id: v.id("users"),
-        description: v.string(),
-        // Gestión de imagen
-        image_storage_id: v.optional(v.id("_storage")),
-        image_url: v.optional(v.string()),
-        // Métricas y timestamps
-        likes_count: v.number(), // Inicializa en 0
-        published_at: v.number(),
-        deleted_at: v.optional(v.number()),
-        created_at: v.number(),
-        updated_at: v.number(),
-    })
-        // Índice principal para feed (ordenado por fecha de publicación)
-        .index("by_published", ["published_at"])
-        // Índice para obtener posts de un trainer específico
-        .index("by_trainer", ["trainer_id"])
-        // Índice para obtener posts de un usuario específico
-        .index("by_user", ["user_id"])
-        // Índice para ordenar por fecha de creación
-        .index("by_created", ["created_at"])
-        // Índice para soft deletes
-        .index("by_deleted", ["deleted_at"]),
-
-    /**
-     * Likes en publicaciones
-     * Un usuario puede dar like una vez por post
-     */
-    post_likes: defineTable({
-        post_id: v.id("posts"),
-        user_id: v.id("users"),
-        created_at: v.number(),
-    })
-        .index("by_post_user", ["post_id", "user_id"]) // CRÍTICO: prevenir duplicados
-        .index("by_post", ["post_id"])
-        .index("by_user_created", ["user_id", "created_at"])
-        .index("by_user", ["user_id"]),
 
     // ==================== PUBLICACIONES ====================
 
@@ -275,7 +233,7 @@ export default defineSchema({
         is_payment_active: v.boolean(),
         join_date: v.number(),
         end_date: v.optional(v.number()),
-        created_by_user_id: v.optional(v.id("users")),
+        created_by_user_id: v.id("users"),
         created_at: v.number(),
         updated_at: v.number(),
         active: v.boolean(),
