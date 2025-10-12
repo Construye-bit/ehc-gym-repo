@@ -66,3 +66,4 @@ export function seedInvitation(db: FakeDB, { inviter_client_id, preferred_branch
         inviter_client_id, preferred_branch_id, status: "PENDING", active: true, token: "t", created_at: Date.now(), updated_at: Date.now()
     });
 }
+
