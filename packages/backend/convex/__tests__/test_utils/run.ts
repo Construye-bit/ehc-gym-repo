@@ -8,3 +8,4 @@ export async function runQuery(q: any, ctx: any, args: any) {
 export async function runMutation(m: any, ctx: any, args: any) {
     return await m.handler(ctx, args);
 }
+
