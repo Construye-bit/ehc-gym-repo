@@ -6,7 +6,6 @@ import { FormField } from "@/components/ui/form-field";
 import { FormSection } from "@/components/ui/form-section";
 import type { WorkData } from "@/lib/validations/administrators";
 import type { FormErrors } from "@/lib/administrator-types";
-import { ROL_TYPES } from "@/lib/administrator-constants";
 
 interface WorkDataStepProps {
     workData: WorkData;
@@ -25,7 +24,7 @@ export function WorkDataStep({
         <FormSection
             icon={<Building2 size={20} />}
             title="Datos Laborales"
-            description="Información sobre el rol y sede asignada"
+            description="Información sobre la sede asignada"
         >
             <div className="grid grid-cols-1 gap-6">
                 <FormField
@@ -44,28 +43,6 @@ export function WorkDataStep({
                             {branches.map((branch) => (
                                 <SelectItem key={branch._id} value={branch._id}>
                                     {branch.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
-
-                <FormField
-                    label="Tipo de rol"
-                    required
-                    error={errors.rolType}
-                >
-                    <Select
-                        value={workData.rolType}
-                        onValueChange={(value) => onUpdate('rolType', value)}
-                    >
-                        <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
-                            <SelectValue placeholder="Selecciona un rol" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {ROL_TYPES.map((role) => (
-                                <SelectItem key={role.value} value={role.value}>
-                                    {role.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>

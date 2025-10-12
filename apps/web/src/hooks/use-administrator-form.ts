@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useAction, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 
 import {
@@ -36,12 +36,11 @@ export function useAdministratorForm() {
 
     const [workData, setWorkData] = useState<WorkData>({
         branch: "",
-        rolType: "branch_admin",
     });
 
     // Hooks
     const navigate = useNavigate();
-    const createAdministratorComplete = useAction(api.administrators.mutations.createAdministratorComplete);
+    const createAdministratorComplete = useMutation(api.admins.mutations.createAdministratorComplete);
     const branches = useQuery(api.branches.queries.getAll);
 
     // Actualizar datos del usuario
@@ -142,7 +141,6 @@ export function useAdministratorForm() {
                 },
                 workData: {
                     branchId: workData.branch,
-                    rolType: workData.rolType,
                 }
             });
 
@@ -190,7 +188,6 @@ export function useAdministratorForm() {
         });
         setWorkData({
             branch: "",
-            rolType: "branch_admin",
         });
         setCurrentStep(1);
         setErrors({});

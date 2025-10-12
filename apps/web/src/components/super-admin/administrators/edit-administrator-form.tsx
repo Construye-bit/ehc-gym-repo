@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useAction, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
@@ -18,7 +18,6 @@ import { TOTAL_STEPS } from "@/lib/administrator-constants";
 import type { UserData, PersonalData, WorkData } from "@/lib/validations/administrators";
 
 // Componentes
-import { FormHeader } from "./form-header";
 import { FormNavigation } from "./form-navigation";
 import { UserDataStep } from "./user-data-step";
 import { PersonalDataStep } from "./personal-data-step";
@@ -51,13 +50,12 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
 
     const [workData, setWorkData] = useState<WorkData>({
         branch: "",
-        rolType: "branch_admin",
     });
 
     // Hooks
     const navigate = useNavigate();
-    const updateAdministratorComplete = useAction(api.administrators.mutations.updateAdministratorComplete);
-    const administrator = useQuery(api.administrators.queries.getById, { administratorId: administratorId as Id<"administrators"> });
+    const updateAdministratorComplete = useMutation(api.admins.mutations.updateAdministratorComplete);
+    const administrator = useQuery(api.admins.queries.getById, { administratorId: administratorId as Id<"admins"> });
     const branches = useQuery(api.branches.queries.getAll);
 
     // Actualizar datos del usuario
@@ -106,7 +104,6 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
             // Datos laborales
             setWorkData({
                 branch: administrator.branch?._id || "",
-                rolType: administrator.rol_type || "branch_admin",
             });
 
             setIsInitializing(false);
@@ -167,7 +164,7 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
             setIsLoading(true);
 
             const result = await updateAdministratorComplete({
-                administratorId: administratorId as Id<"administrators">,
+                administratorId: administratorId as Id<"admins">,
                 userData: {
                     name: userData.userName,
                     email: userData.userEmail,
@@ -182,7 +179,6 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
                 },
                 workData: {
                     branchId: workData.branch,
-                    rolType: workData.rolType,
                 }
             });
 

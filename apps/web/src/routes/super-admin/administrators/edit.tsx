@@ -16,6 +16,6 @@ export const Route = createFileRoute("/super-admin/administrators/edit")({
 });
 
 function EditAdministratorRoute() {
-  const { search } = Route.useSearch();
+  const search = Route.useSearch();
   return <EditAdministratorForm administratorId={search.administratorId} />;
 }

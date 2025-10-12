@@ -19,7 +19,6 @@ export const personalDataSchema = z.object({
 // Esquema de datos laborales
 export const workDataSchema = z.object({
     branch: z.string().min(1, "La sede es requerida"),
-    rolType: z.string().min(1, "El tipo de rol es requerido"),
 });
 
 // Tipos de datos

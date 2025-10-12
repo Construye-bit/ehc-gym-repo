@@ -5,7 +5,7 @@ import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AdministratorDetailsModalProps {
-    administratorId: Id<"administrators">;
+    administratorId: Id<"admins">;
     open: boolean;
     onClose: () => void;
 }
@@ -15,7 +15,7 @@ export default function AdministratorDetailsModal({
     open,
     onClose
 }: AdministratorDetailsModalProps) {
-    const administrator = useQuery(api.administrators.queries.getById, { administratorId });
+    const administrator = useQuery(api.admins.queries.getById, { administratorId });
 
     if (!administrator) {
         return null;
@@ -88,12 +88,6 @@ export default function AdministratorDetailsModal({
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Sede</p>
                                 <p className="text-sm text-gray-900">{administrator.branch?.name || "No asignada"}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Tipo de rol</p>
-                                <p className="text-sm text-gray-900">
-                                    {administrator.rol_type === "admin" ? "Administrador General" : "Administrador de Sede"}
-                                </p>
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Estado</p>

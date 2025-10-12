@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2 } from "lucide-react";
@@ -71,12 +71,12 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
 
 // Componente principal
 export function AdministratorsManagementContent() {
-    const administrators = useQuery(api.administrators.queries.getAllWithDetails, {}) ?? [];
-    const deleteAdministratorAction = useAction(api.administrators.mutations.deleteAdministratorComplete);
+    const administrators = useQuery(api.admins.queries.getAllWithDetails, {}) ?? [];
+    const deleteAdministratorAction = useMutation(api.admins.mutations.deleteAdministratorComplete);
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
-    const [deletingAdministratorId, setDeletingAdministratorId] = useState<Id<"administrators"> | null>(null);
-    const [selectedAdministratorId, setSelectedAdministratorId] = useState<Id<"administrators"> | null>(null);
+    const [deletingAdministratorId, setDeletingAdministratorId] = useState<Id<"admins"> | null>(null);
+    const [selectedAdministratorId, setSelectedAdministratorId] = useState<Id<"admins"> | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const PAGE_SIZE = 8;
     const totalPages = Math.ceil(administrators.length / PAGE_SIZE);
@@ -172,9 +172,6 @@ export function AdministratorsManagementContent() {
                                     Sede
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                    Rol
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Estado
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -183,7 +180,7 @@ export function AdministratorsManagementContent() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {currentAdministrators.map((administrator) => {
+                            {currentAdministrators.map((administrator: Administrator) => {
                                 const isDeleting = deletingAdministratorId === administrator._id;
                                 const statusColor = administrator.status === "active" ? "green" : "red";
                                 const statusText = administrator.status === "active" ? "Activo" : "Inactivo";
@@ -206,11 +203,6 @@ export function AdministratorsManagementContent() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900">
                                                 {administrator.branch?.name || "No asignada"}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {administrator.rol_type === "admin" ? "Administrador General" : "Administrador de Sede"}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

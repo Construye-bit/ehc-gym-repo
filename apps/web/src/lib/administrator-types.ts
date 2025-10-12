@@ -1,3 +1,5 @@
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
+
 // Tipos para el formulario
 export interface FormErrors {
     userName?: string;
@@ -9,7 +11,6 @@ export interface FormErrors {
     personDocumentType?: string;
     personDocumentNumber?: string;
     branch?: string;
-    rolType?: string;
 }
 
 // Tipo para documentos
@@ -20,7 +21,7 @@ export type DocumentType = {
 
 // Tipo para administradores
 export interface Administrator {
-    _id: string;
+    _id: Id<"admins">;
     person?: {
         name: string;
         last_name: string;
@@ -31,7 +32,7 @@ export interface Administrator {
     user?: {
         name: string;
         email: string;
-        phone: string;
+        phone?: string;
     };
     branch?: {
         _id: string;

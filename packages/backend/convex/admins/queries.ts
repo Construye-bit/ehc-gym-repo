@@ -69,3 +69,91 @@ export const getMyBranch = query({
         return branch ?? null;
     },
 });
+
+// === Obtener todos los admins con detalles (person, user, branch) ===
+export const getAllWithDetails = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireSuperAdmin(ctx);
+
+        const admins = await ctx.db
+            .query("admins")
+            .filter((q) => q.eq(q.field("active"), true))
+            .collect();
+
+        const adminsWithDetails = await Promise.all(
+            admins.map(async (admin) => {
+                const person = admin.person_id ? await ctx.db.get(admin.person_id) : null;
+                const user = admin.user_id ? await ctx.db.get(admin.user_id) : null;
+                const branch = admin.branch_id ? await ctx.db.get(admin.branch_id) : null;
+
+                return {
+                    _id: admin._id,
+                    person: person ? {
+                        name: person.name,
+                        last_name: person.last_name,
+                        document_type: person.document_type,
+                        document_number: person.document_number,
+                        born_date: person.born_date,
+                    } : undefined,
+                    user: user ? {
+                        name: user.name,
+                        email: user.email,
+                        phone: undefined as string | undefined, // El schema de users no tiene phone
+                    } : undefined,
+                    branch: branch ? {
+                        _id: branch._id,
+                        name: branch.name,
+                    } : undefined,
+                    rol_type: admin.branch_id ? "branch_admin" : "admin",
+                    status: admin.status === "ACTIVE" ? "active" as const : "inactive" as const,
+                    created_at: new Date(admin.created_at).toISOString(),
+                    updated_at: new Date(admin.updated_at).toISOString(),
+                };
+            })
+        );
+
+        return adminsWithDetails;
+    },
+});
+
+// === Obtener un admin por ID con detalles ===
+export const getById = query({
+    args: { administratorId: v.id("admins") },
+    handler: async (ctx, { administratorId }) => {
+        await requireSuperAdmin(ctx);
+
+        const admin = await ctx.db.get(administratorId);
+        if (!admin) {
+            throw new Error("Admin no encontrado.");
+        }
+
+        const person = admin.person_id ? await ctx.db.get(admin.person_id) : null;
+        const user = admin.user_id ? await ctx.db.get(admin.user_id) : null;
+        const branch = admin.branch_id ? await ctx.db.get(admin.branch_id) : null;
+
+        return {
+            _id: admin._id,
+            person: person ? {
+                name: person.name,
+                last_name: person.last_name,
+                document_type: person.document_type,
+                document_number: person.document_number,
+                born_date: person.born_date,
+            } : undefined,
+            user: user ? {
+                name: user.name,
+                email: user.email,
+                phone: undefined as string | undefined, // El schema de users no tiene phone
+            } : undefined,
+            branch: branch ? {
+                _id: branch._id,
+                name: branch.name,
+            } : undefined,
+            rol_type: admin.branch_id ? "branch_admin" : "admin",
+            status: admin.status === "ACTIVE" ? "active" as const : "inactive" as const,
+            created_at: new Date(admin.created_at).toISOString(),
+            updated_at: new Date(admin.updated_at).toISOString(),
+        };
+    },
+});
