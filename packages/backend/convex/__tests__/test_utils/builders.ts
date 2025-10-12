@@ -16,7 +16,8 @@ export function seedPerson(db: FakeDB, { user_id, name, last_name, doc = "X123" 
     { user_id: string; name: string; last_name: string; doc?: string; }) {
     return db.seed("persons", {
         user_id, name, last_name, born_date: "1990-01-01",
-        document_type: "CC", document_number: doc, created_at: Date.now(), updated_at: Date.now(), active: true
+        document_type: "CC", document_number: doc,
+        created_at: Date.now(), updated_at: Date.now(), active: true
     });
 }
 
@@ -41,18 +42,31 @@ export function seedBranch(db: FakeDB, address_id: string, created_by_user_id: s
     });
 }
 
-export function seedAdmin(db: FakeDB, { person_id, user_id, branch_id }:
-    { person_id: string; user_id?: string; branch_id?: string; }) {
-    return db.seed("admins", {
-        person_id, user_id, branch_id, status: "ACTIVE", active: true, created_at: Date.now(), updated_at: Date.now()
+export function seedTrainer(db: FakeDB, { person_id, user_id, branch_id, status = "ACTIVE" }:
+    { person_id: string; user_id?: string; branch_id?: string; status?: "ACTIVE" | "INACTIVE" | "ON_VACATION"; }) {
+    return db.seed("trainers", {
+        person_id, user_id, branch_id, employee_code: `EMP${Date.now()}`,
+        specialties: ["Fitness"], hire_date: Date.now(), status,
+        created_at: Date.now(), updated_at: Date.now()
     });
 }
 
-export function seedClient(db: FakeDB, { person_id, user_id, is_payment_active = true }:
-    { person_id: string; user_id?: string; is_payment_active?: boolean; }) {
+export function seedAdmin(db: FakeDB, { person_id, user_id, branch_id, created_by_user_id }:
+    { person_id: string; user_id?: string; branch_id?: string; created_by_user_id?: string; }) {
+    return db.seed("admins", {
+        person_id, user_id, branch_id, status: "ACTIVE", active: true,
+        created_by_user_id: created_by_user_id || user_id || person_id,
+        created_at: Date.now(), updated_at: Date.now()
+    });
+}
+
+export function seedClient(db: FakeDB, { person_id, user_id, is_payment_active = true, created_by_user_id }:
+    { person_id: string; user_id?: string; is_payment_active?: boolean; created_by_user_id?: string; }) {
     return db.seed("clients", {
         person_id, user_id, status: "ACTIVE", is_payment_active,
-        join_date: Date.now(), created_at: Date.now(), updated_at: Date.now(), active: true
+        join_date: Date.now(),
+        created_by_user_id: created_by_user_id || user_id || person_id,
+        created_at: Date.now(), updated_at: Date.now(), active: true
     });
 }
 
@@ -60,10 +74,29 @@ export function seedClientBranch(db: FakeDB, client_id: string, branch_id: strin
     return db.seed("client_branches", { client_id, branch_id, active: true, created_at: Date.now(), updated_at: Date.now() });
 }
 
-export function seedInvitation(db: FakeDB, { inviter_client_id, preferred_branch_id }:
-    { inviter_client_id: string; preferred_branch_id?: string; }) {
+export function seedInvitation(db: FakeDB, { inviter_client_id, preferred_branch_id, invitee_name = "Invitado Test", token = `token_${Date.now()}` }:
+    { inviter_client_id: string; preferred_branch_id?: string; invitee_name?: string; token?: string; }) {
     return db.seed("invitations", {
-        inviter_client_id, preferred_branch_id, status: "PENDING", active: true, token: "t", created_at: Date.now(), updated_at: Date.now()
+        inviter_client_id, preferred_branch_id, invitee_name, token,
+        status: "PENDING", active: true,
+        expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 días
+        created_at: Date.now(), updated_at: Date.now()
     });
 }
 
+export function seedPost(db: FakeDB, { trainer_id, user_id, description = "Test post", image_storage_id, likes_count = 0 }:
+    { trainer_id: string; user_id: string; description?: string; image_storage_id?: string; likes_count?: number; }) {
+    return db.seed("posts", {
+        trainer_id, user_id, description, image_storage_id,
+        image_url: image_storage_id ? "https://example.com/img.jpg" : undefined,
+        likes_count, published_at: Date.now(),
+        created_at: Date.now(), updated_at: Date.now()
+    });
+}
+
+export function seedPostLike(db: FakeDB, { post_id, user_id }:
+    { post_id: string; user_id: string; }) {
+    return db.insert("post_likes", {
+        post_id, user_id, created_at: Date.now()
+    });
+}
