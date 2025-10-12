@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
-import { FakeDB, makeCtx } from "./test_utils/fakeCtx";
+import { FakeDB, makeCtx } from "./test-utils/fakeCtx";
 import {
     seedUser, seedRole, seedPerson, seedCity, seedAddress,
     seedBranch, seedAdmin, seedClient, seedClientBranch
-} from "./test_utils/builders";
+} from "./test-utils/builders";
 import * as InviteMutations from "../invitations/mutations";
 import * as InviteQueries from "../invitations/queries";
-import { runMutation, runQuery } from "./test_utils/run";
+import { runMutation, runQuery } from "./test-utils/run";
 
 // Mock Convex runtime
 vi.mock("../_generated/server", () => ({
