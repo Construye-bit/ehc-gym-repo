@@ -99,7 +99,7 @@ export default function SignInPage() {
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
 			<ScrollView
-				className="flex-"
+				className="flex-1"
 				contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"

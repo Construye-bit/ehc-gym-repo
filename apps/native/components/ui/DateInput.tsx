@@ -27,10 +27,22 @@ export const DateInput = React.forwardRef<TextInput, DateInputProps>(({
         let formatted = '';
         if (numbers.length > 0) {
             const day = numbers.substring(0, 2);
-            formatted = day.length === 2 && parseInt(day) > 31 ? '31' : day;
+            let validDay = day;
+            if (day.length === 2) {
+                const dayNum = parseInt(day);
+                if (dayNum < 1) validDay = '01';
+                else if (dayNum > 31) validDay = '31';
+            }
+            formatted = validDay;
+
             if (numbers.length > 2) {
                 const month = numbers.substring(2, 4);
-                const validMonth = month.length === 2 && parseInt(month) > 12 ? '12' : month;
+                let validMonth = month;
+                if (month.length === 2) {
+                    const monthNum = parseInt(month);
+                    if (monthNum < 1) validMonth = '01';
+                    else if (monthNum > 12) validMonth = '12';
+                }
                 formatted += '/' + validMonth;
             }
             if (numbers.length > 4) {

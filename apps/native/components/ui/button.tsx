@@ -56,6 +56,7 @@ export const Button = React.forwardRef<
 
     return (
         <Pressable
+            ref={ref}
             className={`rounded-full items-center justify-center ${getVariantStyles()} ${getSizeStyles()} ${disabled || isLoading ? 'opacity-50' : ''} ${className}`}
             disabled={disabled || isLoading}
             {...props}

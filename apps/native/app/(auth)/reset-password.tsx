@@ -148,10 +148,13 @@ export default function ResetPasswordPage() {
                 strategy: 'reset_password_email_code',
                 identifier: email,
             });
-
             setCode(''); // Clear the code input
         } catch (err: any) {
             console.error(JSON.stringify(err, null, 2));
+            const message =
+                err?.errors?.[0]?.message ??
+                'No pudimos reenviar el código. Intenta nuevamente en unos minutos.';
+            setPrereqError(message);
         } finally {
             setResendLoading(false);
         }

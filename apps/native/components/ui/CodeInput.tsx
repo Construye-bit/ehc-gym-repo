@@ -33,23 +33,21 @@ export const CodeInput = React.forwardRef<TextInput, CodeInputProps>(({
     const handlePress = () => {
         inputRef.current?.focus();
     };
-
     const boxes = Array.from({ length }, (_, index) => {
         const char = value[index] || '';
         const isFilled = char !== '';
         const isActive = isFocused && value.length === index;
-
+        const boxClasses = error
+            ? 'border-red-500 bg-white'
+            : isActive
+                ? 'border-yellow-500 bg-yellow-50'
+                : isFilled
+                    ? 'border-yellow-400 bg-white'
+                    : 'border-gray-300 bg-white';
         return (
             <View
                 key={index}
-                className={`w-12 h-14 border-2 rounded-xl items-center justify-center mx-1 ${isActive
-                    ? 'border-yellow-500 bg-yellow-50'
-                    : isFilled
-                        ? 'border-yellow-400 bg-white'
-                        : error
-                            ? 'border-red-500 bg-white'
-                            : 'border-gray-300 bg-white'
-                    }`}
+                className={`w-12 h-14 border-2 rounded-xl items-center justify-center mx-1 ${boxClasses}`}
             >
                 <Text className="text-2xl font-semibold text-gray-900">
                     {char}

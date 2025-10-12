@@ -215,14 +215,18 @@ export default function SignUpScreen() {
 					>
 						<Input
 							value={code}
-							onChangeText={setCode}
+							onChangeText={(text) => {
+								setCode(text);
+								if (fieldErrors.code) {
+									setFieldErrors(prev => ({ ...prev, code: '' }));
+								}
+							}}
 							placeholder="000000"
 							label="Código de verificación"
 							keyboardType="number-pad"
 							maxLength={6}
 							error={fieldErrors.code}
 						/>
-
 						<Button
 							onPress={onVerifyPress}
 							disabled={loading}

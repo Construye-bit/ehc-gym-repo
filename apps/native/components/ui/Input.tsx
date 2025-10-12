@@ -24,7 +24,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(({
             <TextInput
                 ref={ref}
                 accessibilityLabel={label}
-                {...(error && { accessibilityInvalid: true })}
+                aria-invalid={error ? true : undefined}
                 className={`bg-white border ${error ? 'border-red-500' : 'border-gray-300'} rounded-xl px-4 py-3.5 text-base text-gray-900 ${className}`}
                 placeholderTextColor="#9CA3AF"
                 {...props}
