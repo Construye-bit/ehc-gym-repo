@@ -20,6 +20,6 @@
 		"isolatedModules": true,
 		"noEmit": true
 	},
-	"include": ["./**/*"],
+	"include": ["./**/*", "../vitest.config.ts", "../tests"],
 	"exclude": ["./_generated"]
 }

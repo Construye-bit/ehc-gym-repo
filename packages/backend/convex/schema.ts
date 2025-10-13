@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+
 export default defineSchema({
     // ==================== USUARIOS Y AUTENTICACIÓN ====================
 
@@ -154,57 +155,57 @@ export default defineSchema({
         .index("by_employee_code", ["employee_code"])
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
-// ==================== FEED DE PUBLICACIONES ====================
+// ==================== PUBLICACIONES ====================
 
-    /**
-     * Publicaciones del feed
-     * Solo entrenadores pueden crear/editar/eliminar
-     * Todos los usuarios pueden ver y dar like
-     */
-    posts: defineTable({
-        trainer_id: v.id("trainers"),
-        user_id: v.id("users"),
-        description: v.string(),
-        
-        // Gestión de imagen (Convex Storage)
-        image_storage_id: v.optional(v.id("_storage")),
-        image_url: v.optional(v.string()),
-        
-        // Control de estado
-        status: v.union(
-            v.literal("PUBLISHED"),
-            v.literal("DRAFT"),
-            v.literal("ARCHIVED")
-        ),
-        
-        // Métricas y timestamps
-        likes_count: v.number(),
-        published_at: v.optional(v.number()),
-        deleted_at: v.optional(v.number()),
-        created_at: v.number(),
-        updated_at: v.number(),
-    })
-        .index("by_status_published", ["status", "published_at"])
-        .index("by_trainer_status", ["trainer_id", "status"])
-        .index("by_user", ["user_id"])
-        .index("by_status", ["status"])
-        .index("by_created", ["created_at"])
-        .index("by_deleted", ["deleted_at"]),
+  // ==================== PUBLICACIONES ====================
 
-    /**
-     * Likes en publicaciones
-     * Un usuario puede dar like una vez por post
-     */
-    post_likes: defineTable({
-        post_id: v.id("posts"),
-        user_id: v.id("users"),
-        created_at: v.number(),
-    })
-        .index("by_post_user", ["post_id", "user_id"]) // CRÍTICO: prevenir duplicados
-        .index("by_post", ["post_id"])
-        .index("by_user_created", ["user_id", "created_at"])
-        .index("by_user", ["user_id"]),
+posts: defineTable({
+    trainer_id: v.id("trainers"),
+    user_id: v.id("users"),
+    description: v.string(),
+    // Gestión de imagen
+    image_storage_id: v.optional(v.id("_storage")),
+    image_url: v.optional(v.string()),
+    // Métricas y timestamps
+    likes_count: v.number(), // Inicializa en 0
+    published_at: v.number(),
+    deleted_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+})
+    // Índice principal para feed (ordenado por fecha de publicación)
+    .index("by_published", ["published_at"])
+    // Índice para obtener posts de un trainer específico
+    .index("by_trainer", ["trainer_id"])
+    // Índice para obtener posts de un usuario específico
+    .index("by_user", ["user_id"])
+    // Índice para ordenar por fecha de creación
+    .index("by_created", ["created_at"])
+    // Índice para soft deletes
+    .index("by_deleted", ["deleted_at"]),
 
+// ==================== LIKES DE PUBLICACIONES ====================
+
+post_likes: defineTable({
+    post_id: v.id("posts"),
+    user_id: v.id("users"),
+    created_at: v.number(),
+})
+    // Índice compuesto para verificación de duplicados (CRÍTICO)
+    // Usado en: toggleLike para verificar si ya existe like
+    .index("by_post_user", ["post_id", "user_id"])
+    
+    // Índice para obtener todos los likes de una publicación
+    // Usado en: getLikesByPost, contadores
+    .index("by_post", ["post_id"])
+    
+    // Índice para historial de likes del usuario (ordenado por fecha)
+    // Usado en: getUserLikeHistory
+    .index("by_user_created", ["user_id", "created_at"])
+    
+    // Índice simple por usuario
+    // Usado en: obtener todos los likes de un usuario
+    .index("by_user", ["user_id"]),
     // ==================== EJEMPLO SIMPLE ====================
     todos: defineTable({
         text: v.string(),

@@ -13,6 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as __tests___test_utils_builders from "../__tests__/test-utils/builders.js";
+import type * as __tests___test_utils_fakeCtx from "../__tests__/test-utils/fakeCtx.js";
+import type * as __tests___test_utils_run from "../__tests__/test-utils/run.js";
 import type * as addresses_errors from "../addresses/errors.js";
 import type * as addresses_mutations from "../addresses/mutations.js";
 import type * as addresses_queries from "../addresses/queries.js";
@@ -35,6 +38,16 @@ import type * as http from "../http.js";
 import type * as persons_mutations from "../persons/mutations.js";
 import type * as persons_queries from "../persons/queries.js";
 import type * as persons_validations from "../persons/validations.js";
+import type * as postLikes_index from "../postLikes/index.js";
+import type * as postLikes_mutations from "../postLikes/mutations.js";
+import type * as postLikes_queries from "../postLikes/queries.js";
+import type * as postLikes_validations from "../postLikes/validations.js";
+import type * as posts_errors from "../posts/errors.js";
+import type * as posts_index from "../posts/index.js";
+import type * as posts_mutations from "../posts/mutations.js";
+import type * as posts_queries from "../posts/queries.js";
+import type * as posts_utils from "../posts/utils.js";
+import type * as posts_validations from "../posts/validations.js";
 import type * as privateData from "../privateData.js";
 import type * as todos from "../todos.js";
 import type * as trainers_errors from "../trainers/errors.js";
@@ -53,6 +66,9 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "__tests__/test-utils/builders": typeof __tests___test_utils_builders;
+  "__tests__/test-utils/fakeCtx": typeof __tests___test_utils_fakeCtx;
+  "__tests__/test-utils/run": typeof __tests___test_utils_run;
   "addresses/errors": typeof addresses_errors;
   "addresses/mutations": typeof addresses_mutations;
   "addresses/queries": typeof addresses_queries;
@@ -75,6 +91,16 @@ declare const fullApi: ApiFromModules<{
   "persons/mutations": typeof persons_mutations;
   "persons/queries": typeof persons_queries;
   "persons/validations": typeof persons_validations;
+  "postLikes/index": typeof postLikes_index;
+  "postLikes/mutations": typeof postLikes_mutations;
+  "postLikes/queries": typeof postLikes_queries;
+  "postLikes/validations": typeof postLikes_validations;
+  "posts/errors": typeof posts_errors;
+  "posts/index": typeof posts_index;
+  "posts/mutations": typeof posts_mutations;
+  "posts/queries": typeof posts_queries;
+  "posts/utils": typeof posts_utils;
+  "posts/validations": typeof posts_validations;
   privateData: typeof privateData;
   todos: typeof todos;
   "trainers/errors": typeof trainers_errors;
