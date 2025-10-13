@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { AdminLoginBackground } from "./admin-login-background";
 import { ForgotPasswordLink } from "./forgot-password-link";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AdminLoginFormProps {
     onLoginSuccess?: () => void;
@@ -16,11 +18,30 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const { loginWithCredentials, isLoading, error } = useAdminAuth();
+    const { loginWithCredentials, isLoading: authLoading, error } = useAdminAuth();
+    const { isSuperAdmin, isAdmin, isTrainer, isClient, isLoading: roleLoading } = useAuth();
+    const navigate = useNavigate();
+
+    // Redirigir según el rol después del login
+    useEffect(() => {
+        if (!roleLoading && !authLoading) {
+            if (isTrainer || isClient) {
+                // Clientes y entrenadores van a la página de descarga de app
+                navigate({ to: "/redirect-to-mobile" });
+            } else if (isSuperAdmin) {
+                // Super admin va a su dashboard
+                navigate({ to: "/super-admin/dashboard" });
+            } else if (isAdmin) {
+                // Admin normal va a su dashboard
+                navigate({ to: "/admin" });
+            }
+        }
+    }, [isSuperAdmin, isAdmin, isTrainer, isClient, roleLoading, authLoading, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        await loginWithCredentials(username, password, "/super-admin/dashboard");
+        // No especificar redirectUrl aquí, el useEffect se encargará de la redirección
+        await loginWithCredentials(username, password);
         onLoginSuccess?.();
     };
 
@@ -85,10 +106,10 @@ export function AdminLoginForm({ onLoginSuccess }: AdminLoginFormProps) {
 
                             <Button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={authLoading}
                                 className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors"
                             >
-                                {isLoading ? "Ingresando..." : "Acceder"}
+                                {authLoading ? "Ingresando..." : "Acceder"}
                             </Button>
 
                             <ForgotPasswordLink />

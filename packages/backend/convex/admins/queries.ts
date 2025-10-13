@@ -157,3 +157,38 @@ export const getById = query({
         };
     },
 });
+
+// === Verificar si existe una persona con el documento ===
+export const checkPersonByDocument = query({
+    args: {
+        document_number: v.string(),
+        document_type: v.optional(v.string())
+    },
+    handler: async (ctx, { document_number, document_type }) => {
+        // Si se proporciona document_type, usar el índice
+        if (document_type) {
+            const person = await ctx.db
+                .query("persons")
+                .withIndex("by_document", (q) =>
+                    q.eq("document_type", document_type as any)
+                        .eq("document_number", document_number)
+                )
+                .first();
+            return person ?? null;
+        }
+
+        // Si no se proporciona document_type, buscar en todas las personas
+        // (menos eficiente pero funcional)
+        const person = await ctx.db
+            .query("persons")
+            .filter((q) =>
+                q.and(
+                    q.eq(q.field("document_number"), document_number),
+                    q.eq(q.field("active"), true)
+                )
+            )
+            .first();
+
+        return person ?? null;
+    },
+});

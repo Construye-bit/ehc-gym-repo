@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RedirectToMobileRouteImport } from './routes/redirect-to-mobile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -29,6 +30,11 @@ import { Route as SuperAdminAdministratorsEditRouteImport } from './routes/super
 import { Route as AdminTrainersNewRouteImport } from './routes/admin/trainers/new'
 import { Route as AdminTrainersEditRouteImport } from './routes/admin/trainers/edit'
 
+const RedirectToMobileRoute = RedirectToMobileRouteImport.update({
+  id: '/redirect-to-mobile',
+  path: '/redirect-to-mobile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -132,6 +138,7 @@ const AdminTrainersEditRoute = AdminTrainersEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
@@ -262,6 +274,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  RedirectToMobileRoute: typeof RedirectToMobileRoute
   SuperAdminDashboardRoute: typeof SuperAdminDashboardRoute
   SuperAdminForgotPasswordRoute: typeof SuperAdminForgotPasswordRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
@@ -283,6 +296,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/redirect-to-mobile': {
+      id: '/redirect-to-mobile'
+      path: '/redirect-to-mobile'
+      fullPath: '/redirect-to-mobile'
+      preLoaderRoute: typeof RedirectToMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -422,6 +442,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  RedirectToMobileRoute: RedirectToMobileRoute,
   SuperAdminDashboardRoute: SuperAdminDashboardRoute,
   SuperAdminForgotPasswordRoute: SuperAdminForgotPasswordRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,

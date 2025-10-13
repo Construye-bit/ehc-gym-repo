@@ -49,7 +49,11 @@ export function useAdminAuth(): UseAdminAuthReturn {
                     if (anyWindow.Clerk && typeof anyWindow.Clerk.setActive === "function") {
                         await anyWindow.Clerk.setActive({ session: signIn.createdSessionId });
                     }
-                    navigate({ to: redirectUrl || "/super-admin/dashboard" });
+                    // Solo redirigir si se proporciona redirectUrl explícitamente
+                    if (redirectUrl) {
+                        navigate({ to: redirectUrl });
+                    }
+                    // Si no hay redirectUrl, no redirigir - dejar que el componente lo maneje
                 } else {
                     setError("Verifica tus credenciales e inténtalo de nuevo.");
                 }

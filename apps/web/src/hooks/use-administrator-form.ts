@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 
 import {
@@ -40,7 +40,7 @@ export function useAdministratorForm() {
 
     // Hooks
     const navigate = useNavigate();
-    const createAdministratorComplete = useMutation(api.admins.mutations.createAdministratorComplete);
+    const createAdministratorComplete = useAction(api.admins.mutations.createAdministratorComplete);
     const branches = useQuery(api.branches.queries.getAll);
 
     // Actualizar datos del usuario
@@ -128,16 +128,16 @@ export function useAdministratorForm() {
 
             const result = await createAdministratorComplete({
                 userData: {
-                    name: userData.userName,
-                    email: userData.userEmail,
-                    phone: userData.userPhone,
+                    userName: userData.userName,
+                    userEmail: userData.userEmail,
+                    userPhone: userData.userPhone,
                 },
                 personalData: {
-                    name: personalData.personName,
-                    last_name: personalData.personLastName,
-                    document_type: personalData.personDocumentType,
-                    document_number: personalData.personDocumentNumber,
-                    born_date: personalData.personBornDate,
+                    personName: personalData.personName,
+                    personLastName: personalData.personLastName,
+                    personDocumentType: personalData.personDocumentType,
+                    personDocumentNumber: personalData.personDocumentNumber,
+                    personBornDate: personalData.personBornDate,
                 },
                 workData: {
                     branchId: workData.branch,
@@ -145,12 +145,12 @@ export function useAdministratorForm() {
             });
 
             if (result.success) {
-                toast.success(result.message, {
+                toast.success(result.data.message, {
                     duration: 5000,
                 });
                 navigate({ to: "/super-admin/administrators" });
             } else {
-                throw new Error(result.message);
+                throw new Error(result.data.message);
             }
         } catch (error) {
             console.error("Error al crear administrador:", error);
