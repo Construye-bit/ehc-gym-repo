@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Smartphone, Download, QrCode, Star, Users, Dumbbell, Clock } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 export const Route = createFileRoute("/dashboard")({
 	component: RouteComponent,
@@ -100,12 +101,14 @@ function RouteComponent() {
 						<div className="flex flex-col sm:flex-row items-center justify-center gap-6">
 							{/* QR Code */}
 							<div className="flex flex-col items-center justify-center bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-								<img
-									src="/qrcode.png"
-									alt="Código QR para descargar EHC GYM App"
-									className="w-32 h-32 mb-3"
+								<QRCodeSVG
+									value={import.meta.env.VITE_URL_APK_APP || "https://example.com"}
+									size={128}
+									level="H"
+									marginSize={1}
+									title="Código QR para descargar EHC GYM App"
 								/>
-								<p className="text-sm font-medium text-gray-700">Escanea para descargar</p>
+								<p className="text-sm font-medium text-gray-700 mt-3">Escanea para descargar</p>
 							</div>							{/* Download buttons */}
 						</div>
 
