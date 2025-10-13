@@ -33,6 +33,16 @@ const DrawerLayout = () => {
 				}}
 			/>
 			<Drawer.Screen
+				name="trainer-feed"
+				options={{
+					drawerLabel: 'Consejos',
+					title: 'Consejos de Entrenadores',
+					drawerIcon: ({ size, color }) => (
+					<Ionicons name="newspaper-outline" size={size} color={color} />
+					),
+				}}
+				/>
+			<Drawer.Screen
 				name="todos"
 				options={{
 					headerTitle: "Todos",
