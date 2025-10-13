@@ -157,41 +157,33 @@ export default defineSchema({
         .index("by_employee_code", ["employee_code"])
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
-// ==================== FEED DE PUBLICACIONES ====================
+    // ==================== PUBLICACIONES ====================
 
-    /**
-     * Publicaciones del feed
-     * Solo entrenadores pueden crear/editar/eliminar
-     * Todos los usuarios pueden ver y dar like
-     */
+    // ==================== PUBLICACIONES ====================
+
     posts: defineTable({
         trainer_id: v.id("trainers"),
         user_id: v.id("users"),
         description: v.string(),
-        
-        // Gestión de imagen (Convex Storage)
+        // Gestión de imagen
         image_storage_id: v.optional(v.id("_storage")),
         image_url: v.optional(v.string()),
-        
-        // Control de estado
-        status: v.union(
-            v.literal("PUBLISHED"),
-            v.literal("DRAFT"),
-            v.literal("ARCHIVED")
-        ),
-        
         // Métricas y timestamps
-        likes_count: v.number(),
-        published_at: v.optional(v.number()),
+        likes_count: v.number(), // Inicializa en 0
+        published_at: v.number(),
         deleted_at: v.optional(v.number()),
         created_at: v.number(),
         updated_at: v.number(),
     })
-        .index("by_status_published", ["status", "published_at"])
-        .index("by_trainer_status", ["trainer_id", "status"])
+        // Índice principal para feed (ordenado por fecha de publicación)
+        .index("by_published", ["published_at"])
+        // Índice para obtener posts de un trainer específico
+        .index("by_trainer", ["trainer_id"])
+        // Índice para obtener posts de un usuario específico
         .index("by_user", ["user_id"])
-        .index("by_status", ["status"])
+        // Índice para ordenar por fecha de creación
         .index("by_created", ["created_at"])
+        // Índice para soft deletes
         .index("by_deleted", ["deleted_at"]),
 
     /**
