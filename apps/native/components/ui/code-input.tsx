@@ -1,6 +1,6 @@
 import React, { useRef, useState, useImperativeHandle } from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
-import { Text } from './Text';
+import { Text } from './text';
 
 interface CodeInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
     length?: number;

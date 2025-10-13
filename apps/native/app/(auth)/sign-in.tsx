@@ -2,7 +2,7 @@ import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform } from "react-native";
 import React, { useState } from "react";
-import { Button, Container, Input, PasswordInput, Text } from "@/components/ui";
+import { Button, Input, PasswordInput, Text } from "@/components/ui";
 import { signInSchema } from "@/lib/validations/auth";
 import { ZodError } from "zod";
 
@@ -69,7 +69,7 @@ export default function SignInPage() {
 
 			if (signInAttempt.status === "complete") {
 				await setActive({ session: signInAttempt.createdSessionId });
-				router.replace("/(drawer)");
+				router.replace("/(home)");
 			} else {
 				console.error(JSON.stringify(signInAttempt, null, 2));
 			}

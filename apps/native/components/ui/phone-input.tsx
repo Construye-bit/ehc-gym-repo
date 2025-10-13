@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TextInput, TextInputProps } from 'react-native';
-import { Text } from './Text';
+import { Text } from './text';
 
 interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
     label?: string;
