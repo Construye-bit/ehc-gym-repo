@@ -30,7 +30,7 @@ export default function AdminRedirectScreen() {
     const handleSignOut = async () => {
         try {
             await signOut();
-            router.replace('/on-boarding');
+            router.replace('/(auth)/sign-in');
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
         }

@@ -54,6 +54,9 @@ export const Button = React.forwardRef<
         }
     };
 
+    // Check if children is a primitive string
+    const isStringChild = typeof children === 'string' || typeof children === 'number';
+
     return (
         <Pressable
             ref={ref}
@@ -65,13 +68,15 @@ export const Button = React.forwardRef<
                 <>
                     {isLoading ? (
                         <ActivityIndicator color={variant === 'primary' ? 'white' : '#FF9500'} />
-                    ) : (
+                    ) : isStringChild ? (
                         <Text
                             className={`font-bold text-sm tracking-wider ${getTextColor()}`}
                             style={{ opacity: pressed ? 0.8 : 1 }}
                         >
                             {children}
                         </Text>
+                    ) : (
+                        children
                     )}
                 </>
             )}

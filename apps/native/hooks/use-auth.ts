@@ -2,7 +2,7 @@ import { useAuth as useClerkAuth } from '@clerk/clerk-expo';
 import { useQuery } from 'convex/react';
 import api from '@/api';
 
-type Role = "CLIENT" | "TRAINER" | "ADMIN" | "SUPER_ADMIN";
+export type Role = "CLIENT" | "TRAINER" | "ADMIN" | "SUPER_ADMIN";
 
 /**
  * Hook personalizado para manejar la autenticación y autorización del usuario

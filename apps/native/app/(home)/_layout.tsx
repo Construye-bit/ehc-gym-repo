@@ -1,4 +1,4 @@
-import { useRouter, Stack } from "expo-router";
+import { useRouter, Stack, usePathname, useSegments } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
@@ -8,6 +8,8 @@ export default function HomeRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
     const { isAdmin, isSuperAdmin, isLoading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
+    const segments = useSegments();
 
     useEffect(() => {
         // Si no está cargado, no hacer nada aún
@@ -20,10 +22,17 @@ export default function HomeRoutesLayout() {
         }
 
         // Si es admin o super admin, redirigir a la pantalla especial
+        // Solo redirigir si NO está ya en la página de admin-redirect
         if (isAdmin || isSuperAdmin) {
-            router.replace("/(home)/admin-redirect");
+            const currentSegments = segments as string[];
+            const isOnAdminRedirect = pathname?.includes('admin-redirect') ||
+                currentSegments?.some((segment) => segment === 'admin-redirect');
+
+            if (!isOnAdminRedirect) {
+                router.replace("/(home)/admin-redirect");
+            }
         }
-    }, [isSignedIn, isAdmin, isSuperAdmin, isLoading, router]);
+    }, [isSignedIn, isAdmin, isSuperAdmin, isLoading, router, pathname, segments]);
 
     // Mostrar loading mientras se cargan los roles
     if (isLoading) {

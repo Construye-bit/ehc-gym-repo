@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSignUp } from '@clerk/clerk-expo';
 import { useMutation } from 'convex/react';
+import { ZodError } from 'zod';
 import api from '@/api';
 import { RegisterClientInput, clerkSignUpSchema, formatZodErrors } from '@/lib/validations/client';
 
@@ -52,9 +53,8 @@ export function useRegisterClient() {
                 contrasena: data.contrasena,
             });
         } catch (error) {
-            if (error instanceof Error && 'errors' in error) {
-                const zodError = error as any;
-                const errors = formatZodErrors(zodError);
+            if (error instanceof ZodError) {
+                const errors = formatZodErrors(error);
                 setFieldErrors(errors);
                 throw new Error("Validación fallida");
             }
