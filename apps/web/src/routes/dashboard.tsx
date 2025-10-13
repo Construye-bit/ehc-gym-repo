@@ -132,10 +132,22 @@ function RouteComponent() {
 						</p>
 					</div>
 
-					{/* Admin Login Link */}
+					{/* SUPER-ADMIN Login Link */}
 					<div className="top-4 right-4 z-10">
 						<Link
 							to="/super-admin/login"
+							className="flex items-center gap-2 px-4 py-2 bg-yellow-500/90 hover:bg-yellow-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg backdrop-blur-sm"
+						>
+							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+							</svg>
+							Acceso Gerente
+						</Link>
+					</div>
+					{/* Admin Login Link */}
+					<div className="top-4 right-4 z-10">
+						<Link
+							to="/admin" // Asegúrate de que esta ruta coincida con tu configuración de rutas
 							className="flex items-center gap-2 px-4 py-2 bg-yellow-500/90 hover:bg-yellow-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg backdrop-blur-sm"
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
