@@ -103,25 +103,47 @@ export default function SignInPage() {
 							{
 								text: 'Activar',
 								onPress: async () => {
-									try {
-										await setCredentials({
-											identifier: emailAddress.trim(),
-											password,
-										});
-										Alert.alert(
-											'¡Listo!',
-											`${biometricType === 'face-recognition' ? 'Face ID' : 'Huella dactilar'} activado. La próxima vez podrás iniciar sesión más rápido.`,
-											[
-												{
-													text: 'OK',
-													onPress: () => router.replace("/(home)"),
-												},
-											]
-										);
-									} catch (error) {
-										console.error('Error saving credentials:', error);
-										router.replace("/(home)");
-									}
+									const attemptSaveCredentials = async () => {
+										try {
+											await setCredentials({
+												identifier: emailAddress.trim(),
+												password,
+											});
+											Alert.alert(
+												'¡Listo!',
+												`${biometricType === 'face-recognition' ? 'Face ID' : 'Huella dactilar'} activado. La próxima vez podrás iniciar sesión más rápido.`,
+												[
+													{
+														text: 'OK',
+														onPress: () => router.replace("/(home)"),
+													},
+												]
+											);
+										} catch (error: any) {
+											console.error('Error saving biometric credentials:', error);
+
+											const errorMessage = error?.message || 'Error desconocido';
+
+											Alert.alert(
+												'Error al Guardar Credenciales',
+												`No se pudieron guardar las credenciales biométricas.\n\n${errorMessage}\n\nPuedes continuar sin autenticación biométrica o intentar nuevamente.`,
+												[
+													{
+														text: 'Continuar sin biometría',
+														style: 'cancel',
+														onPress: () => router.replace("/(home)"),
+													},
+													{
+														text: 'Reintentar',
+														onPress: () => attemptSaveCredentials(),
+													},
+												],
+												{ cancelable: false }
+											);
+										}
+									};
+
+									await attemptSaveCredentials();
 								},
 							},
 						],

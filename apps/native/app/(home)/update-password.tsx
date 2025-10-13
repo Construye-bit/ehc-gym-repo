@@ -17,6 +17,11 @@ export default function UpdatePasswordPage() {
     const { userOwnsCredentials, setCredentials } = useLocalCredentials();
 
     const changePassword = async () => {
+        if (!user) {
+            Alert.alert('Error', 'Sesión no válida. Por favor, inicia sesión nuevamente.');
+            return;
+        }
+
         // Validation
         if (!currentPassword || !newPassword || !confirmPassword) {
             Alert.alert('Error', 'Por favor completa todos los campos');
@@ -36,16 +41,21 @@ export default function UpdatePasswordPage() {
         setLoading(true);
 
         try {
-            await user?.updatePassword({
+            await user.updatePassword({
                 currentPassword: currentPassword,
                 newPassword: newPassword,
             });
 
             // Update biometric credentials if they exist
             if (userOwnsCredentials) {
-                await setCredentials({
-                    password: newPassword,
-                });
+                try {
+                    await setCredentials({
+                        password: newPassword,
+                    });
+                } catch (credErr) {
+                    console.error('Failed to update biometric credentials:', credErr);
+                    // Password was updated successfully, just biometric sync failed
+                }
             }
 
             Alert.alert(
@@ -64,7 +74,7 @@ export default function UpdatePasswordPage() {
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: any) {
-            console.error(JSON.stringify(err, null, 2));
+            console.error('Password update failed:', err.message || err.errors?.[0]?.message);
 
             let errorMessage = 'No se pudo actualizar la contraseña';
 

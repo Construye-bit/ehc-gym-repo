@@ -50,7 +50,25 @@ export default function SettingsPage() {
                 {
                     text: 'Cerrar sesión',
                     style: 'destructive',
-                    onPress: () => signOut(),
+                    onPress: async () => {
+                        try {
+                            await signOut();
+                            // Navigation is handled automatically by Clerk after successful sign out
+                        } catch (error: any) {
+                            console.error('Sign out failed:', error?.message || error);
+
+                            Alert.alert(
+                                'Error al Cerrar Sesión',
+                                'No se pudo cerrar la sesión. Por favor, intenta nuevamente.',
+                                [
+                                    {
+                                        text: 'OK',
+                                        style: 'default',
+                                    },
+                                ]
+                            );
+                        }
+                    },
                 },
             ]
         );
