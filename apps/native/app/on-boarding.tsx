@@ -50,7 +50,7 @@ export default function OnBoardingScreen() {
 
         // Check if user is authenticated
         if (isSignedIn) {
-            router.replace('/(drawer)');
+            router.replace('/(home)');
         } else {
             router.replace('/(auth)/sign-in');
         }

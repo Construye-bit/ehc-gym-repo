@@ -182,7 +182,7 @@ export default defineSchema({
         is_payment_active: v.boolean(),
         join_date: v.number(),
         end_date: v.optional(v.number()),
-        created_by_user_id: v.id("users"),
+        created_by_user_id: v.optional(v.id("users")),
         created_at: v.number(),
         updated_at: v.number(),
         active: v.boolean(),

@@ -1,8 +1,8 @@
 export { Button } from './button';
-export { Input } from './Input';
-export { PasswordInput } from './PasswordInput';
-export { DateInput } from './DateInput';
-export { PhoneInput } from './PhoneInput';
-export { CodeInput } from './CodeInput';
-export { Text } from './Text';
+export { Input } from './input';
+export { PasswordInput } from './password-input';
+export { DateInput } from './date-input';
+export { PhoneInput } from './phone-input';
+export { CodeInput } from './code-input';
+export { Text } from './text';
 export { Container } from '../container';

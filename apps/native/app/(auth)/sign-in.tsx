@@ -1,18 +1,22 @@
 import { useSignIn } from "@clerk/clerk-expo";
+import { useLocalCredentials } from "@clerk/clerk-expo/local-credentials";
 import { Link, useRouter } from "expo-router";
-import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform } from "react-native";
+import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import React, { useState } from "react";
-import { Button, Container, Input, PasswordInput, Text } from "@/components/ui";
+import { Button, Input, PasswordInput, Text } from "@/components/ui";
 import { signInSchema } from "@/lib/validations/auth";
 import { ZodError } from "zod";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SignInPage() {
 	const { signIn, setActive, isLoaded } = useSignIn();
+	const { hasCredentials, setCredentials, authenticate, biometricType } = useLocalCredentials();
 	const router = useRouter();
 
 	const [emailAddress, setEmailAddress] = useState("");
 	const [password, setPassword] = useState("");
-	const [loading, setLoading] = useState(false);
+	const [loadingRegular, setLoadingRegular] = useState(false);
+	const [loadingBiometric, setLoadingBiometric] = useState(false);
 	const [fieldErrors, setFieldErrors] = useState<{
 		email?: string;
 		password?: string;
@@ -50,26 +54,104 @@ export default function SignInPage() {
 	};
 
 	// Handle the submission of the sign-in form
-	const onSignInPress = async () => {
-		setFieldErrors({});
+	const onSignInPress = async (useLocal: boolean = false) => {
+		// Skip validation if using biometric authentication
+		if (!useLocal) {
+			setFieldErrors({});
 
-		if (!validateForm()) {
-			return;
+			if (!validateForm()) {
+				return;
+			}
 		}
 
 		if (!isLoaded) return;
 
-		setLoading(true);
+		// Set the appropriate loading state
+		if (useLocal) {
+			setLoadingBiometric(true);
+		} else {
+			setLoadingRegular(true);
+		}
 
 		try {
-			const signInAttempt = await signIn.create({
-				identifier: emailAddress.trim(),
-				password,
-			});
+			// Use biometric authentication or regular sign-in
+			const signInAttempt =
+				hasCredentials && useLocal
+					? await authenticate()
+					: await signIn.create({
+						identifier: emailAddress.trim(),
+						password,
+					});
 
 			if (signInAttempt.status === "complete") {
 				await setActive({ session: signInAttempt.createdSessionId });
-				router.replace("/(drawer)");
+
+				// Ask user if they want to enable biometric authentication
+				// Only ask if not using biometric login and credentials don't exist yet
+				if (!useLocal && !hasCredentials && biometricType) {
+					Alert.alert(
+						'Autenticación Biométrica',
+						`¿Deseas activar ${biometricType === 'face-recognition' ? 'Face ID' : 'huella dactilar'} para iniciar sesión más rápido la próxima vez?`,
+						[
+							{
+								text: 'Ahora no',
+								style: 'cancel',
+								onPress: () => {
+									router.replace("/(home)");
+								},
+							},
+							{
+								text: 'Activar',
+								onPress: async () => {
+									const attemptSaveCredentials = async () => {
+										try {
+											await setCredentials({
+												identifier: emailAddress.trim(),
+												password,
+											});
+											Alert.alert(
+												'¡Listo!',
+												`${biometricType === 'face-recognition' ? 'Face ID' : 'Huella dactilar'} activado. La próxima vez podrás iniciar sesión más rápido.`,
+												[
+													{
+														text: 'OK',
+														onPress: () => router.replace("/(home)"),
+													},
+												]
+											);
+										} catch (error: any) {
+											console.error('Error saving biometric credentials:', error);
+
+											const errorMessage = error?.message || 'Error desconocido';
+
+											Alert.alert(
+												'Error al Guardar Credenciales',
+												`No se pudieron guardar las credenciales biométricas.\n\n${errorMessage}\n\nPuedes continuar sin autenticación biométrica o intentar nuevamente.`,
+												[
+													{
+														text: 'Continuar sin biometría',
+														style: 'cancel',
+														onPress: () => router.replace("/(home)"),
+													},
+													{
+														text: 'Reintentar',
+														onPress: () => attemptSaveCredentials(),
+													},
+												],
+												{ cancelable: false }
+											);
+										}
+									};
+
+									await attemptSaveCredentials();
+								},
+							},
+						],
+						{ cancelable: false }
+					);
+				} else {
+					router.replace("/(home)");
+				}
 			} else {
 				console.error(JSON.stringify(signInAttempt, null, 2));
 			}
@@ -87,7 +169,12 @@ export default function SignInPage() {
 				}
 			}
 		} finally {
-			setLoading(false);
+			// Reset the appropriate loading state
+			if (useLocal) {
+				setLoadingBiometric(false);
+			} else {
+				setLoadingRegular(false);
+			}
 		}
 	};
 
@@ -179,12 +266,33 @@ export default function SignInPage() {
 						</Link>
 					</View>
 
+					{/* Biometric Sign In Button */}
+					{hasCredentials && biometricType && (
+						<Button
+							onPress={() => onSignInPress(true)}
+							disabled={loadingBiometric || loadingRegular}
+							isLoading={loadingBiometric}
+							className="mb-4 bg-gray-800"
+						>
+							<View className="flex-row items-center justify-center gap-2">
+								<Ionicons
+									name={biometricType === 'face-recognition' ? 'scan' : 'finger-print'}
+									size={20}
+									color="white"
+								/>
+								<Text className="text-white font-semibold">
+									{biometricType === 'face-recognition' ? 'INGRESAR CON FACE ID' : 'INGRESAR CON HUELLA'}
+								</Text>
+							</View>
+						</Button>
+					)}
+
 					{/* Sign In Button */}
 					<Button
-						onPress={onSignInPress}
-						disabled={loading}
-						isLoading={loading}
-						className="mt-4 mb-6"
+						onPress={() => onSignInPress(false)}
+						disabled={loadingRegular || loadingBiometric}
+						isLoading={loadingRegular}
+						className="mb-6"
 					>
 						INGRESAR
 					</Button>

@@ -15,7 +15,6 @@
     "dev:server": "turbo -F @ehc-gym2/backend dev",
     "dev:setup": "turbo -F @ehc-gym2/backend dev:setup"
   },
-  "dependencies": {},
   "devDependencies": {
     "turbo": "^2.5.4"
   },
