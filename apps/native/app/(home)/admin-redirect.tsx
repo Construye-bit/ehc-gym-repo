@@ -88,7 +88,7 @@ export default function AdminRedirectScreen() {
                                 <Text className="font-bold text-yellow-600">
                                     {isSuperAdmin ? 'Super Administrador' : 'Administrador'}
                                 </Text>
-                                , por favor utiliza nuestra plataforma web.
+                                , por favor utiliza la plataforma web.
                             </Text>
                         </View>
 

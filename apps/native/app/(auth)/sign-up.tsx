@@ -59,16 +59,38 @@ export default function SignUpScreen() {
 		}
 	};
 
+	// Validar un campo específico cuando pierde el foco
+	const validateField = (field: string) => {
+		try {
+			// Validar solo el campo específico
+			registerClientSchema.pick({ [field]: true } as any).parse({ [field]: formData[field as keyof typeof formData] });
+
+			// Si la validación es exitosa, limpiar el error
+			setLocalFieldErrors(prev => ({
+				...prev,
+				[field]: '',
+			}));
+		} catch (error: any) {
+			// Si hay error, mostrar el mensaje
+			if (error?.issues && error.issues.length > 0) {
+				setLocalFieldErrors(prev => ({
+					...prev,
+					[field]: error.issues[0].message,
+				}));
+			}
+		}
+	};
+
 	const validateForm = () => {
 		try {
 			// Validar con Zod
 			registerClientSchema.parse(formData);
 			setLocalFieldErrors({});
 			return true;
-		} catch (error) {
-			if (error instanceof Error && 'errors' in error) {
-				const zodError = error as any;
-				const errors = formatZodErrors(zodError);
+		} catch (error: any) {
+			// Verificar si es un error de Zod
+			if (error?.issues) {
+				const errors = formatZodErrors(error);
 				setLocalFieldErrors(errors);
 				return false;
 			}
@@ -230,6 +252,7 @@ export default function SignUpScreen() {
 								placeholder="Lois"
 								value={formData.nombres}
 								onChangeText={(text) => handleInputChange('nombres', text)}
+								onBlur={() => validateField('nombres')}
 								error={allErrors.nombres}
 								autoCapitalize="words"
 							/>
@@ -241,6 +264,7 @@ export default function SignUpScreen() {
 								placeholder="Becket"
 								value={formData.apellidos}
 								onChangeText={(text) => handleInputChange('apellidos', text)}
+								onBlur={() => validateField('apellidos')}
 								error={allErrors.apellidos}
 								autoCapitalize="words"
 							/>
@@ -256,6 +280,7 @@ export default function SignUpScreen() {
 						autoCorrect={false}
 						value={formData.email}
 						onChangeText={(text) => handleInputChange('email', text)}
+						onBlur={() => validateField('email')}
 						error={allErrors.email}
 					/>
 
@@ -265,6 +290,7 @@ export default function SignUpScreen() {
 						placeholder="18/03/2000"
 						value={formData.fechaNacimiento}
 						onChangeText={(text) => handleInputChange('fechaNacimiento', text)}
+						onBlur={() => validateField('fechaNacimiento')}
 						error={allErrors.fechaNacimiento}
 					/>
 
@@ -274,6 +300,7 @@ export default function SignUpScreen() {
 						placeholder="3197293579"
 						value={formData.telefono}
 						onChangeText={(text) => handleInputChange('telefono', text)}
+						onBlur={() => validateField('telefono')}
 						countryCode={formData.countryCode}
 						onCountryCodeChange={(code) => handleInputChange('countryCode', code)}
 						error={allErrors.telefono}
@@ -285,6 +312,7 @@ export default function SignUpScreen() {
 						placeholder="••••••••"
 						value={formData.contrasena}
 						onChangeText={(text) => handleInputChange('contrasena', text)}
+						onBlur={() => validateField('contrasena')}
 						error={allErrors.contrasena}
 					/>
 
@@ -298,6 +326,7 @@ export default function SignUpScreen() {
 						placeholder="María Becket"
 						value={formData.nombreContactoEmergencia}
 						onChangeText={(text) => handleInputChange('nombreContactoEmergencia', text)}
+						onBlur={() => validateField('nombreContactoEmergencia')}
 						error={allErrors.nombreContactoEmergencia}
 						autoCapitalize="words"
 					/>
@@ -307,6 +336,7 @@ export default function SignUpScreen() {
 						placeholder="3197293580"
 						value={formData.telefonoContactoEmergencia}
 						onChangeText={(text) => handleInputChange('telefonoContactoEmergencia', text)}
+						onBlur={() => validateField('telefonoContactoEmergencia')}
 						countryCode={formData.countryCode}
 						error={allErrors.telefonoContactoEmergencia}
 					/>
@@ -316,6 +346,7 @@ export default function SignUpScreen() {
 						placeholder="Madre, Padre, Hermano/a, Esposo/a, etc."
 						value={formData.parentescoContactoEmergencia}
 						onChangeText={(text) => handleInputChange('parentescoContactoEmergencia', text)}
+						onBlur={() => validateField('parentescoContactoEmergencia')}
 						error={allErrors.parentescoContactoEmergencia}
 						autoCapitalize="words"
 					/>
