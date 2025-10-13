@@ -10,6 +10,7 @@ import {
     StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery } from "convex/react";
 import api from "@/api";
 import type { Id } from "@/api";
@@ -19,6 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
     const { isLoading, isClient, isTrainer, person, roles } = useAuth();
+    const router = useRouter();
     const [newTodoText, setNewTodoText] = useState("");
 
     const todos = useQuery(api.todos.getAll);
@@ -64,7 +66,7 @@ export default function Home() {
                     {/* Header */}
                     <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: '#FF9500' }}>
                         <View className="flex-row justify-between items-center mb-4">
-                            <View>
+                            <View className="flex-1">
                                 <Text className="text-white text-2xl font-bold">
                                     ¡Hola, {person?.name || "Cliente"}! 👋
                                 </Text>
@@ -72,8 +74,16 @@ export default function Home() {
                                     Bienvenido a tu espacio de entrenamiento
                                 </Text>
                             </View>
-                            <View className="bg-white/20 px-3 py-1 rounded-full">
-                                <Text className="text-white text-xs font-semibold">CLIENTE</Text>
+                            <View className="flex-row items-center gap-2">
+                                <View className="bg-white/20 px-3 py-1 rounded-full">
+                                    <Text className="text-white text-xs font-semibold">CLIENTE</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/(home)/settings')}
+                                    className="bg-white/20 p-2 rounded-full"
+                                >
+                                    <Ionicons name="settings-outline" size={20} color="white" />
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
@@ -179,7 +189,7 @@ export default function Home() {
                     {/* Header */}
                     <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: '#FF9500' }}>
                         <View className="flex-row justify-between items-center mb-4">
-                            <View>
+                            <View className="flex-1">
                                 <Text className="text-white text-2xl font-bold">
                                     ¡Hola, {person?.name || "Entrenador"}! 💪
                                 </Text>
@@ -187,8 +197,16 @@ export default function Home() {
                                     Panel de entrenador
                                 </Text>
                             </View>
-                            <View className="bg-white/20 px-3 py-1 rounded-full">
-                                <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
+                            <View className="flex-row items-center gap-2">
+                                <View className="bg-white/20 px-3 py-1 rounded-full">
+                                    <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/(home)/settings')}
+                                    className="bg-white/20 p-2 rounded-full"
+                                >
+                                    <Ionicons name="settings-outline" size={20} color="white" />
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
