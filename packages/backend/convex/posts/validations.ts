@@ -1,6 +1,5 @@
 // convex/posts/validations.ts
 import { z } from "zod";
-import { validateWithZod } from "../utils/validation";
 
 // ===== ESQUEMAS DE VALIDACIÓN PARA POSTS =====
 
