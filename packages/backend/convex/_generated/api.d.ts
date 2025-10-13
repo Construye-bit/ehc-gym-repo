@@ -59,6 +59,7 @@ import type * as persons_mutations from "../persons/mutations.js";
 import type * as persons_queries from "../persons/queries.js";
 import type * as persons_validations from "../persons/validations.js";
 import type * as privateData from "../privateData.js";
+import type * as role_assignments_queries from "../role_assignments/queries.js";
 import type * as todos from "../todos.js";
 import type * as trainers_errors from "../trainers/errors.js";
 import type * as trainers_mutations from "../trainers/mutations.js";
@@ -122,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "persons/queries": typeof persons_queries;
   "persons/validations": typeof persons_validations;
   privateData: typeof privateData;
+  "role_assignments/queries": typeof role_assignments_queries;
   todos: typeof todos;
   "trainers/errors": typeof trainers_errors;
   "trainers/mutations": typeof trainers_mutations;
