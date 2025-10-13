@@ -120,3 +120,89 @@ export const setClientPaymentActive = mutation({
         return clientId;
     },
 });
+
+/**
+ * Mutation para registrar un cliente completo en el sistema
+ * Este proceso incluye:
+ * 1. El usuario ya está creado en Clerk (y por webhook en Convex)
+ * 2. Crear la persona
+ * 3. Crear el contacto de emergencia
+ * 4. Crear el cliente
+ */
+export const registerClient = mutation({
+    args: {
+        clerk_user_id: v.string(),
+        // Datos de la persona
+        name: v.string(),
+        last_name: v.string(),
+        phone: v.string(),
+        born_date: v.string(),
+        document_type: v.union(
+            v.literal("CC"),
+            v.literal("TI"),
+            v.literal("CE"),
+            v.literal("PASSPORT")
+        ),
+        document_number: v.string(),
+        // Datos del contacto de emergencia
+        emergency_contact_name: v.string(),
+        emergency_contact_phone: v.string(),
+        emergency_contact_relationship: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+
+        // 1. Buscar el usuario por clerk_id
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", args.clerk_user_id))
+            .unique();
+
+        if (!user) {
+            throw new Error("Usuario no encontrado. Por favor, espera unos segundos e intenta nuevamente.");
+        }
+
+        // 2. Crear la persona
+        const personId = await ctx.db.insert("persons", {
+            user_id: user._id,
+            name: args.name,
+            last_name: args.last_name,
+            born_date: args.born_date,
+            phone: args.phone,
+            document_type: args.document_type,
+            document_number: args.document_number,
+            created_at: now,
+            updated_at: now,
+            active: true,
+        });
+
+        // 3. Crear el contacto de emergencia
+        const emergencyContactId = await ctx.db.insert("emergency_contact", {
+            person_id: personId,
+            name: args.emergency_contact_name,
+            phone: args.emergency_contact_phone,
+            relationship: args.emergency_contact_relationship,
+            active: true,
+            created_at: now,
+            updated_at: now,
+        });
+
+        // 4. Crear el cliente
+        const clientId = await ctx.db.insert("clients", {
+            person_id: personId,
+            user_id: user._id,
+            status: "ACTIVE",
+            is_payment_active: false, // Por defecto no tiene pago activo hasta que se active
+            join_date: now,
+            created_at: now,
+            updated_at: now,
+            active: true,
+        });
+
+        return {
+            clientId,
+            personId,
+            emergencyContactId,
+        };
+    },
+});

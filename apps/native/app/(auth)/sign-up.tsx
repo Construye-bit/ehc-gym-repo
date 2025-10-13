@@ -1,13 +1,24 @@
 import * as React from "react";
 import { TouchableOpacity, View, ScrollView, StatusBar, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
-import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Input, PasswordInput, DateInput, PhoneInput, Text } from "@/components/ui";
+import { useRegisterClient } from "@/hooks/use-client";
+import { registerClientSchema, formatZodErrors } from "@/lib/validations/client";
 
 export default function SignUpScreen() {
-	const { isLoaded, signUp, setActive } = useSignUp();
 	const router = useRouter();
+	const {
+		loading,
+		pendingVerification,
+		verificationCode,
+		fieldErrors,
+		createClerkUser,
+		verifyEmailAndCompleteRegistration,
+		setVerificationCode,
+		setFieldErrors,
+		goBackToSignUp,
+	} = useRegisterClient();
 
 	// Form state
 	const [formData, setFormData] = React.useState({
@@ -20,12 +31,10 @@ export default function SignUpScreen() {
 		contrasena: '',
 		nombreContactoEmergencia: '',
 		telefonoContactoEmergencia: '',
+		parentescoContactoEmergencia: '',
 	});
 
-	const [loading, setLoading] = React.useState(false);
-	const [pendingVerification, setPendingVerification] = React.useState(false);
-	const [code, setCode] = React.useState("");
-	const [fieldErrors, setFieldErrors] = React.useState<{
+	const [localFieldErrors, setLocalFieldErrors] = React.useState<{
 		[key: string]: string;
 	}>({});
 
@@ -36,6 +45,12 @@ export default function SignUpScreen() {
 		}));
 
 		// Clear field error when user starts typing
+		if (localFieldErrors[field]) {
+			setLocalFieldErrors(prev => ({
+				...prev,
+				[field]: '',
+			}));
+		}
 		if (fieldErrors[field]) {
 			setFieldErrors(prev => ({
 				...prev,
@@ -45,138 +60,62 @@ export default function SignUpScreen() {
 	};
 
 	const validateForm = () => {
-		const errors: { [key: string]: string } = {};
-
-		if (!formData.nombres.trim()) {
-			errors.nombres = 'El nombre es obligatorio';
-		} else if (formData.nombres.trim().length < 2) {
-			errors.nombres = 'El nombre debe tener al menos 2 caracteres';
-		}
-
-		if (!formData.apellidos.trim()) {
-			errors.apellidos = 'El apellido es obligatorio';
-		} else if (formData.apellidos.trim().length < 2) {
-			errors.apellidos = 'El apellido debe tener al menos 2 caracteres';
-		}
-
-		if (!formData.email.trim()) {
-			errors.email = 'El correo electrónico es obligatorio';
-		} else {
-			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-			if (!emailRegex.test(formData.email.trim())) {
-				errors.email = 'Por favor ingresa un correo electrónico válido';
+		try {
+			// Validar con Zod
+			registerClientSchema.parse(formData);
+			setLocalFieldErrors({});
+			return true;
+		} catch (error) {
+			if (error instanceof Error && 'errors' in error) {
+				const zodError = error as any;
+				const errors = formatZodErrors(zodError);
+				setLocalFieldErrors(errors);
+				return false;
 			}
+			return false;
 		}
-
-		if (!formData.contrasena) {
-			errors.contrasena = 'La contraseña es obligatoria';
-		} else if (formData.contrasena.length < 8) {
-			errors.contrasena = 'La contraseña debe tener al menos 8 caracteres';
-		}
-
-		if (!formData.fechaNacimiento) {
-			errors.fechaNacimiento = 'La fecha de nacimiento es obligatoria';
-		} else if (formData.fechaNacimiento.length < 10) {
-			errors.fechaNacimiento = 'Ingresa una fecha válida (DD/MM/AAAA)';
-		}
-
-		if (!formData.telefono) {
-			errors.telefono = 'El número de teléfono es obligatorio';
-		} else if (formData.telefono.length < 10) {
-			errors.telefono = 'El número debe tener 10 dígitos';
-		}
-
-		if (!formData.nombreContactoEmergencia.trim()) {
-			errors.nombreContactoEmergencia = 'El nombre del contacto de emergencia es obligatorio';
-		}
-
-		if (!formData.telefonoContactoEmergencia) {
-			errors.telefonoContactoEmergencia = 'El teléfono del contacto de emergencia es obligatorio';
-		} else if (formData.telefonoContactoEmergencia.length < 10) {
-			errors.telefonoContactoEmergencia = 'El número debe tener 10 dígitos';
-		}
-
-		setFieldErrors(errors);
-		return Object.keys(errors).length === 0;
 	};
 
 	// Handle submission of sign-up form
 	const onSignUpPress = async () => {
+		setLocalFieldErrors({});
 		setFieldErrors({});
 
 		if (!validateForm()) {
 			return;
 		}
 
-		if (!isLoaded) return;
-
-		setLoading(true);
-
 		try {
-			// Create user with Clerk
-			await signUp.create({
-				emailAddress: formData.email.trim(),
-				password: formData.contrasena,
-			});
-
-			// Send verification email
-			await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
-			setPendingVerification(true);
-		} catch (err: any) {
-			console.error(JSON.stringify(err, null, 2));
-
-			if (err.errors && err.errors[0]) {
-				const errorMessage = err.errors[0].message;
-				const errorCode = err.errors[0].code;
-
-				if (errorCode === 'form_identifier_exists') {
-					setFieldErrors({ email: 'Este correo ya está registrado' });
-				} else if (errorMessage.toLowerCase().includes('email')) {
-					setFieldErrors({ email: errorMessage });
-				} else if (errorMessage.toLowerCase().includes('password')) {
-					setFieldErrors({ contrasena: errorMessage });
-				}
-			}
-		} finally {
-			setLoading(false);
+			await createClerkUser(formData);
+		} catch (err) {
+			console.error("Error en registro:", err);
 		}
 	};
 
 	// Handle submission of verification form
 	const onVerifyPress = async () => {
-		if (!isLoaded) return;
-
-		setLoading(true);
-
 		try {
-			const signUpAttempt = await signUp.attemptEmailAddressVerification({
-				code,
-			});
+			const result = await verifyEmailAndCompleteRegistration(verificationCode);
 
-			if (signUpAttempt.status === "complete") {
-				await setActive({ session: signUpAttempt.createdSessionId });
+			if (result.success) {
+				// Navegamos a la pantalla principal
 				router.replace("/(home)");
-			} else {
-				console.error(JSON.stringify(signUpAttempt, null, 2));
 			}
-		} catch (err: any) {
-			console.error(JSON.stringify(err, null, 2));
-			if (err.errors && err.errors[0]) {
-				setFieldErrors({ code: 'Código de verificación incorrecto' });
-			}
-		} finally {
-			setLoading(false);
+		} catch (err) {
+			console.error("Error en verificación:", err);
 		}
 	};
 
 	const handleGoBack = () => {
 		if (pendingVerification) {
-			setPendingVerification(false);
+			goBackToSignUp();
 		} else {
 			router.back();
 		}
 	};
+
+	// Combinar errores locales y del hook
+	const allErrors = { ...localFieldErrors, ...fieldErrors };
 
 	// Verification screen
 	if (pendingVerification) {
@@ -214,9 +153,9 @@ export default function SignUpScreen() {
 						showsVerticalScrollIndicator={false}
 					>
 						<Input
-							value={code}
+							value={verificationCode}
 							onChangeText={(text) => {
-								setCode(text);
+								setVerificationCode(text);
 								if (fieldErrors.code) {
 									setFieldErrors(prev => ({ ...prev, code: '' }));
 								}
@@ -225,7 +164,7 @@ export default function SignUpScreen() {
 							label="Código de verificación"
 							keyboardType="number-pad"
 							maxLength={6}
-							error={fieldErrors.code}
+							error={allErrors.code}
 						/>
 						<Button
 							onPress={onVerifyPress}
@@ -291,7 +230,7 @@ export default function SignUpScreen() {
 								placeholder="Lois"
 								value={formData.nombres}
 								onChangeText={(text) => handleInputChange('nombres', text)}
-								error={fieldErrors.nombres}
+								error={allErrors.nombres}
 								autoCapitalize="words"
 							/>
 						</View>
@@ -302,7 +241,7 @@ export default function SignUpScreen() {
 								placeholder="Becket"
 								value={formData.apellidos}
 								onChangeText={(text) => handleInputChange('apellidos', text)}
-								error={fieldErrors.apellidos}
+								error={allErrors.apellidos}
 								autoCapitalize="words"
 							/>
 						</View>
@@ -317,7 +256,7 @@ export default function SignUpScreen() {
 						autoCorrect={false}
 						value={formData.email}
 						onChangeText={(text) => handleInputChange('email', text)}
-						error={fieldErrors.email}
+						error={allErrors.email}
 					/>
 
 					{/* Fecha de nacimiento */}
@@ -326,7 +265,7 @@ export default function SignUpScreen() {
 						placeholder="18/03/2000"
 						value={formData.fechaNacimiento}
 						onChangeText={(text) => handleInputChange('fechaNacimiento', text)}
-						error={fieldErrors.fechaNacimiento}
+						error={allErrors.fechaNacimiento}
 					/>
 
 					{/* Número de celular */}
@@ -337,7 +276,7 @@ export default function SignUpScreen() {
 						onChangeText={(text) => handleInputChange('telefono', text)}
 						countryCode={formData.countryCode}
 						onCountryCodeChange={(code) => handleInputChange('countryCode', code)}
-						error={fieldErrors.telefono}
+						error={allErrors.telefono}
 					/>
 
 					{/* Contraseña */}
@@ -346,7 +285,7 @@ export default function SignUpScreen() {
 						placeholder="••••••••"
 						value={formData.contrasena}
 						onChangeText={(text) => handleInputChange('contrasena', text)}
-						error={fieldErrors.contrasena}
+						error={allErrors.contrasena}
 					/>
 
 					{/* Datos de contacto de emergencia */}
@@ -359,7 +298,7 @@ export default function SignUpScreen() {
 						placeholder="María Becket"
 						value={formData.nombreContactoEmergencia}
 						onChangeText={(text) => handleInputChange('nombreContactoEmergencia', text)}
-						error={fieldErrors.nombreContactoEmergencia}
+						error={allErrors.nombreContactoEmergencia}
 						autoCapitalize="words"
 					/>
 
@@ -369,7 +308,16 @@ export default function SignUpScreen() {
 						value={formData.telefonoContactoEmergencia}
 						onChangeText={(text) => handleInputChange('telefonoContactoEmergencia', text)}
 						countryCode={formData.countryCode}
-						error={fieldErrors.telefonoContactoEmergencia}
+						error={allErrors.telefonoContactoEmergencia}
+					/>
+
+					<Input
+						label="Parentesco"
+						placeholder="Madre, Padre, Hermano/a, Esposo/a, etc."
+						value={formData.parentescoContactoEmergencia}
+						onChangeText={(text) => handleInputChange('parentescoContactoEmergencia', text)}
+						error={allErrors.parentescoContactoEmergencia}
+						autoCapitalize="words"
 					/>
 
 					{/* Botón de registro */}

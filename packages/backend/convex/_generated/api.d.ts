@@ -48,6 +48,8 @@ import type * as clients_utils from "../clients/utils.js";
 import type * as clients_validations from "../clients/validations.js";
 import type * as emails_sender from "../emails/sender.js";
 import type * as emails_templates from "../emails/templates.js";
+import type * as emergency_contact_index from "../emergency_contact/index.js";
+import type * as emergency_contact_mutations from "../emergency_contact/mutations.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as invitations_index from "../invitations/index.js";
@@ -112,6 +114,8 @@ declare const fullApi: ApiFromModules<{
   "clients/validations": typeof clients_validations;
   "emails/sender": typeof emails_sender;
   "emails/templates": typeof emails_templates;
+  "emergency_contact/index": typeof emergency_contact_index;
+  "emergency_contact/mutations": typeof emergency_contact_mutations;
   healthCheck: typeof healthCheck;
   http: typeof http;
   "invitations/index": typeof invitations_index;

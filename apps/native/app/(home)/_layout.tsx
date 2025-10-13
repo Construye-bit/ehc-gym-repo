@@ -29,7 +29,7 @@ export default function HomeRoutesLayout() {
     if (isLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-                <ActivityIndicator size="large" color="#FF9500" />
+                <ActivityIndicator size="large" color="#EBB303" />
             </View>
         );
     }
