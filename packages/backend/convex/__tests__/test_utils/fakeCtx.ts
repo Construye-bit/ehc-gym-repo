@@ -1,4 +1,4 @@
-/* In-memory ctx/db para pruebas de Convex */
+/* convex/__tests__/test-utils/fakeCtx.ts */
 type Doc = Record<string, any> & { _id?: string; _creationTime?: number };
 
 class FakeQueryBuilder {
@@ -23,11 +23,11 @@ class FakeQueryBuilder {
     }
 
     filter(fn: (q: any) => boolean) {
-        // Evaluamos por-doc con un "q" que expone field/eq al estilo Convex.
         this.predicates.push((doc) => {
             const q = {
                 field: (name: string) => doc[name],
                 eq: (a: any, b: any) => a === b,
+                lt: (a: any, b: any) => a < b,
             };
             return fn(q);
         });
@@ -39,6 +39,19 @@ class FakeQueryBuilder {
         return list.length ? list[0] : null;
     }
 
+    unique() {
+        return this.first();
+    }
+
+    order(_direction: "asc" | "desc") {
+        return this;
+    }
+
+    take(limit: number) {
+        const list = this.collect();
+        return list.slice(0, limit);
+    }
+
     collect() {
         return this.data.filter((d) => this.predicates.every((p) => p(d)));
     }
@@ -47,8 +60,7 @@ class FakeQueryBuilder {
 export class FakeDB {
     private store: Record<string, Doc[]> = {};
     private idSeq = 1;
-
-    constructor() { }
+    private currentUser: { subject: string } | null = null;
 
     insert(name: string, doc: Doc) {
         const arr = (this.store[name] ||= []);
@@ -94,20 +106,31 @@ export class FakeDB {
         return new FakeQueryBuilder(arr);
     }
 
-    // Helpers para tests
-    seed(name: string, doc: Doc) {
-        return this.insert(name, doc);
-    }
-
     table(name: string) {
         return this.store[name] || [];
+    }
+
+    // Mock de autenticación
+    setAuthUser(clerkId: string | null) {
+        this.currentUser = clerkId ? { subject: clerkId } : null;
     }
 }
 
 export function makeCtx(db: FakeDB) {
-    // ctx mínimo que usan tus funciones (db + whatever)
     return {
         db,
+        auth: {
+            getUserIdentity: async () => {
+                return (db as any).currentUser || null;
+            },
+        },
+        storage: {
+            getUrl: async (id: string) => {
+                return `https://fake-storage.com/${id}`;
+            },
+            generateUploadUrl: async () => {
+                return "https://fake-storage.com/upload";
+            },
+        },
     } as unknown as any;
 }
-
