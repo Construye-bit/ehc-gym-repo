@@ -1,0 +1,1 @@
+export { ClientPostCard } from './ClientPostCard';

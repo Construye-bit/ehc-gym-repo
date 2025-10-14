@@ -12,3 +12,17 @@ export interface TrainerPost {
 }
 
 export type FeedTab = 'all' | 'mine';
+
+// Tipo para el feed de clientes (vista simplificada)
+export interface ClientFeedPost extends Omit<TrainerPost, 'isLiked'> {
+  isLiked: boolean; // Si el cliente actual dio like
+  userLikeId?: string; // ID del like del usuario (para poder quitarlo)
+}
+
+// Tipo para la respuesta del like
+export interface LikeResponse {
+  success: boolean;
+  newLikesCount: number;
+  isLiked: boolean;
+  likeId?: string;
+}

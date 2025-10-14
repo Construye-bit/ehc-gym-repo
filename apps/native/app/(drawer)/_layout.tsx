@@ -43,6 +43,16 @@ const DrawerLayout = () => {
 				}}
 				/>
 			<Drawer.Screen
+                name="client-feed"
+                options={{
+                    headerTitle: "Consejos",
+                    drawerLabel: "Consejos",
+                    drawerIcon: ({ size, color }) => (
+                        <Ionicons name="newspaper-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+			<Drawer.Screen
 				name="todos"
 				options={{
 					headerTitle: "Todos",
