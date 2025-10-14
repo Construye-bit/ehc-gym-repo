@@ -106,11 +106,6 @@ export class FakeDB {
         return new FakeQueryBuilder(arr);
     }
 
-    // Helpers para tests
-    seed(name: string, doc: Doc) {
-        return this.insert(name, doc);
-    }
-
     table(name: string) {
         return this.store[name] || [];
     }
