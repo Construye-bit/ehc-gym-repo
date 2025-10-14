@@ -4,7 +4,6 @@ import { Id } from "../_generated/dataModel";
 import { mustGetCurrentUser } from "../users";
 import { requireSuperAdmin } from "../branches/utils";
 import { createClerkClient } from '@clerk/backend';
-import { Resend } from 'resend';
 import { api } from "../_generated/api";
 import { internal } from "../_generated/api";
 import {
@@ -132,7 +131,7 @@ export const createAdministratorComplete = action({
             personId: Id<"persons">;
             userId: Id<"users">;
             clerkUserId: string;
-            temporaryPassword: string;
+            temporaryPassword?: string;
             message: string;
         };
     }> => {
@@ -184,7 +183,21 @@ export const createAdministratorComplete = action({
                 skipPasswordChecks: true,
             };
 
-            const clerkUser = await clerkClient.users.createUser(clerkUserData);
+            let clerkUser;
+            try {
+                clerkUser = await clerkClient.users.createUser(clerkUserData);
+            } catch (clerkError: any) {
+                // Handle race condition: if email was created between check and creation
+                if (clerkError.errors && Array.isArray(clerkError.errors)) {
+                    const duplicateEmailError = clerkError.errors.find(
+                        (err: any) => err.code === 'form_identifier_exists' || err.message?.includes('email')
+                    );
+                    if (duplicateEmailError) {
+                        throw new Error("Ya existe un usuario con este correo electrónico");
+                    }
+                }
+                throw clerkError;
+            }
 
             // 2. Crear usuario en Convex
             const userId: Id<"users"> = await ctx.runMutation(internal.admins.mutations.createUserInDB, {
@@ -221,35 +234,13 @@ export const createAdministratorComplete = action({
             // 6. Enviar email de bienvenida con credenciales
             console.log("Enviando email de bienvenida al administrador...");
             try {
-                const resendApiKey = process.env.RESEND_API_KEY;
-                if (!resendApiKey) {
-                    console.log("Advertencia: RESEND_API_KEY no está configurado, saltando envío de email");
-                } else {
-                    const resend = new Resend(resendApiKey);
-                    const adminName = `${personalData.personName} ${personalData.personLastName}`;
+                const adminName = `${personalData.personName} ${personalData.personLastName}`;
 
-                    console.log(`Enviando email de bienvenida a: ${userData.userEmail}`);
-
-                    const emailTemplate = getWelcomeAdminEmailTemplate(
-                        adminName,
-                        userData.userEmail,
-                        temporaryPassword
-                    );
-
-                    const result = await resend.emails.send({
-                        from: process.env.FROM_EMAIL || 'EHC Gym <onboarding@resend.dev>',
-                        to: [userData.userEmail],
-                        subject: emailTemplate.subject,
-                        html: emailTemplate.html,
-                        text: emailTemplate.text,
-                    });
-
-                    if (result.data) {
-                        console.log(`Email enviado exitosamente con ID: ${result.data.id}`);
-                    } else if (result.error) {
-                        console.log(`Error al enviar email:`, result.error);
-                    }
-                }
+                await ctx.runAction(api.emails.sender.sendWelcomeAdminEmail, {
+                    adminName,
+                    email: userData.userEmail,
+                    temporaryPassword,
+                });
             } catch (emailError) {
                 console.error("Error enviando email de bienvenida:", emailError);
                 // No fallar la creación del administrador por error de email
@@ -262,7 +253,7 @@ export const createAdministratorComplete = action({
                     personId,
                     userId,
                     clerkUserId: clerkUser.id,
-                    temporaryPassword, // Solo para desarrollo
+                    ...(process.env.NODE_ENV === 'development' && { temporaryPassword }),
                     message: "Administrador creado exitosamente.",
                 }
             };
@@ -297,7 +288,7 @@ export const createAdministratorComplete = action({
 });
 
 // === Actualizar administrador completo ===
-export const updateAdministratorComplete = mutation({
+export const updateAdministratorComplete = action({
     args: {
         administratorId: v.id("admins"),
         userData: v.object({
@@ -317,57 +308,48 @@ export const updateAdministratorComplete = mutation({
         }),
     },
     handler: async (ctx, args) => {
-        await requireSuperAdmin(ctx);
-        const now = Date.now();
+        // Verify authentication
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (!clerkSecretKey) {
+            throw new Error("CLERK_SECRET_KEY no está configurado en las variables de entorno");
+        }
+
+        const clerkClient = createClerkClient({
+            secretKey: clerkSecretKey
+        });
 
         try {
-            // 1. Obtener admin
-            const admin = await ctx.db.get(args.administratorId);
-            if (!admin) {
-                throw new Error("Administrador no encontrado");
-            }
-
-            // 2. Actualizar usuario
-            if (admin.user_id) {
-                await ctx.db.patch(admin.user_id, {
-                    name: args.userData.name,
-                    email: args.userData.email,
-                    updated_at: now,
-                });
-            }
-
-            // 3. Actualizar persona
-            if (admin.person_id) {
-                await ctx.db.patch(admin.person_id, {
-                    name: args.personalData.name,
-                    last_name: args.personalData.last_name,
-                    born_date: args.personalData.born_date,
-                    document_type: args.personalData.document_type as "CC" | "TI" | "CE" | "PASSPORT",
-                    document_number: args.personalData.document_number,
-                    phone: args.userData.phone,
-                    updated_at: now,
-                });
-            }
-
-            // 4. Actualizar admin
-            await ctx.db.patch(args.administratorId, {
-                branch_id: args.workData.branchId ? (args.workData.branchId as Id<"branches">) : undefined,
-                updated_at: now,
+            // Run the internal mutation to update the database
+            const result = await ctx.runMutation(internal.admins.mutations.updateAdministratorInDB, {
+                administratorId: args.administratorId,
+                userData: args.userData,
+                personalData: args.personalData,
+                workData: args.workData,
             });
 
-            // 5. Actualizar role_assignment
-            if (admin.user_id) {
-                const userId = admin.user_id; // Capturar en variable local para type narrowing
-                const roleAssignment = await ctx.db
-                    .query("role_assignments")
-                    .withIndex("by_user_role", (q) => q.eq("user_id", userId).eq("role", "ADMIN"))
-                    .filter((q) => q.eq(q.field("active"), true))
-                    .first();
+            // Update Clerk user to maintain consistency
+            if (result.clerkId) {
+                try {
+                    const updateData: any = {
+                        firstName: args.personalData.name,
+                        lastName: args.personalData.last_name,
+                    };
 
-                if (roleAssignment) {
-                    await ctx.db.patch(roleAssignment._id, {
-                        branch_id: args.workData.branchId ? (args.workData.branchId as Id<"branches">) : undefined,
-                    });
+                    // Note: Changing primary email is complex in Clerk
+                    // It requires creating a new email address and setting it as primary
+                    // For now, we'll only update name fields
+                    // Email updates should be handled separately with proper email verification
+
+                    await clerkClient.users.updateUser(result.clerkId, updateData);
+                } catch (clerkError) {
+                    console.error("Failed to update Clerk user:", clerkError);
+                    // Log but don't fail the entire update
+                    // The database has been updated successfully
                 }
             }
 
@@ -383,56 +365,45 @@ export const updateAdministratorComplete = mutation({
 });
 
 // === Eliminar administrador completo ===
-export const deleteAdministratorComplete = mutation({
+export const deleteAdministratorComplete = action({
     args: {
         administratorId: v.id("admins"),
     },
     handler: async (ctx, args) => {
-        await requireSuperAdmin(ctx);
-        const now = Date.now();
+        // Verify authentication
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (!clerkSecretKey) {
+            throw new Error("CLERK_SECRET_KEY no está configurado en las variables de entorno");
+        }
+
+        const clerkClient = createClerkClient({
+            secretKey: clerkSecretKey
+        });
 
         try {
-            // 1. Obtener admin
-            const admin = await ctx.db.get(args.administratorId);
-            if (!admin) {
-                throw new Error("Administrador no encontrado");
-            }
-
-            // 2. Desactivar admin (soft delete)
-            await ctx.db.patch(args.administratorId, {
-                active: false,
-                status: "INACTIVE",
-                updated_at: now,
+            // Run the internal mutation to delete from database
+            const result = await ctx.runMutation(internal.admins.mutations.deleteAdministratorInDB, {
+                administratorId: args.administratorId,
             });
 
-            // 3. Desactivar usuario
-            if (admin.user_id) {
-                await ctx.db.patch(admin.user_id, {
-                    active: false,
-                    updated_at: now,
-                });
-            }
+            // Deactivate the Clerk user
+            if (result.clerkId) {
+                try {
+                    // Option 1: Delete the user completely
+                    await clerkClient.users.deleteUser(result.clerkId);
 
-            // 4. Desactivar persona
-            if (admin.person_id) {
-                await ctx.db.patch(admin.person_id, {
-                    active: false,
-                    updated_at: now,
-                });
-            }
-
-            // 5. Desactivar role_assignments
-            if (admin.user_id) {
-                const userId = admin.user_id; // Capturar en variable local para type narrowing
-                const roleAssignments = await ctx.db
-                    .query("role_assignments")
-                    .withIndex("by_user_active", (q) => q.eq("user_id", userId).eq("active", true))
-                    .collect();
-
-                for (const roleAssignment of roleAssignments) {
-                    await ctx.db.patch(roleAssignment._id, {
-                        active: false,
-                    });
+                    // Option 2: Ban the user (soft delete) - uncomment to use instead
+                    // await clerkClient.users.updateUser(result.clerkId, { 
+                    //     banned: true 
+                    // });
+                } catch (clerkError) {
+                    console.error("Failed to deactivate Clerk user:", clerkError);
+                    throw new Error("Failed to fully delete administrator - Clerk user removal failed");
                 }
             }
 
@@ -561,214 +532,236 @@ export const assignRoleInDB = internalMutation({
     },
 });
 
+export const updateAdministratorInDB = internalMutation({
+    args: {
+        administratorId: v.id("admins"),
+        userData: v.object({
+            name: v.string(),
+            email: v.string(),
+            phone: v.string(),
+        }),
+        personalData: v.object({
+            name: v.string(),
+            last_name: v.string(),
+            document_type: v.string(),
+            document_number: v.string(),
+            born_date: v.string(),
+        }),
+        workData: v.object({
+            branchId: v.optional(v.string()),
+        }),
+    },
+    handler: async (ctx, args): Promise<{ clerkId: string | null }> => {
+        // Verify user has SUPER_ADMIN role
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        const currentUser = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
+            .first();
+
+        if (!currentUser) {
+            throw new Error("Usuario actual no encontrado");
+        }
+
+        // Check for SUPER_ADMIN role
+        const superAdminRole = await ctx.db
+            .query("role_assignments")
+            .withIndex("by_user_role", (q) => q.eq("user_id", currentUser._id).eq("role", "SUPER_ADMIN"))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!superAdminRole) {
+            throw new Error("No autorizado: Se requiere rol SUPER_ADMIN");
+        }
+
+        const now = Date.now();
+        let clerkId: string | null = null;
+
+        // 1. Obtener admin
+        const admin = await ctx.db.get(args.administratorId);
+        if (!admin) {
+            throw new Error("Administrador no encontrado");
+        }
+
+        // 2. Actualizar usuario y obtener clerk_id
+        if (admin.user_id) {
+            const user = await ctx.db.get(admin.user_id);
+            clerkId = user?.clerk_id || null;
+
+            await ctx.db.patch(admin.user_id, {
+                name: args.userData.name,
+                email: args.userData.email,
+                updated_at: now,
+            });
+        }
+
+        // 3. Actualizar persona
+        if (admin.person_id) {
+            await ctx.db.patch(admin.person_id, {
+                name: args.personalData.name,
+                last_name: args.personalData.last_name,
+                born_date: args.personalData.born_date,
+                document_type: args.personalData.document_type as "CC" | "TI" | "CE" | "PASSPORT",
+                document_number: args.personalData.document_number,
+                phone: args.userData.phone,
+                updated_at: now,
+            });
+        }
+
+        // 4. Actualizar admin
+        await ctx.db.patch(args.administratorId, {
+            branch_id: args.workData.branchId ? (args.workData.branchId as Id<"branches">) : undefined,
+            updated_at: now,
+        });
+
+        // 5. Actualizar role_assignment
+        if (admin.user_id) {
+            const userId = admin.user_id;
+            const roleAssignment = await ctx.db
+                .query("role_assignments")
+                .withIndex("by_user_role", (q) => q.eq("user_id", userId).eq("role", "ADMIN"))
+                .filter((q) => q.eq(q.field("active"), true))
+                .first();
+
+            if (roleAssignment) {
+                await ctx.db.patch(roleAssignment._id, {
+                    branch_id: args.workData.branchId ? (args.workData.branchId as Id<"branches">) : undefined,
+                });
+            }
+        }
+
+        return { clerkId };
+    },
+});
+
+export const deleteAdministratorInDB = internalMutation({
+    args: {
+        administratorId: v.id("admins"),
+    },
+    handler: async (ctx, args): Promise<{ clerkId: string | null }> => {
+        // Verify user has SUPER_ADMIN role
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        const currentUser = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
+            .first();
+
+        if (!currentUser) {
+            throw new Error("Usuario actual no encontrado");
+        }
+
+        // Check for SUPER_ADMIN role
+        const superAdminRole = await ctx.db
+            .query("role_assignments")
+            .withIndex("by_user_role", (q) => q.eq("user_id", currentUser._id).eq("role", "SUPER_ADMIN"))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!superAdminRole) {
+            throw new Error("No autorizado: Se requiere rol SUPER_ADMIN");
+        }
+
+        const now = Date.now();
+        let clerkId: string | null = null;
+
+        // 1. Obtener admin
+        const admin = await ctx.db.get(args.administratorId);
+        if (!admin) {
+            throw new Error("Administrador no encontrado");
+        }
+
+        // 2. Obtener clerk_id antes de desactivar
+        if (admin.user_id) {
+            const user = await ctx.db.get(admin.user_id);
+            clerkId = user?.clerk_id || null;
+        }
+
+        // 3. Desactivar admin (soft delete)
+        await ctx.db.patch(args.administratorId, {
+            active: false,
+            status: "INACTIVE",
+            updated_at: now,
+        });
+
+        // 4. Desactivar usuario
+        if (admin.user_id) {
+            await ctx.db.patch(admin.user_id, {
+                active: false,
+                updated_at: now,
+            });
+        }
+
+        // 5. Desactivar persona
+        if (admin.person_id) {
+            await ctx.db.patch(admin.person_id, {
+                active: false,
+                updated_at: now,
+            });
+        }
+
+        // 6. Desactivar role_assignments
+        if (admin.user_id) {
+            const userId = admin.user_id;
+            const roleAssignments = await ctx.db
+                .query("role_assignments")
+                .withIndex("by_user_active", (q) => q.eq("user_id", userId).eq("active", true))
+                .collect();
+
+            for (const roleAssignment of roleAssignments) {
+                await ctx.db.patch(roleAssignment._id, {
+                    active: false,
+                });
+            }
+        }
+
+        return { clerkId };
+    },
+});
+
 // ===== FUNCIONES AUXILIARES =====
 
 function generateSecurePassword(): string {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-    let password = "";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const symbols = "!@#$%^&*";
+    const allChars = uppercase + lowercase + digits + symbols;
 
-    // Asegurar al menos: 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
-    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
-    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
-    password += "0123456789"[Math.floor(Math.random() * 10)];
-    password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
+    // Use crypto for secure random generation
+    const getRandomChar = (chars: string): string => {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        return chars[randomValues[0] % chars.length];
+    };
 
-    // Completar hasta 12 caracteres
+    // Ensure at least one of each required character type
+    let password = [
+        getRandomChar(uppercase),
+        getRandomChar(lowercase),
+        getRandomChar(digits),
+        getRandomChar(symbols)
+    ];
+
+    // Fill remaining characters
     for (let i = 4; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+        password.push(getRandomChar(allChars));
     }
 
-    // Mezclar caracteres
-    return password.split('').sort(() => Math.random() - 0.5).join('');
-}
+    // Shuffle using Fisher-Yates with crypto
+    for (let i = password.length - 1; i > 0; i--) {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        const j = randomValues[0] % (i + 1);
+        [password[i], password[j]] = [password[j], password[i]];
+    }
 
-function getWelcomeAdminEmailTemplate(
-    adminName: string,
-    email: string,
-    temporaryPassword: string
-) {
-    return {
-        subject: "¡Bienvenido como Administrador de EHC Gym! 🏋️‍♂️",
-        html: `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a EHC Gym</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-        }
-        .content {
-            background: #f9f9f9;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-        }
-        .credential-box {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #f59e0b;
-            margin: 20px 0;
-        }
-        .credential-item {
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e5e5;
-        }
-        .credential-item strong {
-            color: #d97706;
-        }
-        .password {
-            font-family: 'Courier New', monospace;
-            background: #f3f4f6;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #dc2626;
-        }
-        .warning {
-            background: #fef3cd;
-            border: 1px solid #f59e0b;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #666;
-            font-size: 14px;
-        }
-        .btn {
-            display: inline-block;
-            background: #f59e0b;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            margin: 15px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🏋️‍♂️ ¡Bienvenido a EHC Gym!</h1>
-        <p>Tu cuenta de administrador ha sido creada exitosamente</p>
-    </div>
-    
-    <div class="content">
-        <h2>Hola ${adminName},</h2>
-        
-        <p>¡Felicidades! Has sido agregado como administrador en EHC Gym. Tu cuenta ha sido creada y ya puedes acceder al sistema de gestión.</p>
-        
-        <div class="credential-box">
-            <h3>📋 Datos de Acceso</h3>
-            <div class="credential-item">
-                <strong>Correo electrónico:</strong> ${email}
-            </div>
-            <div class="credential-item">
-                <strong>Contraseña temporal:</strong><br>
-                <span class="password">${temporaryPassword}</span>
-            </div>
-        </div>
-        
-        <div class="warning">
-            <strong>⚠️ Importante:</strong>
-            <ul>
-                <li>Esta es una contraseña temporal generada automáticamente</li>
-                <li>Por seguridad, cámbiala en tu primer inicio de sesión</li>
-                <li>No compartas esta información con terceros</li>
-                <li>Como administrador, tienes acceso a funciones sensibles del sistema</li>
-            </ul>
-        </div>
-        
-        <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3001'}/super-admin/login" class="btn">
-                Iniciar Sesión Ahora
-            </a>
-        </div>
-        
-        <h3>🎯 Responsabilidades como Administrador:</h3>
-        <ul>
-            <li>Gestionar clientes y entrenadores de tu sede</li>
-            <li>Supervisar las operaciones diarias</li>
-            <li>Generar reportes y estadísticas</li>
-            <li>Mantener actualizada la información de la sede</li>
-        </ul>
-        
-        <h3>📱 Próximos pasos:</h3>
-        <ol>
-            <li>Inicia sesión con las credenciales proporcionadas</li>
-            <li>Cambia tu contraseña temporal por una segura</li>
-            <li>Completa tu perfil de administrador</li>
-            <li>Familiarízate con el panel de control</li>
-        </ol>
-        
-        <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactar al super administrador.</p>
-        
-        <p>¡Esperamos trabajar contigo para hacer de EHC Gym el mejor gimnasio!</p>
-        
-        <p>Saludos cordiales,<br>
-        <strong>El equipo de EHC Gym</strong></p>
-    </div>
-    
-    <div class="footer">
-        <p>Este es un correo automático, por favor no responder directamente.</p>
-        <p>© ${new Date().getFullYear()} EHC Gym. Todos los derechos reservados.</p>
-    </div>
-</body>
-</html>
-        `,
-        text: `
-¡Bienvenido a EHC Gym!
-
-Hola ${adminName},
-
-¡Felicidades! Has sido agregado como administrador en EHC Gym.
-
-DATOS DE ACCESO:
-- Correo electrónico: ${email}
-- Contraseña temporal: ${temporaryPassword}
-
-IMPORTANTE:
-- Esta es una contraseña temporal generada automáticamente
-- Por seguridad, cámbiala en tu primer inicio de sesión
-- No compartas esta información con terceros
-- Como administrador, tienes acceso a funciones sensibles del sistema
-
-RESPONSABILIDADES COMO ADMINISTRADOR:
-- Gestionar clientes y entrenadores de tu sede
-- Supervisar las operaciones diarias
-- Generar reportes y estadísticas
-- Mantener actualizada la información de la sede
-
-PRÓXIMOS PASOS:
-1. Inicia sesión con las credenciales proporcionadas
-2. Cambia tu contraseña temporal por una segura
-3. Completa tu perfil de administrador
-4. Familiarízate con el panel de control
-
-Enlace de acceso: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/super-admin/login
-
-¡Esperamos trabajar contigo!
-
-Saludos cordiales,
-El equipo de EHC Gym
-        `
-    };
+    return password.join('');
 }

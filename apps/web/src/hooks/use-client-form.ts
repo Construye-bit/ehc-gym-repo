@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
-import type { ClientFormData, FormErrors } from "@/lib/clients-types";
+import type { FormErrors } from "@/lib/clients-types";
 import { z } from "zod";
-import { clientSchema } from "@/lib/validations/clients";
+import { clientSchema, type ClientFormData } from "@/lib/validations/clients";
 
 export function useClientForm(initialData?: Partial<ClientFormData>) {
   const [formData, setFormData] = useState<ClientFormData>({

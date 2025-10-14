@@ -22,7 +22,7 @@ export function AdminDashboardCards() {
         },
         {
             title: "Administrar clientes",
-            description: "Gestiona el personal y entrenadores",
+            description: "Gestiona el todos los clientes del gimnasio",
             icon: Users,
             background: "bg-gradient-to-br from-purple-400 to-purple-600",
             image: "/dashboard-personal.png",

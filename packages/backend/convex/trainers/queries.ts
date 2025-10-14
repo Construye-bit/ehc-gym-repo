@@ -1,7 +1,106 @@
-import { internalQuery, query } from "../_generated/server";
+import { internalQuery, query, QueryCtx } from "../_generated/server";
 import { requireSuperAdmin } from "./utils";
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 import { v } from "convex/values";
+
+// Helper function to build basic trainer details with person and branch
+async function buildTrainerWithDetails(ctx: QueryCtx, trainer: Doc<"trainers">) {
+    const person = trainer.person_id
+        ? await ctx.db.get(trainer.person_id)
+        : null;
+
+    const branch = trainer.branch_id
+        ? await ctx.db.get(trainer.branch_id)
+        : null;
+
+    return {
+        ...trainer,
+        person: person
+            ? {
+                name: person.name,
+                last_name: person.last_name,
+                document_type: person.document_type,
+                document_number: person.document_number,
+                phone: person.phone,
+            }
+            : null,
+        branch: branch
+            ? {
+                name: branch.name,
+            }
+            : null,
+    };
+}
+
+// Helper function to build full trainer details including user and roles
+async function buildTrainerFullDetails(ctx: QueryCtx, trainer: Doc<"trainers">) {
+    const person = trainer.person_id
+        ? await ctx.db.get(trainer.person_id)
+        : null;
+
+    const user = person?.user_id
+        ? await ctx.db.get(person.user_id)
+        : null;
+
+    const branch = trainer.branch_id
+        ? await ctx.db.get(trainer.branch_id)
+        : null;
+
+    const roles = user
+        ? await ctx.db
+            .query("role_assignments")
+            .withIndex("by_user_active", (q: any) =>
+                q.eq("user_id", user._id).eq("active", true)
+            )
+            .collect()
+        : [];
+
+    return {
+        ...trainer,
+        person: person
+            ? {
+                _id: person._id,
+                name: person.name,
+                last_name: person.last_name,
+                born_date: person.born_date,
+                document_type: person.document_type,
+                document_number: person.document_number,
+                phone: person.phone,
+                created_at: person.created_at,
+                updated_at: person.updated_at,
+                active: person.active,
+            }
+            : null,
+        user: user
+            ? {
+                _id: user._id,
+                clerk_id: user.clerk_id,
+                name: user.name,
+                email: user.email,
+                active: user.active,
+            }
+            : null,
+        branch: branch
+            ? {
+                _id: branch._id,
+                name: branch.name,
+                address_id: branch.address_id,
+                phone: branch.phone,
+                email: branch.email,
+                opening_time: branch.opening_time,
+                closing_time: branch.closing_time,
+                status: branch.status,
+                max_capacity: branch.max_capacity,
+                current_capacity: branch.current_capacity,
+            }
+            : null,
+        roles: roles.map((role: any) => ({
+            _id: role._id,
+            role: role.role,
+            assigned_at: role.assigned_at,
+        })),
+    };
+}
 
 export const getAllWithDetails = query({
     args: {},
@@ -9,37 +108,9 @@ export const getAllWithDetails = query({
         await requireSuperAdmin(ctx);
 
         const trainers = await ctx.db.query("trainers").collect();
-        const trainersWithDetails = [];
-
-        for (const trainer of trainers) {
-            const person = trainer.person_id
-                ? await ctx.db.get(trainer.person_id)
-                : null;
-
-            const branch = trainer.branch_id
-                ? await ctx.db.get(trainer.branch_id)
-                : null;
-
-            trainersWithDetails.push({
-                ...trainer,
-                person: person
-                    ? {
-                        name: person.name,
-                        last_name: person.last_name,
-                        document_type: person.document_type,
-                        document_number: person.document_number,
-                        phone: person.phone,
-                    }
-                    : null,
-                branch: branch
-                    ? {
-                        name: branch.name,
-                    }
-                    : null,
-            });
-        }
-
-        return trainersWithDetails;
+        return Promise.all(
+            trainers.map(trainer => buildTrainerWithDetails(ctx, trainer))
+        );
     },
 });
 
@@ -50,7 +121,7 @@ export const getMyTrainersWithDetails = query({
         // Verificar autenticación
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) {
-            // Devolver array vacío si no está autenticado (sesión cargando)
+            console.warn("Unauthenticated user attempted to access trainers");
             return [];
         }
 
@@ -61,58 +132,30 @@ export const getMyTrainersWithDetails = query({
             .first();
 
         if (!currentUser) {
-            // Devolver array vacío si el usuario no existe en la BD
+            console.warn(`User not found in database for clerk_id: ${identity.subject}`);
             return [];
         }
 
         // Buscar roles del usuario
         const roles = await ctx.db
             .query("role_assignments")
-            .withIndex("by_user_active", (q) =>
+            .withIndex("by_user_active", (q: any) =>
                 q.eq("user_id", currentUser._id).eq("active", true)
             )
             .collect();
 
-        const isSuperAdmin = roles.some(role => role.role === "SUPER_ADMIN");
+        const isSuperAdmin = roles.some((role: any) => role.role === "SUPER_ADMIN");
 
         // Si es super admin, devolver todos los entrenadores
         if (isSuperAdmin) {
             const trainers = await ctx.db.query("trainers").collect();
-            const trainersWithDetails = [];
-
-            for (const trainer of trainers) {
-                const person = trainer.person_id
-                    ? await ctx.db.get(trainer.person_id)
-                    : null;
-
-                const branch = trainer.branch_id
-                    ? await ctx.db.get(trainer.branch_id)
-                    : null;
-
-                trainersWithDetails.push({
-                    ...trainer,
-                    person: person
-                        ? {
-                            name: person.name,
-                            last_name: person.last_name,
-                            document_type: person.document_type,
-                            document_number: person.document_number,
-                            phone: person.phone,
-                        }
-                        : null,
-                    branch: branch
-                        ? {
-                            name: branch.name,
-                        }
-                        : null,
-                });
-            }
-
-            return trainersWithDetails;
+            return Promise.all(
+                trainers.map(trainer => buildTrainerWithDetails(ctx, trainer))
+            );
         }
 
         // Si es admin regular, buscar su sede asignada
-        const isAdmin = roles.some(role => role.role === "ADMIN");
+        const isAdmin = roles.some((role: any) => role.role === "ADMIN");
         if (!isAdmin) {
             throw new Error("No tienes permisos para ver entrenadores");
         }
@@ -120,7 +163,7 @@ export const getMyTrainersWithDetails = query({
         // Buscar la persona asociada al usuario
         const person = await ctx.db
             .query("persons")
-            .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
+            .withIndex("by_user", (q: any) => q.eq("user_id", currentUser._id))
             .first();
 
         if (!person) {
@@ -130,7 +173,7 @@ export const getMyTrainersWithDetails = query({
         // Buscar el admin asociado
         const admin = await ctx.db
             .query("admins")
-            .withIndex("by_person", (q) => q.eq("person_id", person._id))
+            .withIndex("by_person", (q: any) => q.eq("person_id", person._id))
             .first();
 
         if (!admin || !admin.branch_id) {
@@ -140,39 +183,12 @@ export const getMyTrainersWithDetails = query({
         // Obtener todos los entrenadores de la sede asignada al admin
         const trainers = await ctx.db
             .query("trainers")
-            .withIndex("by_branch", (q) => q.eq("branch_id", admin.branch_id!))
+            .withIndex("by_branch", (q: any) => q.eq("branch_id", admin.branch_id!))
             .collect();
 
-        const trainersWithDetails = [];
-        for (const trainer of trainers) {
-            const trainerPerson = trainer.person_id
-                ? await ctx.db.get(trainer.person_id)
-                : null;
-
-            const branch = trainer.branch_id
-                ? await ctx.db.get(trainer.branch_id)
-                : null;
-
-            trainersWithDetails.push({
-                ...trainer,
-                person: trainerPerson
-                    ? {
-                        name: trainerPerson.name,
-                        last_name: trainerPerson.last_name,
-                        document_type: trainerPerson.document_type,
-                        document_number: trainerPerson.document_number,
-                        phone: trainerPerson.phone,
-                    }
-                    : null,
-                branch: branch
-                    ? {
-                        name: branch.name,
-                    }
-                    : null,
-            });
-        }
-
-        return trainersWithDetails;
+        return Promise.all(
+            trainers.map(trainer => buildTrainerWithDetails(ctx, trainer))
+        );
     },
 });
 
@@ -316,76 +332,7 @@ export const getTrainerDetails = query({
             return null;
         }
 
-        // Obtener persona asociada
-        const person = trainer.person_id
-            ? await ctx.db.get(trainer.person_id)
-            : null;
-
-        // Obtener usuario asociado
-        const user = person?.user_id
-            ? await ctx.db.get(person.user_id)
-            : null;
-
-        // Obtener sede asociada
-        const branch = trainer.branch_id
-            ? await ctx.db.get(trainer.branch_id)
-            : null;
-
-        // Obtener roles del usuario
-        const roles = user
-            ? await ctx.db
-                .query("role_assignments")
-                .withIndex("by_user_active", (q) =>
-                    q.eq("user_id", user._id).eq("active", true)
-                )
-                .collect()
-            : [];
-
-        return {
-            ...trainer,
-            person: person
-                ? {
-                    _id: person._id,
-                    name: person.name,
-                    last_name: person.last_name,
-                    born_date: person.born_date,
-                    document_type: person.document_type,
-                    document_number: person.document_number,
-                    phone: person.phone,
-                    created_at: person.created_at,
-                    updated_at: person.updated_at,
-                    active: person.active,
-                }
-                : null,
-            user: user
-                ? {
-                    _id: user._id,
-                    clerk_id: user.clerk_id,
-                    name: user.name,
-                    email: user.email,
-                    active: user.active,
-                }
-                : null,
-            branch: branch
-                ? {
-                    _id: branch._id,
-                    name: branch.name,
-                    address_id: branch.address_id,
-                    phone: branch.phone,
-                    email: branch.email,
-                    opening_time: branch.opening_time,
-                    closing_time: branch.closing_time,
-                    status: branch.status,
-                    max_capacity: branch.max_capacity,
-                    current_capacity: branch.current_capacity,
-                }
-                : null,
-            roles: roles.map(role => ({
-                _id: role._id,
-                role: role.role,
-                assigned_at: role.assigned_at,
-            })),
-        };
+        return buildTrainerFullDetails(ctx, trainer);
     },
 });
 
@@ -398,7 +345,7 @@ export const getTrainerDetailsForAdmin = query({
         // Verificar autenticación
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) {
-            // Devolver null si no está autenticado (sesión cargando)
+            console.warn("Unauthenticated user attempted to access trainer details");
             return null;
         }
 
@@ -415,23 +362,23 @@ export const getTrainerDetailsForAdmin = query({
             .first();
 
         if (!currentUser) {
-            // Devolver null si el usuario no existe en la BD
+            console.warn(`User not found in database for clerk_id: ${identity.subject}`);
             return null;
         }
 
         // Buscar roles del usuario
         const roles = await ctx.db
             .query("role_assignments")
-            .withIndex("by_user_active", (q) =>
+            .withIndex("by_user_active", (q: any) =>
                 q.eq("user_id", currentUser._id).eq("active", true)
             )
             .collect();
 
-        const isSuperAdmin = roles.some(role => role.role === "SUPER_ADMIN");
+        const isSuperAdmin = roles.some((role: any) => role.role === "SUPER_ADMIN");
 
         // Si no es super admin, verificar que el trainer pertenezca a una de sus sedes
         if (!isSuperAdmin) {
-            const isAdmin = roles.some(role => role.role === "ADMIN");
+            const isAdmin = roles.some((role: any) => role.role === "ADMIN");
             if (!isAdmin) {
                 throw new Error("No tienes permisos para ver este entrenador");
             }
@@ -439,7 +386,7 @@ export const getTrainerDetailsForAdmin = query({
             // Buscar la persona asociada al usuario
             const person = await ctx.db
                 .query("persons")
-                .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
+                .withIndex("by_user", (q: any) => q.eq("user_id", currentUser._id))
                 .first();
 
             if (!person) {
@@ -449,7 +396,7 @@ export const getTrainerDetailsForAdmin = query({
             // Buscar el admin asociado
             const admin = await ctx.db
                 .query("admins")
-                .withIndex("by_person", (q) => q.eq("person_id", person._id))
+                .withIndex("by_person", (q: any) => q.eq("person_id", person._id))
                 .first();
 
             if (!admin || !admin.branch_id) {
@@ -462,76 +409,7 @@ export const getTrainerDetailsForAdmin = query({
             }
         }
 
-        // Obtener persona asociada al trainer
-        const person = trainer.person_id
-            ? await ctx.db.get(trainer.person_id)
-            : null;
-
-        // Obtener usuario asociado
-        const user = person?.user_id
-            ? await ctx.db.get(person.user_id)
-            : null;
-
-        // Obtener sede asociada
-        const branch = trainer.branch_id
-            ? await ctx.db.get(trainer.branch_id)
-            : null;
-
-        // Obtener roles del usuario
-        const trainerRoles = user
-            ? await ctx.db
-                .query("role_assignments")
-                .withIndex("by_user_active", (q) =>
-                    q.eq("user_id", user._id).eq("active", true)
-                )
-                .collect()
-            : [];
-
-        return {
-            ...trainer,
-            person: person
-                ? {
-                    _id: person._id,
-                    name: person.name,
-                    last_name: person.last_name,
-                    born_date: person.born_date,
-                    document_type: person.document_type,
-                    document_number: person.document_number,
-                    phone: person.phone,
-                    created_at: person.created_at,
-                    updated_at: person.updated_at,
-                    active: person.active,
-                }
-                : null,
-            user: user
-                ? {
-                    _id: user._id,
-                    clerk_id: user.clerk_id,
-                    name: user.name,
-                    email: user.email,
-                    active: user.active,
-                }
-                : null,
-            branch: branch
-                ? {
-                    _id: branch._id,
-                    name: branch.name,
-                    address_id: branch.address_id,
-                    phone: branch.phone,
-                    email: branch.email,
-                    opening_time: branch.opening_time,
-                    closing_time: branch.closing_time,
-                    status: branch.status,
-                    max_capacity: branch.max_capacity,
-                    current_capacity: branch.current_capacity,
-                }
-                : null,
-            roles: trainerRoles.map(role => ({
-                _id: role._id,
-                role: role.role,
-                assigned_at: role.assigned_at,
-            })),
-        };
+        return buildTrainerFullDetails(ctx, trainer);
     },
 });
 

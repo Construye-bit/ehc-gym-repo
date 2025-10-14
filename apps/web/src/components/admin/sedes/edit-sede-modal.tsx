@@ -155,6 +155,10 @@ export function EditSedeModal({ isOpen, onOpenChange, branchId }: EditSedeModalP
             newErrors.closing_time = "La hora de cierre es requerida";
         }
 
+        if (formData.opening_time && formData.closing_time && formData.opening_time >= formData.closing_time) {
+            newErrors.closing_time = "La hora de cierre debe ser posterior a la hora de apertura";
+        }
+
         const capacity = parseInt(formData.max_capacity);
         if (!formData.max_capacity || isNaN(capacity) || capacity <= 0) {
             newErrors.max_capacity = "La capacidad debe ser un número positivo";

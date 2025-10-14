@@ -32,7 +32,7 @@ export function DeleteSedeConfirmDialog({
 
     return (
         <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="sm:max-w-[425px] bg-black text-black border-black-400">
+            <AlertDialogContent className="sm:max-w-[425px] bg-black text-white border-gray-400">
                 <AlertDialogHeader>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">

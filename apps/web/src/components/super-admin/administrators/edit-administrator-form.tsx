@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { FormErrors } from "@/lib/administrator-types";
 import { TOTAL_STEPS } from "@/lib/administrator-constants";
 import type { UserData, PersonalData, WorkData } from "@/lib/validations/administrators";
+import { userDataSchema, personalDataSchema, workDataSchema } from "@/lib/validations/administrators";
 
 // Componentes
 import { FormNavigation } from "./form-navigation";
@@ -24,7 +25,7 @@ import { PersonalDataStep } from "./personal-data-step";
 import { WorkDataStep } from "./work-data-step";
 
 interface EditAdministratorFormProps {
-    administratorId: string;
+    administratorId: Id<"admins">;
 }
 
 export default function EditAdministratorForm({ administratorId }: EditAdministratorFormProps) {
@@ -54,8 +55,8 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
 
     // Hooks
     const navigate = useNavigate();
-    const updateAdministratorComplete = useMutation(api.admins.mutations.updateAdministratorComplete);
-    const administrator = useQuery(api.admins.queries.getById, { administratorId: administratorId as Id<"admins"> });
+    const updateAdministratorComplete = useAction(api.admins.mutations.updateAdministratorComplete);
+    const administrator = useQuery(api.admins.queries.getById, { administratorId });
     const branches = useQuery(api.branches.queries.getAll);
 
     // Actualizar datos del usuario
@@ -84,7 +85,13 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
 
     // Efecto para cargar datos iniciales
     useEffect(() => {
-        if (administrator) {
+        if (administrator !== undefined) {
+            if (administrator === null) {
+                toast.error("Administrador no encontrado");
+                navigate({ to: "/super-admin/administrators" });
+                return;
+            }
+
             // Datos de usuario
             setUserData({
                 userName: administrator.user?.name || "",
@@ -145,8 +152,50 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
 
     // Manejar siguiente paso
     const handleNext = async () => {
-        // TODO: Implementar validación
-        if (currentStep < 3) {
+        let isValid = false;
+        const newErrors: FormErrors = {};
+
+        if (currentStep === 1) {
+            const result = userDataSchema.safeParse(userData);
+            if (result.success) {
+                isValid = true;
+            } else {
+                result.error.issues.forEach((issue) => {
+                    const field = issue.path[0];
+                    if (field && typeof field === 'string') {
+                        (newErrors as any)[field] = issue.message;
+                    }
+                });
+            }
+        } else if (currentStep === 2) {
+            const result = personalDataSchema.safeParse(personalData);
+            if (result.success) {
+                isValid = true;
+            } else {
+                result.error.issues.forEach((issue) => {
+                    const field = issue.path[0];
+                    if (field && typeof field === 'string') {
+                        (newErrors as any)[field] = issue.message;
+                    }
+                });
+            }
+        } else if (currentStep === 3) {
+            const result = workDataSchema.safeParse(workData);
+            if (result.success) {
+                isValid = true;
+            } else {
+                result.error.issues.forEach((issue) => {
+                    const field = issue.path[0];
+                    if (field && typeof field === 'string') {
+                        (newErrors as any)[field] = issue.message;
+                    }
+                });
+            }
+        }
+
+        setErrors(newErrors);
+
+        if (isValid && currentStep < TOTAL_STEPS) {
             setCurrentStep(prev => prev + 1);
         }
     };
@@ -164,7 +213,7 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
             setIsLoading(true);
 
             const result = await updateAdministratorComplete({
-                administratorId: administratorId as Id<"admins">,
+                administratorId,
                 userData: {
                     name: userData.userName,
                     email: userData.userEmail,
@@ -195,8 +244,17 @@ export default function EditAdministratorForm({ administratorId }: EditAdministr
             let errorMessage = "Error al actualizar el administrador";
 
             if (error instanceof Error) {
-                if (error.message.includes("No autenticado")) {
+                const message = error.message.toLowerCase();
+
+                if (message.includes("no autenticado") ||
+                    message.includes("unauthorized") ||
+                    message.includes("no tienes permisos") ||
+                    message.includes("acceso denegado")) {
                     errorMessage = "No tienes permisos para realizar esta acción";
+                } else if (message.includes("no encontrado") || message.includes("not found")) {
+                    errorMessage = "Administrador no encontrado";
+                } else if (message.includes("clerk")) {
+                    errorMessage = "Error en el servicio de autenticación. Por favor, intenta nuevamente";
                 } else if (error.message) {
                     errorMessage = error.message;
                 }

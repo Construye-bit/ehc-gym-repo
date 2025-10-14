@@ -19,6 +19,58 @@ async function isSuperAdmin(ctx: any): Promise<boolean> {
     return roles.some((r: any) => r.role === "SUPER_ADMIN");
 }
 
+// Helper function to build client details object
+async function buildClientDetails(
+    ctx: any,
+    client: any,
+    branches: Array<{ _id: Id<"branches">, name: string }>
+) {
+    const person = client.person_id ? await ctx.db.get(client.person_id) : null;
+    const user = client.user_id ? await ctx.db.get(client.user_id) : null;
+
+    return {
+        ...client,
+        person: person
+            ? {
+                name: person.name,
+                last_name: person.last_name,
+                document_type: person.document_type,
+                document_number: person.document_number,
+                phone: person.phone,
+                born_date: person.born_date,
+            }
+            : null,
+        user: user
+            ? {
+                email: user.email,
+            }
+            : null,
+        branches,
+    };
+}
+
+// Helper function to get client branches
+async function getClientBranches(ctx: any, clientId: Id<"clients">) {
+    const clientBranches = await ctx.db
+        .query("client_branches")
+        .withIndex("by_client", (q: any) => q.eq("client_id", clientId))
+        .filter((q: any) => q.eq(q.field("active"), true))
+        .collect();
+
+    const branches = [];
+    for (const cb of clientBranches) {
+        const branch = cb.branch_id ? await ctx.db.get(cb.branch_id) : null;
+        if (branch) {
+            branches.push({
+                _id: branch._id,
+                name: branch.name,
+            });
+        }
+    }
+
+    return branches;
+}
+
 // Query para obtener todos los clientes con detalles (admin solo ve los de su sede)
 export const getMyClientsWithDetails = query({
     args: {},
@@ -58,53 +110,9 @@ export const getMyClientsWithDetails = query({
 
             const clientsWithDetails = [];
             for (const client of clients) {
-                const person = client.person_id
-                    ? await ctx.db.get(client.person_id)
-                    : null;
-
-                const user = client.user_id
-                    ? await ctx.db.get(client.user_id)
-                    : null;
-
-                // Obtener todas las sedes del cliente
-                const clientBranches = await ctx.db
-                    .query("client_branches")
-                    .withIndex("by_client", (q) => q.eq("client_id", client._id))
-                    .filter((q) => q.eq(q.field("active"), true))
-                    .collect();
-
-                const branches = [];
-                for (const cb of clientBranches) {
-                    const branch = cb.branch_id
-                        ? await ctx.db.get(cb.branch_id)
-                        : null;
-                    if (branch) {
-                        branches.push({
-                            _id: branch._id,
-                            name: branch.name,
-                        });
-                    }
-                }
-
-                clientsWithDetails.push({
-                    ...client,
-                    person: person
-                        ? {
-                            name: person.name,
-                            last_name: person.last_name,
-                            document_type: person.document_type,
-                            document_number: person.document_number,
-                            phone: person.phone,
-                            born_date: person.born_date,
-                        }
-                        : null,
-                    user: user
-                        ? {
-                            email: user.email,
-                        }
-                        : null,
-                    branches,
-                });
+                const branches = await getClientBranches(ctx, client._id);
+                const details = await buildClientDetails(ctx, client, branches);
+                clientsWithDetails.push(details);
             }
 
             return clientsWithDetails;
@@ -143,44 +151,17 @@ export const getMyClientsWithDetails = query({
             .filter((q) => q.eq(q.field("active"), true))
             .collect();
 
+        // Obtener la sede del admin
+        const branch = await ctx.db.get(admin.branch_id);
+        const branchInfo = branch ? [{ _id: branch._id, name: branch.name }] : [];
+
         const clientsWithDetails = [];
         for (const cb of clientBranches) {
             const client = await ctx.db.get(cb.client_id);
             if (!client || !client.active) continue;
 
-            const clientPerson = client.person_id
-                ? await ctx.db.get(client.person_id)
-                : null;
-
-            const user = client.user_id
-                ? await ctx.db.get(client.user_id)
-                : null;
-
-            // Obtener la sede del admin
-            const branch = await ctx.db.get(admin.branch_id);
-
-            clientsWithDetails.push({
-                ...client,
-                person: clientPerson
-                    ? {
-                        name: clientPerson.name,
-                        last_name: clientPerson.last_name,
-                        document_type: clientPerson.document_type,
-                        document_number: clientPerson.document_number,
-                        phone: clientPerson.phone,
-                        born_date: clientPerson.born_date,
-                    }
-                    : null,
-                user: user
-                    ? {
-                        email: user.email,
-                    }
-                    : null,
-                branches: branch ? [{
-                    _id: branch._id,
-                    name: branch.name,
-                }] : [],
-            });
+            const details = await buildClientDetails(ctx, client, branchInfo);
+            clientsWithDetails.push(details);
         }
 
         return clientsWithDetails;
@@ -292,7 +273,7 @@ export const checkPersonByDocument = internalQuery({
     },
 });
 
-export const checkAdminPermissions = query({
+export const checkAdminPermissions = internalQuery({
     args: {
         clerk_id: v.string(),
     },

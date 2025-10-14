@@ -82,8 +82,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
 
             if (user && person) {
                 // Extraer username del nombre completo o usar el email como base
-                const username = user.name.replace(/\s+/g, '').toLowerCase();
-
+                const username = user.name.replace(/\s+/g, '').toLowerCase() || user.email.split('@')[0];
                 setUserData({
                     userName: username,
                     userEmail: user.email,

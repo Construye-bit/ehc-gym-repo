@@ -294,14 +294,14 @@ const Pagination: React.FC<PaginationProps> = ({
 // Componente principal
 export function TrainersManagementContent() {
     // Usar la query para admins que filtra por sede asignada
-    const trainers = useQuery(api.trainers.queries.getMyTrainersWithDetails, {}) ?? [];
+    const trainersData = useQuery(api.trainers.queries.getMyTrainersWithDetails, {});
+    const trainers = trainersData ?? [];
     const deleteTrainerAction = useAction(api.trainers.mutations.deleteTrainerComplete);
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [deletingTrainerId, setDeletingTrainerId] = useState<Id<"trainers"> | null>(null);
     const [selectedTrainerId, setSelectedTrainerId] = useState<Id<"trainers"> | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-    const PAGE_SIZE = 8;
     const totalPages = Math.ceil(trainers.length / PAGE_SIZE);
     const currentTrainers = trainers.slice(
         (currentPage - 1) * PAGE_SIZE,
@@ -398,7 +398,7 @@ export function TrainersManagementContent() {
                     <table className="min-w-full divide-y divide-gray-200 border-0">
                         <TableHeader />
                         <tbody className="bg-white divide-y divide-gray-100">
-                            {trainers === undefined ? (
+                            {trainersData === undefined ? (
                                 <LoadingState />
                             ) : currentTrainers.length > 0 ? (
                                 currentTrainers.map((trainer) => (

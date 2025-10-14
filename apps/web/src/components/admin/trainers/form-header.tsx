@@ -10,6 +10,14 @@ interface FormHeaderProps {
 }
 
 export function FormHeader({ currentStep, totalSteps }: FormHeaderProps) {
+    // Validar y obtener el título del paso con fallback
+    const stepTitle = STEP_TITLES[currentStep as keyof typeof STEP_TITLES] ?? 'Paso desconocido';
+
+    // Log warning si el paso está fuera de los límites para debugging
+    if (!STEP_TITLES[currentStep as keyof typeof STEP_TITLES]) {
+        console.warn(`FormHeader: currentStep ${currentStep} is out of bounds for STEP_TITLES array`);
+    }
+
     return (
         <div className="flex items-center gap-4 mb-8">
             <Link to="/admin/trainers">
@@ -24,7 +32,7 @@ export function FormHeader({ currentStep, totalSteps }: FormHeaderProps) {
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Nuevo Entrenador</h1>
                 <p className="text-gray-600 mt-1">
-                    Paso {currentStep} de {totalSteps}: {STEP_TITLES[currentStep as keyof typeof STEP_TITLES]}
+                    Paso {currentStep} de {totalSteps}: {stepTitle}
                 </p>
             </div>
         </div>

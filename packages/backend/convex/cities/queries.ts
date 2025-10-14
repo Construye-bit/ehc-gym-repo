@@ -1,5 +1,5 @@
 import { query } from "../_generated/server";
-import { requireSuperAdmin } from "./utils";
+import { requireSuperAdmin, requireAdmin } from "./utils";
 import { v } from "convex/values";
 
 export const list = query({
@@ -42,7 +42,7 @@ export const searchByName = query({
             .filter((q) =>
                 q.or(
                     q.eq(q.field("name"), searchTerm),
-                    // Búsqueda que contenga el término (simulación de LIKE)
+                    // Search containing the term (LIKE simulation)
                     q.and(
                         q.gte(q.field("name"), searchTerm),
                         q.lt(q.field("name"), searchTerm + "\uffff")
@@ -53,34 +53,25 @@ export const searchByName = query({
     },
 });
 
-// === QUERIES PARA ADMINISTRADORES (sin requerir super admin) ===
+// === QUERIES FOR ADMINISTRATORS (without requiring super admin) ===
 
-// Listar todas las ciudades (para admins normales)
+// List all cities (for regular admins)
 export const listForAdmins = query({
     args: {},
     handler: async (ctx) => {
-        // Solo requiere estar autenticado, no super admin
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("No autenticado");
-        }
-
+        await requireAdmin(ctx);
         return await ctx.db.query("cities").collect();
     },
 });
 
-// Buscar ciudades por país y región (para admins normales)
+// Search cities by country and state/region (for regular admins)
 export const getByCountryAndStateForAdmins = query({
     args: {
         country: v.string(),
         state_region: v.string(),
     },
     handler: async (ctx, { country, state_region }) => {
-        // Solo requiere estar autenticado, no super admin
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("No autenticado");
-        }
+        await requireAdmin(ctx);
 
         return await ctx.db
             .query("cities")

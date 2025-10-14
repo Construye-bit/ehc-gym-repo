@@ -63,8 +63,21 @@ export function ClientEditModal({
 
   const handleSubmit = () => {
     if (!form) return;
-    // Validaciones mínimas (puedes ampliar)
-    // Por ahora devolvemos el objeto actualizado al parent
+
+    // Basic validation
+    if (!form.name?.trim()) {
+      alert("El nombre es requerido");
+      return;
+    }
+    if (!form.email?.trim() || !form.email.includes("@")) {
+      alert("Email inválido");
+      return;
+    }
+    if (!form.document?.trim()) {
+      alert("El documento es requerido");
+      return;
+    }
+
     onSave(form);
     onOpenChange(false);
   };
@@ -144,16 +157,19 @@ export function ClientEditModal({
             />
           </div>
 
-          <div className="flex flex-col">
-            <Label className="text-xs text-gray-500">Pago activo (true/false)</Label>
-            <Input
-              value={String(form?.is_payment_active ?? "")}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_payment_active"
+              checked={form?.is_payment_active ?? false}
               onChange={(e) =>
-                handleChange("is_payment_active", e.target.value === "true")
+                handleChange("is_payment_active", e.target.checked)
               }
-              placeholder="true or false"
-              className="mt-1"
+              className="h-4 w-4"
             />
+            <Label htmlFor="is_payment_active" className="text-xs text-gray-500">
+              Pago activo
+            </Label>
           </div>
         </div>
 

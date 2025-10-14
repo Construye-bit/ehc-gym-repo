@@ -268,12 +268,13 @@ export const getByIdForAdmin = query({
     },
 });
 
-// Query simple para obtener una sede por nombre
+// Query simple para obtener una sede por nombre (solo super admins)
 export const getBranchByName = query({
     args: {
         name: v.string(),
     },
     handler: async (ctx, args) => {
+        await requireSuperAdmin(ctx);
         return await ctx.db
             .query("branches")
             .filter((q) => q.eq(q.field("name"), args.name))
@@ -281,12 +282,13 @@ export const getBranchByName = query({
     },
 });
 
-// Query simple para obtener una sede por ID
+// Query simple para obtener una sede por ID (solo super admins)
 export const getBranchById = query({
     args: {
         branchId: v.id("branches"),
     },
     handler: async (ctx, args) => {
+        await requireSuperAdmin(ctx);
         return await ctx.db.get(args.branchId);
     },
 });

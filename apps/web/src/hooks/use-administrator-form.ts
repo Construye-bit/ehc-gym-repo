@@ -157,8 +157,19 @@ export function useAdministratorForm() {
             let errorMessage = "Error al crear el administrador";
 
             if (error instanceof Error) {
-                if (error.message.includes("No autenticado")) {
+                const message = error.message.toLowerCase();
+
+                if (message.includes("no autenticado") ||
+                    message.includes("unauthorized") ||
+                    message.includes("no tienes permisos") ||
+                    message.includes("acceso denegado")) {
                     errorMessage = "No tienes permisos para realizar esta acción";
+                } else if (message.includes("ya existe un usuario con este correo")) {
+                    errorMessage = "Ya existe un administrador con este correo electrónico";
+                } else if (message.includes("ya existe una persona con este número de documento")) {
+                    errorMessage = "Ya existe una persona registrada con este número de documento";
+                } else if (message.includes("clerk")) {
+                    errorMessage = "Error en el servicio de autenticación. Por favor, intenta nuevamente";
                 } else if (error.message) {
                     errorMessage = error.message;
                 }

@@ -82,7 +82,7 @@ export function AddCityModal({ isOpen, onOpenChange, onCityAdded }: AddCityModal
                 state_region: formData.state_region,
                 name: formData.name,
                 type: formData.type,
-                postal_code: formData.postal_code || undefined,
+                postal_code: formData.postal_code.trim() || undefined,
             });
 
             toast.success("Ciudad creada exitosamente", {
@@ -90,6 +90,7 @@ export function AddCityModal({ isOpen, onOpenChange, onCityAdded }: AddCityModal
             });
 
             onCityAdded(result.cityId);
+            onOpenChange(false);
         } catch (error) {
             console.error("Error al crear ciudad:", error);
 

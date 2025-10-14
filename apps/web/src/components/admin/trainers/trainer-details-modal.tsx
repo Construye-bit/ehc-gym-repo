@@ -13,11 +13,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_STYLES, STATUS_LABELS, DOCUMENT_TYPE_LABELS } from "@/lib/trainer-constants";
 
+interface RoleAssignment {
+    _id: string;
+    role: string;
+}
+
 interface TrainerDetailsModalProps {
     trainerId: Id<"trainers"> | null;
     isOpen: boolean;
     onClose: () => void;
 }
+
+const renderStatusBadge = (status: string | undefined) => {
+    const statusStyle = (status && status in STATUS_STYLES)
+        ? STATUS_STYLES[status as keyof typeof STATUS_STYLES]
+        : "bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium";
+    const statusLabel = (status && status in STATUS_LABELS)
+        ? STATUS_LABELS[status as keyof typeof STATUS_LABELS]
+        : status || 'Desconocido';
+
+    return (
+        <span className={statusStyle}>
+            {statusLabel}
+        </span>
+    );
+};
 
 const LoadingSkeleton: React.FC = () => (
     <div className="space-y-6">
@@ -109,21 +129,7 @@ export default function TrainerDetailsModal({ trainerId, isOpen, onClose }: Trai
                                         Código: {trainerDetails.employee_code}
                                     </p>
                                     <div className="flex items-center gap-4 mt-3">
-                                        {(() => {
-                                            const status = trainerDetails?.status;
-                                            const statusStyle = (status && status in STATUS_STYLES)
-                                                ? STATUS_STYLES[status as keyof typeof STATUS_STYLES]
-                                                : "bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium";
-                                            const statusLabel = (status && status in STATUS_LABELS)
-                                                ? STATUS_LABELS[status as keyof typeof STATUS_LABELS]
-                                                : status || 'Desconocido';
-
-                                            return (
-                                                <span className={statusStyle}>
-                                                    {statusLabel}
-                                                </span>
-                                            );
-                                        })()}
+                                        {renderStatusBadge(trainerDetails?.status)}
                                         {trainerDetails.specialties.length > 0 && (
                                             <div className="flex items-center gap-2">
                                                 <Badge size={16} className="text-gray-600" />
@@ -231,21 +237,7 @@ export default function TrainerDetailsModal({ trainerId, isOpen, onClose }: Trai
                                         <div>
                                             <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Estado</label>
                                             <div className="mt-1">
-                                                {(() => {
-                                                    const status = trainerDetails?.status;
-                                                    const statusStyle = (status && status in STATUS_STYLES)
-                                                        ? STATUS_STYLES[status as keyof typeof STATUS_STYLES]
-                                                        : "bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium";
-                                                    const statusLabel = (status && status in STATUS_LABELS)
-                                                        ? STATUS_LABELS[status as keyof typeof STATUS_LABELS]
-                                                        : status || 'Desconocido';
-
-                                                    return (
-                                                        <span className={statusStyle}>
-                                                            {statusLabel}
-                                                        </span>
-                                                    );
-                                                })()}
+                                                {renderStatusBadge(trainerDetails?.status)}
                                             </div>
                                         </div>
                                     </CardContent>
@@ -281,7 +273,7 @@ export default function TrainerDetailsModal({ trainerId, isOpen, onClose }: Trai
                                             <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Roles del Sistema</label>
                                             <div className="flex flex-wrap gap-2 mt-2">
                                                 {trainerDetails.roles.length > 0 ? (
-                                                    trainerDetails.roles.map((roleAssignment: any) => (
+                                                    trainerDetails.roles.map((roleAssignment: RoleAssignment) => (
                                                         <span
                                                             key={roleAssignment._id}
                                                             className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1.5 rounded-full border border-green-300"

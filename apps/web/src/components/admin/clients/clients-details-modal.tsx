@@ -100,8 +100,8 @@ export function ClientDetailModal({
             <span className="text-xs text-gray-500">Estado</span>
             <span
               className={`text-sm font-medium inline-block px-2 py-1 rounded-full ${client?.status === "ACTIVE"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
                 }`}
             >
               {client?.status === "ACTIVE" ? "Activo" : "Inactivo"}
@@ -111,7 +111,7 @@ export function ClientDetailModal({
           <div className="flex flex-col">
             <span className="text-xs text-gray-500">Pago activo</span>
             <span className="text-sm font-medium">
-              {client?.is_payment_active ? "Sí" : "No"}
+              {client ? (client.is_payment_active ? "Sí" : "No") : "—"}
             </span>
           </div>
 

@@ -48,7 +48,7 @@ function RouteComponent() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Decorative elements */}
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full opacity-20 blur-3xl"></div>
-      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-yellow-200 to-yellow-200 rounded-full opacity-20 blur-3xl"></div>
+      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-yellow-200 to-orange-200 rounded-full opacity-20 blur-3xl"></div>
 
       <div className="relative max-w-4xl mx-auto px-6 py-16">
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 md:p-12 border border-white/20">
@@ -104,6 +104,9 @@ function RouteComponent() {
                   <Clock className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {isTrainer ? "Gestionar agenda" : "Reservar clases"}
+                  </p>
                   <p className="text-gray-600 text-xs">
                     {isTrainer ? "Administra tu disponibilidad" : "Reserva tus clases al instante"}
                   </p>
@@ -156,9 +159,15 @@ function RouteComponent() {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href={import.meta.env.VITE_URL_APK_APP}
+              href={import.meta.env.VITE_URL_APK_APP || "#"}
               download
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition-colors shadow-lg"
+              onClick={(e) => {
+                if (!import.meta.env.VITE_URL_APK_APP) {
+                  e.preventDefault();
+                  alert("La URL de descarga no está configurada. Por favor, contacta al administrador.");
+                }
+              }}
             >
               <Smartphone className="w-5 h-5" />
               Descargar App

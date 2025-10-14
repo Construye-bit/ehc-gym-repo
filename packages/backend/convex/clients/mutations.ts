@@ -442,55 +442,73 @@ export const createClientComplete = action({
                 skipPasswordChecks: true,
             });
 
-            // 3. Crear usuario en Convex
-            const userId: Id<"users"> = await ctx.runMutation(internal.clients.mutations.createUserInDB, {
-                clerk_id: clerkUser.id,
-                name: `${personalData.personName} ${personalData.personLastName}`,
-                email: personalData.personEmail,
-            });
+            let userId: Id<"users"> | undefined;
+            let personId: Id<"persons"> | undefined;
+            let emergencyContactId: Id<"emergency_contact"> | undefined;
+            let clientId: Id<"clients"> | undefined;
 
-            // 4. Crear persona en Convex
-            const personId: Id<"persons"> = await ctx.runMutation(internal.clients.mutations.createPersonInDB, {
-                user_id: userId,
-                name: personalData.personName,
-                last_name: personalData.personLastName,
-                born_date: personalData.personBornDate,
-                phone: personalData.personPhone,
-                document_type: personalData.personDocumentType,
-                document_number: personalData.personDocumentNumber,
-            });
+            try {
+                // 3. Crear usuario en Convex
+                userId = await ctx.runMutation(internal.clients.mutations.createUserInDB, {
+                    clerk_id: clerkUser.id,
+                    name: `${personalData.personName} ${personalData.personLastName}`,
+                    email: personalData.personEmail,
+                });
 
-            // 5. Crear contacto de emergencia
-            const emergencyContactId: Id<"emergency_contact"> = await ctx.runMutation(
-                internal.clients.mutations.createEmergencyContactInDB,
-                {
+                // 4. Crear persona en Convex
+                personId = await ctx.runMutation(internal.clients.mutations.createPersonInDB, {
+                    user_id: userId,
+                    name: personalData.personName,
+                    last_name: personalData.personLastName,
+                    born_date: personalData.personBornDate,
+                    phone: personalData.personPhone,
+                    document_type: personalData.personDocumentType,
+                    document_number: personalData.personDocumentNumber,
+                });
+
+                // 5. Crear contacto de emergencia
+                emergencyContactId = await ctx.runMutation(
+                    internal.clients.mutations.createEmergencyContactInDB,
+                    {
+                        person_id: personId,
+                        name: emergencyContact.name,
+                        phone: emergencyContact.phone,
+                        relationship: emergencyContact.relationship,
+                    }
+                );
+
+                // 6. Crear cliente
+                clientId = await ctx.runMutation(internal.clients.mutations.createClientInDB, {
                     person_id: personId,
-                    name: emergencyContact.name,
-                    phone: emergencyContact.phone,
-                    relationship: emergencyContact.relationship,
+                    user_id: userId,
+                    created_by_user_id: currentUser._id,
+                });
+
+                // 7. Asignar rol de CLIENT
+                await ctx.runMutation(internal.clients.mutations.assignRoleInDB, {
+                    user_id: userId,
+                    role: "CLIENT",
+                    assigned_by_user_id: currentUser._id,
+                });
+
+                // 8. Vincular cliente con sede
+                await ctx.runMutation(internal.clients.mutations.linkClientToBranchInDB, {
+                    client_id: clientId,
+                    branch_id: branchId,
+                    created_by_user_id: currentUser._id,
+                });
+            } catch (dbError) {
+                console.error('Error en operaciones de base de datos, haciendo rollback:', dbError);
+
+                try {
+                    await clerkClient.users.deleteUser(clerkUser.id);
+                    console.log('Usuario de Clerk eliminado durante rollback');
+                } catch (clerkDeleteError) {
+                    console.error('Error al eliminar usuario de Clerk durante rollback:', clerkDeleteError);
                 }
-            );
 
-            // 6. Crear cliente
-            const clientId: Id<"clients"> = await ctx.runMutation(internal.clients.mutations.createClientInDB, {
-                person_id: personId,
-                user_id: userId,
-                created_by_user_id: currentUser._id,
-            });
-
-            // 7. Asignar rol de CLIENT
-            await ctx.runMutation(internal.clients.mutations.assignRoleInDB, {
-                user_id: userId,
-                role: "CLIENT",
-                assigned_by_user_id: currentUser._id,
-            });
-
-            // 8. Vincular cliente con sede
-            await ctx.runMutation(internal.clients.mutations.linkClientToBranchInDB, {
-                client_id: clientId,
-                branch_id: branchId,
-                created_by_user_id: currentUser._id,
-            });
+                throw dbError;
+            }
 
             // 9. Enviar email de bienvenida con credenciales
             console.log("Enviando email de bienvenida al cliente...");
@@ -685,22 +703,37 @@ export const linkClientToBranchInDB = internalMutation({
 
 // Función auxiliar para generar contraseña segura
 function generateSecurePassword(): string {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-    let password = "";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const symbols = "!@#$%^&*";
+    const allChars = uppercase + lowercase + digits + symbols;
 
-    // Asegurar al menos: 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
-    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
-    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
-    password += "0123456789"[Math.floor(Math.random() * 10)];
-    password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
+    const getRandomChar = (chars: string): string => {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        return chars[randomValues[0] % chars.length];
+    };
 
-    // Completar hasta 12 caracteres
+    let password = [
+        getRandomChar(uppercase),
+        getRandomChar(lowercase),
+        getRandomChar(digits),
+        getRandomChar(symbols)
+    ];
+
     for (let i = 4; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+        password.push(getRandomChar(allChars));
     }
 
-    // Mezclar caracteres
-    return password.split('').sort(() => Math.random() - 0.5).join('');
+    for (let i = password.length - 1; i > 0; i--) {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        const j = randomValues[0] % (i + 1);
+        [password[i], password[j]] = [password[j], password[i]];
+    }
+
+    return password.join('');
 }
 
 // Template de email de bienvenida para cliente
@@ -826,13 +859,11 @@ export const deleteClientComplete = action({
         success: boolean;
         message: string;
     }> => {
-        // Verificar autenticación y permisos
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) {
             throw new Error("No autenticado");
         }
 
-        // Obtener datos del cliente
         const client = await ctx.runQuery(internal.clients.internalQueries.getClientByIdInternal, {
             clientId
         });
@@ -859,7 +890,6 @@ export const deleteClientComplete = action({
             throw new Error("Usuario no encontrado");
         }
 
-        // Eliminar de Clerk
         const clerkSecretKey = process.env.CLERK_SECRET_KEY;
         if (clerkSecretKey) {
             try {
@@ -872,9 +902,49 @@ export const deleteClientComplete = action({
             }
         }
 
-        // Eliminar registros de Convex
+        // 1. Eliminar enlaces de cliente a sedes
+        const branchLinks = await ctx.runQuery(internal.clients.internalQueries.getClientBranchLinks, {
+            clientId
+        });
+        for (const link of branchLinks) {
+            await ctx.runMutation(internal.clients.mutations.deleteBranchLinkInDB, {
+                linkId: link._id
+            });
+        }
+
+        // 2. Eliminar asignaciones de roles
+        const roleAssignments = await ctx.runQuery(internal.clients.internalQueries.getUserRoles, {
+            userId: user._id
+        });
+        for (const role of roleAssignments) {
+            await ctx.runMutation(internal.clients.mutations.deleteRoleInDB, {
+                roleId: role._id
+            });
+        }
+
+        // 3. Eliminar cliente
         await ctx.runMutation(internal.clients.mutations.deleteClientInDB, {
             clientId
+        });
+
+        // 4. Eliminar contactos de emergencia
+        const emergencyContacts = await ctx.runQuery(internal.clients.internalQueries.getEmergencyContacts, {
+            personId: person._id
+        });
+        for (const contact of emergencyContacts) {
+            await ctx.runMutation(internal.clients.mutations.deleteEmergencyContactInDB, {
+                contactId: contact._id
+            });
+        }
+
+        // 5. Eliminar persona
+        await ctx.runMutation(internal.clients.mutations.deletePersonInDB, {
+            personId: person._id
+        });
+
+        // 6. Eliminar usuario
+        await ctx.runMutation(internal.clients.mutations.deleteUserInDB, {
+            userId: user._id
         });
 
         return {
@@ -890,6 +960,56 @@ export const deleteClientInDB = internalMutation({
     },
     handler: async (ctx, { clientId }) => {
         await ctx.db.delete(clientId);
+        return { success: true };
+    },
+});
+
+export const deleteBranchLinkInDB = internalMutation({
+    args: {
+        linkId: v.id("client_branches"),
+    },
+    handler: async (ctx, { linkId }) => {
+        await ctx.db.delete(linkId);
+        return { success: true };
+    },
+});
+
+export const deleteRoleInDB = internalMutation({
+    args: {
+        roleId: v.id("role_assignments"),
+    },
+    handler: async (ctx, { roleId }) => {
+        await ctx.db.delete(roleId);
+        return { success: true };
+    },
+});
+
+export const deleteEmergencyContactInDB = internalMutation({
+    args: {
+        contactId: v.id("emergency_contact"),
+    },
+    handler: async (ctx, { contactId }) => {
+        await ctx.db.delete(contactId);
+        return { success: true };
+    },
+});
+
+export const deletePersonInDB = internalMutation({
+    args: {
+        personId: v.id("persons"),
+    },
+    handler: async (ctx, { personId }) => {
+        await ctx.db.delete(personId);
+        return { success: true };
+    },
+});
+
+export const deleteUserInDB = internalMutation({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }) => {
+        await ctx.db.delete(userId);
         return { success: true };
     },
 });

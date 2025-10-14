@@ -324,7 +324,7 @@ export function ClientsManagementContent() {
       client.person?.document_number.includes(searchTerm);
 
     const matchesBranch = selectedBranch === "all" ||
-      client.branches.some(b => b._id === selectedBranch);
+      client.branches.some((b: { _id: Id<"branches">; name: string }) => b._id === selectedBranch);
 
     return matchesSearch && matchesBranch;
   });
@@ -504,7 +504,7 @@ export function ClientsManagementContent() {
           setIsDetailsModalOpen(open);
           if (!open) setSelectedClientId(null);
         }}
-        client={currentClients.find(c => c._id === selectedClientId) || null}
+        client={filteredClients.find(c => c._id === selectedClientId) || null}
       />
 
       {/* Modal de creación de cliente */}
