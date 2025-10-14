@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface AdminDashboardHeaderProps {
-   
+    onLogout: () => void;
 }
 
-export function AdminDashboardHeader() {
+export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
     const pathname = useRouter().state.location.pathname;
 
     return (
@@ -29,7 +29,7 @@ export function AdminDashboardHeader() {
                             />
                         </Link>
                         <div className="ml-4 hidden sm:block">
-                            <h2 className="text-xl font-bold text-gray-900">Panel del Gerente</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Panel del Administrador</h2>
                         </div>
                     </div>
 
@@ -82,7 +82,7 @@ export function AdminDashboardHeader() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem >
+                                <DropdownMenuItem onClick={onLogout}>
                                     Cerrar Sesión
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

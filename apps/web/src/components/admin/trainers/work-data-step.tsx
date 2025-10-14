@@ -1,6 +1,6 @@
 import React from "react";
 import { Building2 } from "lucide-react";
-import type { Doc } from "@ehc-gym2/backend/convex/_generated/dataModel";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormField } from "@/components/ui/form-field";
 import { FormSection } from "@/components/ui/form-section";
@@ -8,10 +8,17 @@ import { SpecialtyTags } from "@/components/ui/specialty-tags";
 import type { WorkData } from "@/lib/validations/trainers";
 import type { FormErrors } from "@/lib/trainer-types";
 
+// Tipo simplificado de branch para el formulario
+type SimpleBranch = {
+    _id: Id<"branches">;
+    name: string;
+    status: "ACTIVE" | "INACTIVE" | "UNDER_CONSTRUCTION" | "TEMPORARILY_CLOSED";
+};
+
 interface WorkDataStepProps {
     workData: WorkData;
     errors: FormErrors;
-    branches: Doc<"branches">[] | undefined;
+    branches: SimpleBranch[] | undefined;
     onUpdate: (field: keyof WorkData, value: string | string[]) => void;
     onAddSpecialty: (specialty: string) => void;
     onRemoveSpecialty: (index: number) => void;

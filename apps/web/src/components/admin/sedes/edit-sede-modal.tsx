@@ -71,11 +71,11 @@ export function EditSedeModal({ isOpen, onOpenChange, branchId }: EditSedeModalP
     const [isInitializing, setIsInitializing] = useState(true);
 
     // Queries
-    const cities = useQuery(api.cities.queries.list);
-    const addresses = useQuery(api.addresses.queries.getByCity,
+    const cities = useQuery(api.cities.queries.listForAdmins);
+    const addresses = useQuery(api.addresses.queries.getByCityForAdmins,
         formData.cityId ? { cityId: formData.cityId as Id<"cities"> } : "skip"
     );
-    const branchDetails = useQuery(api.branches.queries.getById,
+    const branchDetails = useQuery(api.branches.queries.getByIdForAdmin,
         branchId ? { branchId: branchId as Id<"branches"> } : "skip"
     );
 

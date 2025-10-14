@@ -52,3 +52,44 @@ export const searchByName = query({
             .collect();
     },
 });
+
+// === QUERIES PARA ADMINISTRADORES (sin requerir super admin) ===
+
+// Listar todas las ciudades (para admins normales)
+export const listForAdmins = query({
+    args: {},
+    handler: async (ctx) => {
+        // Solo requiere estar autenticado, no super admin
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        return await ctx.db.query("cities").collect();
+    },
+});
+
+// Buscar ciudades por país y región (para admins normales)
+export const getByCountryAndStateForAdmins = query({
+    args: {
+        country: v.string(),
+        state_region: v.string(),
+    },
+    handler: async (ctx, { country, state_region }) => {
+        // Solo requiere estar autenticado, no super admin
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        return await ctx.db
+            .query("cities")
+            .filter((q) =>
+                q.and(
+                    q.eq(q.field("country"), country),
+                    q.eq(q.field("state_region"), state_region)
+                )
+            )
+            .collect();
+    },
+});

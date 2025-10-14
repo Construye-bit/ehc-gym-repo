@@ -10,17 +10,28 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 interface Client {
-  id: string;
-  name: string;
-  document: string;
-  phone: string;
-  email: string;
-  branch: string;
-  status: string;
+  _id: Id<"clients">;
+  status: 'ACTIVE' | 'INACTIVE';
   is_payment_active: boolean;
-  join_date: string;
+  join_date: number;
+  person?: {
+    name: string;
+    last_name: string;
+    document_type: string;
+    document_number: string;
+    phone?: string;
+    born_date: string;
+  } | null;
+  user?: {
+    email: string;
+  } | null;
+  branches: Array<{
+    _id: Id<"branches">;
+    name: string;
+  }>;
 }
 
 interface ClientDetailModalProps {
@@ -49,44 +60,49 @@ export function ClientDetailModal({
         </DialogHeader>
 
         <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500">ID</span>
-            <span className="text-sm font-medium">{client?.id ?? "—"}</span>
+          <div className="flex flex-col col-span-2">
+            <span className="text-xs text-gray-500">Nombre Completo</span>
+            <span className="text-sm font-medium">
+              {client?.person ? `${client.person.name} ${client.person.last_name}` : "—"}
+            </span>
           </div>
 
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500">Nombre</span>
-            <span className="text-sm font-medium">{client?.name ?? "—"}</span>
+            <span className="text-xs text-gray-500">Tipo de Documento</span>
+            <span className="text-sm font-medium">{client?.person?.document_type ?? "—"}</span>
           </div>
 
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500">Documento</span>
-            <span className="text-sm font-medium">{client?.document ?? "—"}</span>
+            <span className="text-xs text-gray-500">Número de Documento</span>
+            <span className="text-sm font-medium">{client?.person?.document_number ?? "—"}</span>
           </div>
 
           <div className="flex flex-col">
             <span className="text-xs text-gray-500">Teléfono</span>
-            <span className="text-sm font-medium">{client?.phone ?? "—"}</span>
+            <span className="text-sm font-medium">{client?.person?.phone ?? "—"}</span>
           </div>
 
           <div className="flex flex-col">
             <span className="text-xs text-gray-500">Email</span>
-            <span className="text-sm font-medium">{client?.email ?? "—"}</span>
+            <span className="text-sm font-medium">{client?.user?.email ?? "—"}</span>
           </div>
 
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500">Sede</span>
-            <span className="text-sm font-medium">{client?.branch ?? "—"}</span>
+          <div className="flex flex-col col-span-2">
+            <span className="text-xs text-gray-500">Sede(s)</span>
+            <span className="text-sm font-medium">
+              {client?.branches && client.branches.length > 0
+                ? client.branches.map(b => b.name).join(", ")
+                : "—"}
+            </span>
           </div>
 
           <div className="flex flex-col">
             <span className="text-xs text-gray-500">Estado</span>
             <span
-              className={`text-sm font-medium inline-block px-2 py-1 rounded-full ${
-                client?.status === "ACTIVE"
+              className={`text-sm font-medium inline-block px-2 py-1 rounded-full ${client?.status === "ACTIVE"
                   ? "bg-green-100 text-green-700"
                   : "bg-red-100 text-red-700"
-              }`}
+                }`}
             >
               {client?.status === "ACTIVE" ? "Activo" : "Inactivo"}
             </span>
@@ -101,7 +117,13 @@ export function ClientDetailModal({
 
           <div className="flex flex-col col-span-2">
             <span className="text-xs text-gray-500">Fecha de ingreso</span>
-            <span className="text-sm font-medium">{client?.join_date ?? "—"}</span>
+            <span className="text-sm font-medium">
+              {client?.join_date ? new Date(client.join_date).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }) : "—"}
+            </span>
           </div>
         </div>
 

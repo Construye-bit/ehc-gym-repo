@@ -47,8 +47,9 @@ const LoadingSkeleton: React.FC = () => (
 
 export default function TrainerDetailsModal({ trainerId, isOpen, onClose }: TrainerDetailsModalProps) {
     // Solo ejecutar la query cuando el modal está abierto y hay un trainerId
+    // Usar la query para admins que valida permisos
     const trainerDetails = useQuery(
-        api.trainers.queries.getTrainerDetails,
+        api.trainers.queries.getTrainerDetailsForAdmin,
         isOpen && trainerId ? { trainerId } : "skip"
     );
 

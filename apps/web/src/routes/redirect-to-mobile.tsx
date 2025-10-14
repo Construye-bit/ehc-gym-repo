@@ -104,9 +104,6 @@ function RouteComponent() {
                   <Clock className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    {isTrainer ? "Gestionar horarios" : "Reservar turnos"}
-                  </p>
                   <p className="text-gray-600 text-xs">
                     {isTrainer ? "Administra tu disponibilidad" : "Reserva tus clases al instante"}
                   </p>

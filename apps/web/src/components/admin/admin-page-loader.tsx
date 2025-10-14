@@ -40,7 +40,7 @@ export function AdminPageLoader({ message }: AdminPageLoaderProps) {
                 {/* Loading content */}
                 <div className="text-center">
                     <h3 className="text-xl font-bold text-gray-900 mb-3">
-                        Panel del Gerente
+                        Panel del administrador
                     </h3>
                     <p className="text-gray-600 mb-6">
                         {message || "Cargando datos del sistema..."}

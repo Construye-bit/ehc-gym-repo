@@ -26,6 +26,26 @@ export const getByCity = query({
     },
 });
 
+export const getByCityForAdmins = query({
+    args: {
+        cityId: v.id("cities"),
+    },
+    handler: async (ctx, { cityId }) => {
+        // Solo requiere autenticación, disponible para todos los admins
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        return await ctx.db
+            .query("addresses")
+            .withIndex("by_city_active", (q) =>
+                q.eq("city_id", cityId).eq("active", true)
+            )
+            .collect();
+    },
+});
+
 export const getAllWithDetails = query({
     args: {},
     handler: async (ctx) => {

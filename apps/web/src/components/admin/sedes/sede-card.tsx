@@ -102,30 +102,6 @@ export function SedeCard({ sede, onEdit, onDelete, isDeleting = false }: SedeCar
                             {sede.metadata.wifi_available && <span className="bg-gray-400 px-2 py-1 rounded text-xs">WiFi</span>}
                         </div>
                     </div>
-
-                    {/* Action Buttons - Hidden by default, shown on hover */}
-                    <div className={`flex justify-end gap-2 transition-opacity duration-300 mt-4 ${isDeleting ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                        <Button
-                            onClick={onEdit}
-                            size="sm"
-                            disabled={isDeleting}
-                            className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold rounded-full p-2"
-                        >
-                            <Edit size={16} />
-                        </Button>
-                        <Button
-                            onClick={onDelete}
-                            size="sm"
-                            disabled={isDeleting}
-                            className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 disabled:hover:bg-red-300 text-white font-semibold rounded-full p-2"
-                        >
-                            {isDeleting ? (
-                                <Loader2 size={16} className="animate-spin" />
-                            ) : (
-                                <Trash2 size={16} />
-                            )}
-                        </Button>
-                    </div>
                 </CardContent>
             </div>
         </Card>

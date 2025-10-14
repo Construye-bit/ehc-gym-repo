@@ -293,7 +293,8 @@ const Pagination: React.FC<PaginationProps> = ({
 
 // Componente principal
 export function TrainersManagementContent() {
-    const trainers = useQuery(api.trainers.queries.getAllWithDetails, {}) ?? [];
+    // Usar la query para admins que filtra por sede asignada
+    const trainers = useQuery(api.trainers.queries.getMyTrainersWithDetails, {}) ?? [];
     const deleteTrainerAction = useAction(api.trainers.mutations.deleteTrainerComplete);
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
@@ -314,7 +315,7 @@ export function TrainersManagementContent() {
 
     const handleEditTrainer = (trainer: Trainer) => {
         navigate({
-            to: '/super-admin/trainers/edit',
+            to: '/admin/trainers/edit',
             search: { trainerId: trainer._id }
         });
     };
@@ -380,7 +381,7 @@ export function TrainersManagementContent() {
                     </p>
                 </div>
                 <div>
-                    <Link to="/super-admin/trainers/new">
+                    <Link to="/admin/trainers/new">
                         <Button
                             size="lg"
                             className="mt-4 cursor-pointer bg-yellow-400 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-colors"

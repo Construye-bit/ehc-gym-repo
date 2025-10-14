@@ -1,13 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminRouteGuard } from "@/components/super-admin/admin-route-guard";
+import { AdminDashboardHeader } from "@/components/admin/admin-dashboard-header";
+import NewTrainerContent from "@/components/admin/trainers/new-trainer-content";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
-import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-header";
-import NewTrainerContent from "@/components/super-admin/trainers/new-trainer-content";
-import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
 
 export const Route = createFileRoute("/admin/trainers/new")({
   component: NewTrainerRoute,
-  pendingComponent: () => <AdminPageLoader message="Cargando nuevo entrenador..." />,
 });
 
 function NewTrainerRoute() {
@@ -22,4 +20,3 @@ function NewTrainerRoute() {
     </AdminRouteGuard>
   );
 }
-

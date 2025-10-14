@@ -67,8 +67,11 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
     // Hooks
     const navigate = useNavigate();
     const updateTrainerComplete = useAction(api.trainers.mutations.updateTrainerComplete);
-    const branches = useQuery(api.branches.queries.list);
-    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetails, { trainerId: trainerId as Id<"trainers"> });
+    // Usar getMyBranchesWithDetails que funciona tanto para admins como super admins
+    const branchesData = useQuery(api.branches.queries.getMyBranchesWithDetails);
+    const branches = branchesData?.map(b => ({ _id: b._id, name: b.name, status: b.status }));
+    // Usar getTrainerDetailsForAdmin que valida permisos del admin
+    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetailsForAdmin, { trainerId: trainerId as Id<"trainers"> });
 
     const totalSteps: number = 3;
 

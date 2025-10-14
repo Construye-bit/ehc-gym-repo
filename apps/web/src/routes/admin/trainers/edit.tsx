@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AdminRouteGuard } from "@/components/super-admin/admin-route-guard";
+import { AdminDashboardHeader } from "@/components/admin/admin-dashboard-header";
+import EditTrainerForm from "@/components/admin/trainers/edit-trainer-form";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
-import EditTrainerForm from "@/components/super-admin/trainers/edit-trainer-form";
 
 type TrainerEditSearchParams = {
   trainerId: string;
@@ -17,45 +19,27 @@ export const Route = createFileRoute("/admin/trainers/edit")({
 
 function EditTrainerRoute() {
   const { trainerId } = Route.useSearch();
-
-  // Proteger ruta con autenticación de admin
-  const { isAuthenticated, isLoading } = useAdminAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Cargando...</h1>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Acceso denegado</h1>
-          <p className="text-gray-600">No tienes permisos para acceder a esta página.</p>
-        </div>
-      </div>
-    );
-  }
+  const { logout } = useAdminAuth();
 
   if (!trainerId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">ID de entrenador no válido</h1>
-          <p className="text-gray-600">No se ha proporcionado un ID de entrenador válido para editar.</p>
+      <AdminRouteGuard>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50 p-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">ID de entrenador no válido</h1>
+            <p className="text-gray-600">No se ha proporcionado un ID de entrenador válido para editar.</p>
+          </div>
         </div>
-      </div>
+      </AdminRouteGuard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <EditTrainerForm trainerId={trainerId} />
-    </div>
+    <AdminRouteGuard>
+      <div className="min-h-screen bg-gray-50">
+        <AdminDashboardHeader onLogout={logout} />
+        <EditTrainerForm trainerId={trainerId} />
+      </div>
+    </AdminRouteGuard>
   );
 }

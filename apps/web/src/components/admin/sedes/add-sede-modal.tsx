@@ -70,8 +70,8 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     // Queries
-    const cities = useQuery(api.cities.queries.list);
-    const addresses = useQuery(api.addresses.queries.getByCity,
+    const cities = useQuery(api.cities.queries.listForAdmins);
+    const addresses = useQuery(api.addresses.queries.getByCityForAdmins,
         formData.cityId ? { cityId: formData.cityId as Id<"cities"> } : "skip"
     );
 

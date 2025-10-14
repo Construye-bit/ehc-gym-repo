@@ -43,8 +43,8 @@ export function SedesManagementContent() {
     const [editingSedeId, setEditingSedeId] = useState<string | null>(null);
     const [selectedCity, setSelectedCity] = useState<string>("all");
 
-    // Consumir la query real de branches
-    const branchesData = useQuery(api.branches.queries.getAllWithDetails);
+    // Consumir la query que devuelve solo las sedes del administrador actual
+    const branchesData = useQuery(api.branches.queries.getMyBranchesWithDetails);
 
     // Mutación para eliminar sede
     const deleteBranchMutation = useMutation(api.branches.mutations.deleteBranch);
@@ -139,13 +139,16 @@ export function SedesManagementContent() {
                         SEDES DISPONIBLES
                     </h1>
                     <p className="text-xl text-gray-700 mb-6">
-                        Gerente, Estas Son Las Sedes Disponibles Actualmente
+                        Administrador, Estas Son Las Sedes Disponibles Actualmente
                     </p>
 
                     {/* Filtros y botón de añadir */}
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                         {/* Filtro por ciudad */}
                         <div className="w-full sm:w-64">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                                Filtrar por ciudad
+                            </h4>
                             <Select
                                 value={selectedCity}
                                 onValueChange={setSelectedCity}
@@ -163,16 +166,6 @@ export function SedesManagementContent() {
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        {/* Add Sede Button */}
-                        <Button
-                            onClick={handleAddSede}
-                            className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-scale-in w-full sm:w-auto"
-                            disabled={isLoading || hasAnyDeletingOperation}
-                        >
-                            <Plus size={20} />
-                            Añadir Sede
-                        </Button>
                     </div>
                 </div>
 

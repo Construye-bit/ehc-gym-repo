@@ -140,6 +140,49 @@ export const createTrainerComplete = action({
                 throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
             }
 
+            // 4.1 Verificar que el admin tenga permisos para crear trainers en esta sede
+            // Obtener el usuario actual
+            const currentUser = await ctx.runQuery(api.trainers.queries.getUserByClerkId, {
+                clerk_id: identity.subject
+            });
+
+            if (!currentUser) {
+                throw new AccessDeniedError("Usuario no encontrado");
+            }
+
+            // Verificar si es SUPER_ADMIN
+            const currentUserRoles = await ctx.runQuery(api.trainers.queries.getRolesByUserId, {
+                userId: currentUser._id
+            });
+
+            const isSuperAdmin = currentUserRoles.some(role => role.role === "SUPER_ADMIN");
+
+            // Si no es super admin, verificar que tenga la sede asignada
+            if (!isSuperAdmin) {
+                // Buscar la persona asociada
+                const currentPerson = await ctx.runQuery(api.persons.queries.getByUserId, {
+                    userId: currentUser._id
+                });
+
+                if (!currentPerson) {
+                    throw new AccessDeniedError("Persona no encontrada");
+                }
+
+                // Buscar el admin asociado
+                const currentAdmin = await ctx.runQuery(api.admins.queries.getByPersonId, {
+                    personId: currentPerson._id
+                });
+
+                if (!currentAdmin || !currentAdmin.branch_id) {
+                    throw new AccessDeniedError("Administrador no encontrado o sin sede asignada");
+                }
+
+                // Verificar que la sede del trainer sea la misma que la del admin
+                if (currentAdmin.branch_id !== branch._id) {
+                    throw new AccessDeniedError(`No tienes permisos para crear entrenadores en la sede "${validatedWorkData.branch}". Solo puedes crear entrenadores en tu sede asignada.`);
+                }
+            }
+
             // 5. Generar código de empleado único
             const employeeCode: string = await ctx.runMutation(api.trainers.mutations.generateEmployeeCode, {});
 
@@ -440,6 +483,45 @@ export const updateTrainerComplete = action({
 
         const { trainer, person, user } = currentData;
 
+        // Verificar permisos del admin para editar este trainer
+        const currentUser = await ctx.runQuery(api.trainers.queries.getUserByClerkId, {
+            clerk_id: identity.subject
+        });
+
+        if (!currentUser) {
+            throw new AccessDeniedError("Usuario no encontrado");
+        }
+
+        // Verificar si es SUPER_ADMIN
+        const currentUserRoles = await ctx.runQuery(api.trainers.queries.getRolesByUserId, {
+            userId: currentUser._id
+        });
+
+        const isSuperAdmin = currentUserRoles.some(role => role.role === "SUPER_ADMIN");
+
+        // Si no es super admin, verificar que el trainer esté en su sede
+        if (!isSuperAdmin && trainer.branch_id) {
+            const currentPerson = await ctx.runQuery(api.persons.queries.getByUserId, {
+                userId: currentUser._id
+            });
+
+            if (!currentPerson) {
+                throw new AccessDeniedError("Persona no encontrada");
+            }
+
+            const currentAdmin = await ctx.runQuery(api.admins.queries.getByPersonId, {
+                personId: currentPerson._id
+            });
+
+            if (!currentAdmin || !currentAdmin.branch_id) {
+                throw new AccessDeniedError("Administrador no encontrado o sin sede asignada");
+            }
+
+            if (currentAdmin.branch_id !== trainer.branch_id) {
+                throw new AccessDeniedError("No tienes permisos para editar este entrenador");
+            }
+        }
+
         // Verificar que la clave secreta de Clerk esté disponible
         const clerkSecretKey = process.env.CLERK_SECRET_KEY;
         if (!clerkSecretKey) {
@@ -520,6 +602,30 @@ export const updateTrainerComplete = action({
                 if (!newBranch) {
                     throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
                 }
+
+                // Si no es super admin, verificar que la nueva sede sea la misma que su sede asignada
+                if (!isSuperAdmin) {
+                    const currentPerson = await ctx.runQuery(api.persons.queries.getByUserId, {
+                        userId: currentUser._id
+                    });
+
+                    if (!currentPerson) {
+                        throw new AccessDeniedError("Persona no encontrada");
+                    }
+
+                    const currentAdmin = await ctx.runQuery(api.admins.queries.getByPersonId, {
+                        personId: currentPerson._id
+                    });
+
+                    if (!currentAdmin || !currentAdmin.branch_id) {
+                        throw new AccessDeniedError("Administrador no encontrado o sin sede asignada");
+                    }
+
+                    if (currentAdmin.branch_id !== newBranch._id) {
+                        throw new AccessDeniedError("No puedes cambiar el entrenador a una sede diferente a la tuya");
+                    }
+                }
+
                 newBranchId = newBranch._id;
             }
 
@@ -662,6 +768,45 @@ export const deleteTrainerComplete = action({
         });
 
         const { trainer, person, user } = userData;
+
+        // Verificar permisos del admin para eliminar este trainer
+        const currentUser = await ctx.runQuery(api.trainers.queries.getUserByClerkId, {
+            clerk_id: identity.subject
+        });
+
+        if (!currentUser) {
+            throw new AccessDeniedError("Usuario no encontrado");
+        }
+
+        // Verificar si es SUPER_ADMIN
+        const currentUserRoles = await ctx.runQuery(api.trainers.queries.getRolesByUserId, {
+            userId: currentUser._id
+        });
+
+        const isSuperAdmin = currentUserRoles.some(role => role.role === "SUPER_ADMIN");
+
+        // Si no es super admin, verificar que el trainer esté en su sede
+        if (!isSuperAdmin && trainer.branch_id) {
+            const currentPerson = await ctx.runQuery(api.persons.queries.getByUserId, {
+                userId: currentUser._id
+            });
+
+            if (!currentPerson) {
+                throw new AccessDeniedError("Persona no encontrada");
+            }
+
+            const currentAdmin = await ctx.runQuery(api.admins.queries.getByPersonId, {
+                personId: currentPerson._id
+            });
+
+            if (!currentAdmin || !currentAdmin.branch_id) {
+                throw new AccessDeniedError("Administrador no encontrado o sin sede asignada");
+            }
+
+            if (currentAdmin.branch_id !== trainer.branch_id) {
+                throw new AccessDeniedError("No tienes permisos para eliminar este entrenador");
+            }
+        }
 
         try {
             // PASO 1: ELIMINAR DE CLERK PRIMERO (con máxima prioridad)

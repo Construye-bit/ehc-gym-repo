@@ -12,7 +12,7 @@ interface FormHeaderProps {
 export function FormHeader({ currentStep, totalSteps }: FormHeaderProps) {
     return (
         <div className="flex items-center gap-4 mb-8">
-            <Link to="/super-admin/trainers">
+            <Link to="/admin/trainers">
                 <Button
                     variant="outline"
                     className="flex items-center gap-2 cursor-pointer bg-white border-gray-300 text-gray-700 hover:bg-yellow-100 hover:border-yellow-400 hover:text-black transition-colors"

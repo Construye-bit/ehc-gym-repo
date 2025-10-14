@@ -3,6 +3,7 @@ import { ProgressSteps } from "@/components/ui/progress-steps";
 
 // Custom hook
 import { useTrainerForm } from "@/hooks/use-trainer-form";
+import { useAuth } from "@/hooks/use-auth";
 
 // Components
 import { FormHeader } from "./form-header";
@@ -17,6 +18,9 @@ import { TOTAL_STEPS } from "@/lib/trainer-constants";
 // ===== COMPONENTE PRINCIPAL =====
 
 export default function NewTrainerForm() {
+    // Detectar rol del usuario
+    const { isSuperAdmin } = useAuth();
+
     // Usar el hook personalizado que contiene toda la lógica
     const {
         currentStep,
@@ -100,7 +104,7 @@ export default function NewTrainerForm() {
                     onSubmit={handleSubmit}
                     onCancel={() => {
                         resetForm();
-                        navigate({ to: '/super-admin/trainers' });
+                        navigate({ to: isSuperAdmin ? '/super-admin/trainers' : '/admin/trainers' });
                     }}
                 />
             </div>

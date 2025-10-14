@@ -192,3 +192,17 @@ export const checkPersonByDocument = query({
         return person ?? null;
     },
 });
+
+// === Obtener admin por person_id ===
+export const getByPersonId = query({
+    args: {
+        personId: v.id("persons"),
+    },
+    handler: async (ctx, { personId }) => {
+        return await ctx.db
+            .query("admins")
+            .withIndex("by_person", (q) => q.eq("person_id", personId))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+    },
+});
