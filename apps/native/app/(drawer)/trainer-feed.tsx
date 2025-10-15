@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   FlatList,
@@ -6,94 +6,85 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
 import { PostCard } from '@/components/feed/PostCard';
 import { CreatePostButton } from '@/components/feed/CreatePostButton';
 import { CreatePostModal, CreatePostData } from '@/components/feed/CreatePostModal';
-import { TrainerPost, FeedTab } from '@/types/feed.types';
+import { FeedTab } from '@/types/feed.types';
 import { AppColors } from '@/constants/Colors';
-
-const CURRENT_TRAINER_ID = 'trainer1'; // TODO: Obtener del contexto de autenticación
+import { useAuth } from '@/hooks/use-auth';
+import api from '@/api';
+import type { Id } from '@/api';
 
 export default function TrainerFeedScreen() {
-  const [posts, setPosts] = useState<TrainerPost[]>([]);
+  const { person } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTab>('all');
-  const [editingPost, setEditingPost] = useState<(TrainerPost & { id: string }) | undefined>();
+  const [editingPost, setEditingPost] = useState<any | undefined>();
 
-  const fetchPosts = useCallback(async () => {
+  // Queries
+  const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
+  
+  // Mutations
+  const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
+  const createPostMutation = useMutation(api.posts.index.createPost);
+  const updatePostMutation = useMutation(api.posts.index.updatePost);
+  const deletePostMutation = useMutation(api.posts.index.deletePost);
+  const generateUploadUrlMutation = useMutation(api.posts.index.generateUploadUrl);
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    
-    // Datos de ejemplo (TEMPORAL - reemplazar con Convex)
-    const mockPosts: TrainerPost[] = [
-      {
-        id: '1',
-        trainerId: 'trainer1',
-        trainerName: 'Carlos Martínez',
-        title: '5 Ejercicios para fortalecer el core',
-        content: 'El core es fundamental para cualquier rutina de entrenamiento. Aquí te comparto mis ejercicios favoritos que te ayudarán a desarrollar una base sólida y mejorar tu postura.',
-        likesCount: 42,
-        isLiked: false,
-        createdAt: Date.now() - 3600000,
-      },
-      {
-        id: '2',
-        trainerId: 'trainer2',
-        trainerName: 'María González',
-        title: 'La importancia de la hidratación',
-        content: 'Muchos subestiman el poder del agua en el rendimiento deportivo. Mantente hidratado antes, durante y después del entrenamiento para maximizar tus resultados.',
-        likesCount: 35,
-        isLiked: true,
-        createdAt: Date.now() - 7200000,
-      },
-      {
-        id: '3',
-        trainerId: 'trainer1',
-        trainerName: 'Carlos Martínez',
-        title: 'Rutina de calentamiento efectiva',
-        content: 'Un buen calentamiento puede prevenir lesiones y mejorar tu rendimiento. Te comparto mi rutina de 10 minutos que incluye movilidad articular y activación muscular.',
-        imageUrl: 'https://picsum.photos/400/300',
-        likesCount: 28,
-        isLiked: false,
-        createdAt: Date.now() - 10800000,
-      },
-    ];
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
-    setTimeout(() => {
-      setPosts(mockPosts);
-      setRefreshing(false);
-    }, 1000);
-  }, []);
-
-  React.useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  const handleLike = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { 
-            ...post, 
-            isLiked: !post.isLiked,
-            likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1
-          }
-        : post
-    ));
+  const handleLike = async (postId: string) => {
+    try {
+      await toggleLikeMutation({ postId: postId as Id<"posts"> });
+    } catch (error) {
+      console.error('Error al dar like:', error);
+      Alert.alert('Error', 'No se pudo dar like a la publicación');
+    }
   };
 
   const handleEdit = (postId: string) => {
-    const post = posts.find(p => p.id === postId);
+    const posts = feedData?.posts || [];
+    const post = posts.find((p: any) => p._id === postId);
     if (post) {
-      setEditingPost(post as TrainerPost & { id: string });
+      setEditingPost({
+        id: post._id,
+        description: post.description,
+        imageUrl: post.image_url,
+      });
       setIsCreateModalVisible(true);
     }
   };
 
-  const handleDelete = (postId: string) => {
-    setPosts(prev => prev.filter(post => post.id !== postId));
+  const handleDelete = async (postId: string) => {
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePostMutation({ postId: postId as Id<"posts"> });
+            } catch (error) {
+              console.error('Error al eliminar:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCreatePost = () => {
@@ -102,36 +93,89 @@ export default function TrainerFeedScreen() {
   };
 
   const handleSubmitPost = async (postData: CreatePostData) => {
-    if (editingPost) {
-      // Editar post existente
-      setPosts(prev => prev.map(post =>
-        post.id === editingPost.id
-          ? { ...post, ...postData }
-          : post
-      ));
-    } else {
-      // Crear nuevo post
-      const newPost: TrainerPost = {
-        id: Date.now().toString(),
-        trainerId: CURRENT_TRAINER_ID,
-        trainerName: 'Carlos Martínez', // TODO: Obtener del contexto
-        title: postData.title,
-        content: postData.content,
-        imageUrl: postData.imageUri,
-        likesCount: 0,
-        isLiked: false,
-        createdAt: Date.now(),
-      };
-      setPosts(prev => [newPost, ...prev]);
+    try {
+      if (editingPost) {
+        // Editar post existente
+        const updateData: any = {
+          postId: editingPost.id as Id<"posts">,
+          description: postData.content,
+        };
+
+        // TODO: Manejar imagen si existe
+        // if (postData.imageUri) {
+        //   const uploadUrl = await generateUploadUrlMutation();
+        //   // Upload image...
+        //   updateData.image_storage_id = ...;
+        // }
+
+        await updatePostMutation(updateData);
+        Alert.alert('Éxito', 'Publicación actualizada correctamente');
+      } else {
+        // Crear nuevo post
+        const createData: any = {
+          description: postData.content,
+        };
+
+        // TODO: Manejar imagen si existe
+        // if (postData.imageUri) {
+        //   const uploadUrl = await generateUploadUrlMutation();
+        //   // Upload image...
+        //   createData.image_storage_id = ...;
+        // }
+
+        await createPostMutation(createData);
+        Alert.alert('Éxito', 'Publicación creada correctamente');
+      }
+
+      setIsCreateModalVisible(false);
+      setEditingPost(undefined);
+    } catch (error) {
+      console.error('Error al guardar publicación:', error);
+      Alert.alert('Error', 'No se pudo guardar la publicación');
     }
-    
-    setIsCreateModalVisible(false);
-    setEditingPost(undefined);
   };
 
+  // Estado de carga
+  if (feedData === undefined) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            title: 'Consejos de Entrenadores',
+          }}
+        />
+        <View style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+            <Text style={styles.loadingText}>Cargando consejos...</Text>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  const allPosts = feedData.posts || [];
+  
+  // Obtener el user_id actual para filtrar "Mis Consejos"
+  const currentUserId = person?.user_id;
+  
+  // Filtrar según la pestaña activa
   const filteredPosts = activeTab === 'all' 
-    ? posts 
-    : posts.filter(post => post.trainerId === CURRENT_TRAINER_ID);
+    ? allPosts 
+    : allPosts.filter((post: any) => post.user_id === currentUserId);
+
+  // Transformar posts al formato del componente
+  const transformedPosts = filteredPosts.map((post: any) => ({
+    id: post._id,
+    trainerId: post.trainer_id,
+    trainerName: post.trainer_name,
+    title: 'Consejo de entrenador',
+    content: post.description,
+    imageUrl: post.image_url,
+    likesCount: post.likes_count,
+    isLiked: post.user_has_liked,
+    createdAt: post.published_at,
+  }));
 
   return (
     <>
@@ -165,7 +209,7 @@ export default function TrainerFeedScreen() {
 
         {/* Lista de Posts */}
         <FlatList
-          data={filteredPosts}
+          data={transformedPosts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PostCard
@@ -173,13 +217,13 @@ export default function TrainerFeedScreen() {
               onLike={handleLike}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              isOwnPost={item.trainerId === CURRENT_TRAINER_ID}
+              isOwnPost={item.trainerId === currentUserId}
             />
           )}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={fetchPosts}
+              onRefresh={handleRefresh}
               tintColor={AppColors.primary.yellow}
             />
           }
@@ -208,7 +252,12 @@ export default function TrainerFeedScreen() {
             setEditingPost(undefined);
           }}
           onSubmit={handleSubmitPost}
-          editPost={editingPost}
+          editPost={editingPost ? {
+            id: editingPost.id,
+            title: '',
+            content: editingPost.description,
+            imageUri: editingPost.imageUrl,
+          } : undefined}
         />
       </View>
     </>
@@ -248,6 +297,17 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
     paddingBottom: 100,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: AppColors.text.secondary,
+    marginTop: 16,
   },
   emptyContainer: {
     flex: 1,

@@ -1,109 +1,42 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
 import { ClientPostCard } from '@/components/client-feed';
-import { ClientFeedPost } from '@/types/feed.types';
 import { AppColors } from '@/constants/Colors';
-
-const CURRENT_CLIENT_ID = 'client1'; // TODO: Obtener del contexto de autenticación
+import api from '@/api';
+import type { Id } from '@/api';
 
 export default function ClientFeedScreen() {
-  const [posts, setPosts] = useState<ClientFeedPost[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchPosts = useCallback(async () => {
+  // Obtener feed de publicaciones desde Convex
+  const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
+  
+  // Mutation para dar/quitar like
+  const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    
-    // Datos de ejemplo (TEMPORAL - reemplazar con Convex)
-    const mockPosts: ClientFeedPost[] = [
-      {
-        id: '1',
-        trainerId: 'trainer1',
-        trainerName: 'Carlos Martínez',
-        trainerAvatar: 'https://picsum.photos/100/100?random=1',
-        title: '5 Ejercicios para fortalecer el core',
-        content: 'El core es fundamental para cualquier rutina de entrenamiento. Aquí te comparto mis ejercicios favoritos que te ayudarán a desarrollar una base sólida y mejorar tu postura.',
-        likesCount: 42,
-        isLiked: false,
-        createdAt: Date.now() - 3600000,
-      },
-      {
-        id: '2',
-        trainerId: 'trainer2',
-        trainerName: 'María González',
-        trainerAvatar: 'https://picsum.photos/100/100?random=2',
-        title: 'La importancia de la hidratación',
-        content: 'Muchos subestiman el poder del agua en el rendimiento deportivo. Mantente hidratado antes, durante y después del entrenamiento para maximizar tus resultados.',
-        imageUrl: 'https://picsum.photos/400/300?random=1',
-        likesCount: 35,
-        isLiked: true,
-        createdAt: Date.now() - 7200000,
-      },
-      {
-        id: '3',
-        trainerId: 'trainer3',
-        trainerName: 'Juan López',
-        title: 'Rutina de calentamiento efectiva',
-        content: 'Un buen calentamiento puede prevenir lesiones y mejorar tu rendimiento. Te comparto mi rutina de 10 minutos que incluye movilidad articular y activación muscular.',
-        likesCount: 28,
-        isLiked: false,
-        createdAt: Date.now() - 10800000,
-      },
-      {
-        id: '4',
-        trainerId: 'trainer1',
-        trainerName: 'Carlos Martínez',
-        title: 'Nutrición post-entrenamiento',
-        content: 'Lo que comes después de entrenar es crucial para la recuperación muscular. Aquí te explico qué comer y cuándo para obtener los mejores resultados.',
-        imageUrl: 'https://picsum.photos/400/300?random=2',
-        likesCount: 51,
-        isLiked: true,
-        createdAt: Date.now() - 14400000,
-      },
-      {
-        id: '5',
-        trainerId: 'trainer2',
-        trainerName: 'María González',
-        title: 'Descanso y recuperación',
-        content: 'El descanso es tan importante como el entrenamiento. Aprende a optimizar tu recuperación para evitar el sobreentrenamiento y mejorar tus resultados.',
-        likesCount: 19,
-        isLiked: false,
-        createdAt: Date.now() - 21600000,
-      },
-    ];
+    // El useQuery se refresca automáticamente
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
-    // Simular delay de red
-    setTimeout(() => {
-      setPosts(mockPosts);
-      setRefreshing(false);
-    }, 1000);
-  }, []);
-
-  React.useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  const handleLike = useCallback((postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { 
-            ...post, 
-            isLiked: !post.isLiked,
-            likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1
-          }
-        : post
-    ));
-
-    // TODO: Implementar la mutación de Convex para dar/quitar like
-    // await ctx.runMutation(api.posts.toggleLike, { postId, clientId: CURRENT_CLIENT_ID });
-  }, []);
+  const handleLike = async (postId: string) => {
+    try {
+      await toggleLikeMutation({ postId: postId as Id<"posts"> });
+    } catch (error) {
+      console.error('Error al dar like:', error);
+    }
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -117,6 +50,55 @@ export default function ClientFeedScreen() {
       </Text>
     </View>
   );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+      <Text style={styles.loadingText}>Cargando consejos...</Text>
+    </View>
+  );
+
+  // Si está cargando, mostrar indicador
+  if (feedData === undefined) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            title: 'Consejos de Entrenadores',
+            headerStyle: {
+              backgroundColor: AppColors.primary.yellow,
+            },
+            headerTintColor: AppColors.text.primary,
+          }}
+        />
+        <View style={styles.container}>
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle" size={20} color={AppColors.primary.yellow} />
+            <Text style={styles.infoBannerText}>
+              Descubre consejos y tips de nuestros entrenadores profesionales
+            </Text>
+          </View>
+          {renderLoadingState()}
+        </View>
+      </>
+    );
+  }
+
+  const posts = feedData.posts || [];
+
+  // Transformar posts de Convex al formato del componente
+  const transformedPosts = posts.map((post: any) => ({
+    id: post._id,
+    trainerId: post.trainer_id,
+    trainerName: post.trainer_name,
+    trainerAvatar: undefined, // TODO: Agregar avatar en el futuro
+    title: 'Consejo de entrenador', // El schema actual no tiene título
+    content: post.description,
+    imageUrl: post.image_url,
+    likesCount: post.likes_count,
+    isLiked: post.user_has_liked,
+    createdAt: post.published_at,
+  }));
 
   return (
     <>
@@ -141,7 +123,7 @@ export default function ClientFeedScreen() {
 
         {/* Lista de Posts */}
         <FlatList
-          data={posts}
+          data={transformedPosts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ClientPostCard
@@ -152,7 +134,7 @@ export default function ClientFeedScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={fetchPosts}
+              onRefresh={handleRefresh}
               tintColor={AppColors.primary.yellow}
               colors={[AppColors.primary.yellow]}
             />
@@ -190,6 +172,17 @@ const styles = StyleSheet.create({
   listContent: {
     paddingVertical: 8,
     flexGrow: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: AppColors.text.secondary,
+    marginTop: 16,
   },
   emptyContainer: {
     flex: 1,
