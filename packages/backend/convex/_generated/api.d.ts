@@ -42,6 +42,7 @@ import type * as client_branches_queries from "../client_branches/queries.js";
 import type * as client_branches_utils from "../client_branches/utils.js";
 import type * as client_branches_validations from "../client_branches/validations.js";
 import type * as clients_index from "../clients/index.js";
+import type * as clients_internalQueries from "../clients/internalQueries.js";
 import type * as clients_mutations from "../clients/mutations.js";
 import type * as clients_queries from "../clients/queries.js";
 import type * as clients_utils from "../clients/utils.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "client_branches/utils": typeof client_branches_utils;
   "client_branches/validations": typeof client_branches_validations;
   "clients/index": typeof clients_index;
+  "clients/internalQueries": typeof clients_internalQueries;
   "clients/mutations": typeof clients_mutations;
   "clients/queries": typeof clients_queries;
   "clients/utils": typeof clients_utils;

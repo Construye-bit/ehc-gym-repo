@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { z } from "zod";
+import { useAuth } from "./use-auth";
 
 import {
     userDataSchema,
@@ -16,6 +17,7 @@ import {
 import type { FormErrors } from "../lib/trainer-types";
 
 export function useTrainerForm() {
+    const { isSuperAdmin } = useAuth();
     // Estados
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -43,7 +45,9 @@ export function useTrainerForm() {
     // Hooks
     const navigate = useNavigate();
     const createTrainerComplete = useAction(api.trainers.mutations.createTrainerComplete);
-    const branches = useQuery(api.branches.queries.list);
+    // Usar getMyBranchesWithDetails que funciona tanto para admins como super admins
+    const branchesData = useQuery(api.branches.queries.getMyBranchesWithDetails);
+    const branches = branchesData?.map(b => ({ _id: b._id, name: b.name, status: b.status }));
 
     // Handlers
     const updateUserData = (field: keyof UserData, value: string) => {
@@ -254,7 +258,7 @@ export function useTrainerForm() {
 
             // Redirigir después de un breve delay para que se vea el toast
             setTimeout(() => {
-                navigate({ to: '/super-admin/trainers' });
+                navigate({ to: isSuperAdmin ? '/super-admin/trainers' : '/admin/trainers' });
             }, 1000);
 
         } catch (error) {

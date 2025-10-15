@@ -58,17 +58,17 @@ export function AdminDashboardHeader({ onLogout }: AdminDashboardHeaderProps) {
                         >
                             Entrenadores
                         </Link>
-                        <a
-                            href="#sistema"
+                        <Link
+                            to="/super-admin/administrators"
                             className={
                                 `font-medium transition-colors px-2 py-1 rounded-lg ` +
-                                (pathname.startsWith("/super-admin/sistema")
+                                (pathname.startsWith("/super-admin/administrators")
                                     ? "bg-yellow-400 text-white"
                                     : "text-gray-700 hover:text-yellow-600")
                             }
                         >
-                            Sistema
-                        </a>
+                            Administradores
+                        </Link>
                     </nav>
 
                     {/* User Menu */}

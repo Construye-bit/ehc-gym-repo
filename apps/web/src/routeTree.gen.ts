@@ -9,17 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RedirectToMobileRouteImport } from './routes/redirect-to-mobile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as SuperAdminLoginRouteImport } from './routes/super-admin/login'
 import { Route as SuperAdminForgotPasswordRouteImport } from './routes/super-admin/forgot-password'
 import { Route as SuperAdminDashboardRouteImport } from './routes/super-admin/dashboard'
 import { Route as SuperAdminTrainersIndexRouteImport } from './routes/super-admin/trainers/index'
 import { Route as SuperAdminSedesIndexRouteImport } from './routes/super-admin/sedes/index'
 import { Route as SuperAdminPersonalIndexRouteImport } from './routes/super-admin/personal/index'
+import { Route as SuperAdminAdministratorsIndexRouteImport } from './routes/super-admin/administrators/index'
+import { Route as AdminTrainersIndexRouteImport } from './routes/admin/trainers/index'
+import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
+import { Route as AdminClientsIndexRouteImport } from './routes/admin/clients/index'
 import { Route as SuperAdminTrainersNewRouteImport } from './routes/super-admin/trainers/new'
 import { Route as SuperAdminTrainersEditRouteImport } from './routes/super-admin/trainers/edit'
+import { Route as SuperAdminAdministratorsNewRouteImport } from './routes/super-admin/administrators/new'
+import { Route as SuperAdminAdministratorsEditRouteImport } from './routes/super-admin/administrators/edit'
+import { Route as AdminTrainersNewRouteImport } from './routes/admin/trainers/new'
+import { Route as AdminTrainersEditRouteImport } from './routes/admin/trainers/edit'
 
+const RedirectToMobileRoute = RedirectToMobileRouteImport.update({
+  id: '/redirect-to-mobile',
+  path: '/redirect-to-mobile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -28,6 +43,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminLoginRoute = SuperAdminLoginRouteImport.update({
@@ -61,6 +81,27 @@ const SuperAdminPersonalIndexRoute = SuperAdminPersonalIndexRouteImport.update({
   path: '/super-admin/personal/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminAdministratorsIndexRoute =
+  SuperAdminAdministratorsIndexRouteImport.update({
+    id: '/super-admin/administrators/',
+    path: '/super-admin/administrators/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminTrainersIndexRoute = AdminTrainersIndexRouteImport.update({
+  id: '/admin/trainers/',
+  path: '/admin/trainers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSedesIndexRoute = AdminSedesIndexRouteImport.update({
+  id: '/admin/sedes/',
+  path: '/admin/sedes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminClientsIndexRoute = AdminClientsIndexRouteImport.update({
+  id: '/admin/clients/',
+  path: '/admin/clients/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuperAdminTrainersNewRoute = SuperAdminTrainersNewRouteImport.update({
   id: '/super-admin/trainers/new',
   path: '/super-admin/trainers/new',
@@ -71,15 +112,47 @@ const SuperAdminTrainersEditRoute = SuperAdminTrainersEditRouteImport.update({
   path: '/super-admin/trainers/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminAdministratorsNewRoute =
+  SuperAdminAdministratorsNewRouteImport.update({
+    id: '/super-admin/administrators/new',
+    path: '/super-admin/administrators/new',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SuperAdminAdministratorsEditRoute =
+  SuperAdminAdministratorsEditRouteImport.update({
+    id: '/super-admin/administrators/edit',
+    path: '/super-admin/administrators/edit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminTrainersNewRoute = AdminTrainersNewRouteImport.update({
+  id: '/admin/trainers/new',
+  path: '/admin/trainers/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTrainersEditRoute = AdminTrainersEditRouteImport.update({
+  id: '/admin/trainers/edit',
+  path: '/admin/trainers/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/admin': typeof AdminIndexRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/admin/clients': typeof AdminClientsIndexRoute
+  '/admin/sedes': typeof AdminSedesIndexRoute
+  '/admin/trainers': typeof AdminTrainersIndexRoute
+  '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers': typeof SuperAdminTrainersIndexRoute
@@ -87,11 +160,21 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/admin': typeof AdminIndexRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/admin/clients': typeof AdminClientsIndexRoute
+  '/admin/sedes': typeof AdminSedesIndexRoute
+  '/admin/trainers': typeof AdminTrainersIndexRoute
+  '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers': typeof SuperAdminTrainersIndexRoute
@@ -100,11 +183,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/redirect-to-mobile': typeof RedirectToMobileRoute
   '/super-admin/dashboard': typeof SuperAdminDashboardRoute
   '/super-admin/forgot-password': typeof SuperAdminForgotPasswordRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
+  '/admin/': typeof AdminIndexRoute
+  '/admin/trainers/edit': typeof AdminTrainersEditRoute
+  '/admin/trainers/new': typeof AdminTrainersNewRoute
+  '/super-admin/administrators/edit': typeof SuperAdminAdministratorsEditRoute
+  '/super-admin/administrators/new': typeof SuperAdminAdministratorsNewRoute
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
+  '/admin/clients/': typeof AdminClientsIndexRoute
+  '/admin/sedes/': typeof AdminSedesIndexRoute
+  '/admin/trainers/': typeof AdminTrainersIndexRoute
+  '/super-admin/administrators/': typeof SuperAdminAdministratorsIndexRoute
   '/super-admin/personal/': typeof SuperAdminPersonalIndexRoute
   '/super-admin/sedes/': typeof SuperAdminSedesIndexRoute
   '/super-admin/trainers/': typeof SuperAdminTrainersIndexRoute
@@ -114,11 +207,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/admin'
+    | '/admin/trainers/edit'
+    | '/admin/trainers/new'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/admin/clients'
+    | '/admin/sedes'
+    | '/admin/trainers'
+    | '/super-admin/administrators'
     | '/super-admin/personal'
     | '/super-admin/sedes'
     | '/super-admin/trainers'
@@ -126,11 +229,21 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/admin'
+    | '/admin/trainers/edit'
+    | '/admin/trainers/new'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/admin/clients'
+    | '/admin/sedes'
+    | '/admin/trainers'
+    | '/super-admin/administrators'
     | '/super-admin/personal'
     | '/super-admin/sedes'
     | '/super-admin/trainers'
@@ -138,11 +251,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/redirect-to-mobile'
     | '/super-admin/dashboard'
     | '/super-admin/forgot-password'
     | '/super-admin/login'
+    | '/admin/'
+    | '/admin/trainers/edit'
+    | '/admin/trainers/new'
+    | '/super-admin/administrators/edit'
+    | '/super-admin/administrators/new'
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
+    | '/admin/clients/'
+    | '/admin/sedes/'
+    | '/admin/trainers/'
+    | '/super-admin/administrators/'
     | '/super-admin/personal/'
     | '/super-admin/sedes/'
     | '/super-admin/trainers/'
@@ -151,11 +274,21 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  RedirectToMobileRoute: typeof RedirectToMobileRoute
   SuperAdminDashboardRoute: typeof SuperAdminDashboardRoute
   SuperAdminForgotPasswordRoute: typeof SuperAdminForgotPasswordRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminTrainersEditRoute: typeof AdminTrainersEditRoute
+  AdminTrainersNewRoute: typeof AdminTrainersNewRoute
+  SuperAdminAdministratorsEditRoute: typeof SuperAdminAdministratorsEditRoute
+  SuperAdminAdministratorsNewRoute: typeof SuperAdminAdministratorsNewRoute
   SuperAdminTrainersEditRoute: typeof SuperAdminTrainersEditRoute
   SuperAdminTrainersNewRoute: typeof SuperAdminTrainersNewRoute
+  AdminClientsIndexRoute: typeof AdminClientsIndexRoute
+  AdminSedesIndexRoute: typeof AdminSedesIndexRoute
+  AdminTrainersIndexRoute: typeof AdminTrainersIndexRoute
+  SuperAdminAdministratorsIndexRoute: typeof SuperAdminAdministratorsIndexRoute
   SuperAdminPersonalIndexRoute: typeof SuperAdminPersonalIndexRoute
   SuperAdminSedesIndexRoute: typeof SuperAdminSedesIndexRoute
   SuperAdminTrainersIndexRoute: typeof SuperAdminTrainersIndexRoute
@@ -163,6 +296,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/redirect-to-mobile': {
+      id: '/redirect-to-mobile'
+      path: '/redirect-to-mobile'
+      fullPath: '/redirect-to-mobile'
+      preLoaderRoute: typeof RedirectToMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -175,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin/login': {
@@ -219,6 +366,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminPersonalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/administrators/': {
+      id: '/super-admin/administrators/'
+      path: '/super-admin/administrators'
+      fullPath: '/super-admin/administrators'
+      preLoaderRoute: typeof SuperAdminAdministratorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trainers/': {
+      id: '/admin/trainers/'
+      path: '/admin/trainers'
+      fullPath: '/admin/trainers'
+      preLoaderRoute: typeof AdminTrainersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/sedes/': {
+      id: '/admin/sedes/'
+      path: '/admin/sedes'
+      fullPath: '/admin/sedes'
+      preLoaderRoute: typeof AdminSedesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/clients/': {
+      id: '/admin/clients/'
+      path: '/admin/clients'
+      fullPath: '/admin/clients'
+      preLoaderRoute: typeof AdminClientsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/super-admin/trainers/new': {
       id: '/super-admin/trainers/new'
       path: '/super-admin/trainers/new'
@@ -233,17 +408,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminTrainersEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/administrators/new': {
+      id: '/super-admin/administrators/new'
+      path: '/super-admin/administrators/new'
+      fullPath: '/super-admin/administrators/new'
+      preLoaderRoute: typeof SuperAdminAdministratorsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/super-admin/administrators/edit': {
+      id: '/super-admin/administrators/edit'
+      path: '/super-admin/administrators/edit'
+      fullPath: '/super-admin/administrators/edit'
+      preLoaderRoute: typeof SuperAdminAdministratorsEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trainers/new': {
+      id: '/admin/trainers/new'
+      path: '/admin/trainers/new'
+      fullPath: '/admin/trainers/new'
+      preLoaderRoute: typeof AdminTrainersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trainers/edit': {
+      id: '/admin/trainers/edit'
+      path: '/admin/trainers/edit'
+      fullPath: '/admin/trainers/edit'
+      preLoaderRoute: typeof AdminTrainersEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  RedirectToMobileRoute: RedirectToMobileRoute,
   SuperAdminDashboardRoute: SuperAdminDashboardRoute,
   SuperAdminForgotPasswordRoute: SuperAdminForgotPasswordRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminTrainersEditRoute: AdminTrainersEditRoute,
+  AdminTrainersNewRoute: AdminTrainersNewRoute,
+  SuperAdminAdministratorsEditRoute: SuperAdminAdministratorsEditRoute,
+  SuperAdminAdministratorsNewRoute: SuperAdminAdministratorsNewRoute,
   SuperAdminTrainersEditRoute: SuperAdminTrainersEditRoute,
   SuperAdminTrainersNewRoute: SuperAdminTrainersNewRoute,
+  AdminClientsIndexRoute: AdminClientsIndexRoute,
+  AdminSedesIndexRoute: AdminSedesIndexRoute,
+  AdminTrainersIndexRoute: AdminTrainersIndexRoute,
+  SuperAdminAdministratorsIndexRoute: SuperAdminAdministratorsIndexRoute,
   SuperAdminPersonalIndexRoute: SuperAdminPersonalIndexRoute,
   SuperAdminSedesIndexRoute: SuperAdminSedesIndexRoute,
   SuperAdminTrainersIndexRoute: SuperAdminTrainersIndexRoute,

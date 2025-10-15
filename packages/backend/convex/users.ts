@@ -40,6 +40,14 @@ export const getUser = internalQuery({
     },
 });
 
+/** Get user by ID */
+export const getUserById = query({
+    args: { userId: v.id("users") },
+    async handler(ctx, { userId }) {
+        return await ctx.db.get(userId);
+    },
+});
+
 // ====== Mutations ======
 
 /** Create or update user from Clerk Webhook */

@@ -18,6 +18,49 @@ import {
     validateWithZod
 } from './validations';
 
+// Helper function to verify branch permissions
+async function verifyBranchPermission(ctx: any, clerkId: string, requiredBranchId: Id<"branches">) {
+    const currentUser = await ctx.runQuery(api.trainers.queries.getUserByClerkId, {
+        clerk_id: clerkId
+    });
+
+    if (!currentUser) {
+        throw new AccessDeniedError("Usuario no encontrado");
+    }
+
+    const currentUserRoles = await ctx.runQuery(api.trainers.queries.getRolesByUserId, {
+        userId: currentUser._id
+    });
+
+    const isSuperAdmin = currentUserRoles.some((role: any) => role.role === "SUPER_ADMIN");
+
+    if (isSuperAdmin) {
+        return { hasPermission: true, isSuperAdmin: true, currentPerson: null, currentAdmin: null };
+    }
+
+    const currentPerson = await ctx.runQuery(api.persons.queries.getByUserId, {
+        userId: currentUser._id
+    });
+
+    if (!currentPerson) {
+        throw new AccessDeniedError("Persona no encontrada");
+    }
+
+    const currentAdmin = await ctx.runQuery(api.admins.queries.getByPersonId, {
+        personId: currentPerson._id
+    });
+
+    if (!currentAdmin || !currentAdmin.branch_id) {
+        throw new AccessDeniedError("Administrador no encontrado o sin sede asignada");
+    }
+
+    if (currentAdmin.branch_id !== requiredBranchId) {
+        throw new AccessDeniedError("No tienes permisos para esta operación en esta sede");
+    }
+
+    return { hasPermission: true, isSuperAdmin: false, currentPerson, currentAdmin };
+}
+
 export const createTrainerComplete = action({
     args: {
         userData: v.object({
@@ -139,6 +182,10 @@ export const createTrainerComplete = action({
             if (!branch) {
                 throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
             }
+
+            // 4.1 Verificar que el admin tenga permisos para crear trainers en esta sede
+            const permissionCheck = await verifyBranchPermission(ctx, identity.subject, branch._id);
+            const { isSuperAdmin } = permissionCheck;
 
             // 5. Generar código de empleado único
             const employeeCode: string = await ctx.runMutation(api.trainers.mutations.generateEmployeeCode, {});
@@ -440,6 +487,13 @@ export const updateTrainerComplete = action({
 
         const { trainer, person, user } = currentData;
 
+        // Verificar permisos del admin para editar este trainer
+        if (!trainer.branch_id) {
+            throw new AccessDeniedError("El entrenador no tiene una sede asignada");
+        }
+        const permissionCheck = await verifyBranchPermission(ctx, identity.subject, trainer.branch_id as Id<"branches">);
+        const { isSuperAdmin, currentPerson, currentAdmin } = permissionCheck;
+
         // Verificar que la clave secreta de Clerk esté disponible
         const clerkSecretKey = process.env.CLERK_SECRET_KEY;
         if (!clerkSecretKey) {
@@ -520,6 +574,14 @@ export const updateTrainerComplete = action({
                 if (!newBranch) {
                     throw new AccessDeniedError(`La sede "${validatedWorkData.branch}" no existe`);
                 }
+
+                // Si no es super admin, verificar que la nueva sede sea la misma que su sede asignada
+                if (!isSuperAdmin) {
+                    if (currentAdmin.branch_id !== newBranch._id) {
+                        throw new AccessDeniedError("No puedes cambiar el entrenador a una sede diferente a la tuya");
+                    }
+                }
+
                 newBranchId = newBranch._id;
             }
 
@@ -662,6 +724,13 @@ export const deleteTrainerComplete = action({
         });
 
         const { trainer, person, user } = userData;
+
+        // Verificar permisos del admin para eliminar este trainer
+        if (!trainer.branch_id) {
+            throw new AccessDeniedError("El entrenador no tiene una sede asignada");
+        }
+        const permissionCheck = await verifyBranchPermission(ctx, identity.subject, trainer.branch_id as Id<"branches">);
+        const { isSuperAdmin } = permissionCheck;
 
         try {
             // PASO 1: ELIMINAR DE CLERK PRIMERO (con máxima prioridad)

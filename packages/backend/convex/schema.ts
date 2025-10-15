@@ -45,6 +45,7 @@ export default defineSchema({
     role_assignments: defineTable({
         user_id: v.id("users"),
         role: v.union(v.literal("CLIENT"), v.literal("TRAINER"), v.literal("ADMIN"), v.literal("SUPER_ADMIN")),
+        branch_id: v.optional(v.id("branches")), // Para administradores de sede
         assigned_at: v.number(),
         assigned_by_user_id: v.optional(v.id("users")),
         expires_at: v.optional(v.number()), // Para roles temporales
@@ -52,7 +53,8 @@ export default defineSchema({
     })
         .index("by_user_active", ["user_id", "active"])
         .index("by_user_role", ["user_id", "role"])
-        .index("by_role", ["role"]),
+        .index("by_role", ["role"])
+        .index("by_branch", ["branch_id"]),
 
 
     // ==================== DIRECCIONES ====================

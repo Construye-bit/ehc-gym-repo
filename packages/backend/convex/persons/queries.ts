@@ -24,6 +24,19 @@ export const getPersonByUserId = query({
     },
 });
 
+// Alias para compatibilidad
+export const getByUserId = query({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }) => {
+        return await ctx.db
+            .query("persons")
+            .withIndex("by_user", (q) => q.eq("user_id", userId))
+            .first();
+    },
+});
+
 // Query para verificar si existe una persona con un documento específico
 export const checkPersonByDocument = query({
     args: {

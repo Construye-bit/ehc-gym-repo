@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, action, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { mustGetCurrentUser } from "../users";
@@ -10,6 +10,10 @@ import {
 } from "./validations";
 import { assertClientUniquePerson } from "./utils";
 import { getCurrentActiveAdmin } from "../admins/utils";
+import { createClerkClient } from '@clerk/backend';
+import { Resend } from 'resend';
+import { api } from "../_generated/api";
+import { internal } from "../_generated/api";
 
 // Helper: usuario actual es SUPER_ADMIN?
 async function isSuperAdmin(ctx: any): Promise<boolean> {
@@ -339,5 +343,673 @@ export const registerClient = mutation({
                 `Error al registrar cliente: ${error instanceof Error ? error.message : "Error desconocido"}. Los cambios han sido revertidos.`
             );
         }
+    },
+});
+
+// Action para crear cliente completo con Clerk y envío de email
+export const createClientComplete = action({
+    args: {
+        personalData: v.object({
+            personName: v.string(),
+            personLastName: v.string(),
+            personBornDate: v.string(),
+            personDocumentType: v.string(),
+            personDocumentNumber: v.string(),
+            personPhone: v.string(),
+            personEmail: v.string(),
+        }),
+        emergencyContact: v.object({
+            name: v.string(),
+            phone: v.string(),
+            relationship: v.string(),
+        }),
+        branchId: v.id("branches"),
+    },
+    handler: async (ctx, { personalData, emergencyContact, branchId }): Promise<{
+        success: boolean;
+        data: {
+            clientId: Id<"clients">;
+            personId: Id<"persons">;
+            userId: Id<"users">;
+            clerkUserId: string;
+            temporaryPassword: string;
+            message: string;
+        };
+    }> => {
+        // Verificar autenticación y permisos de admin
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        // Verificar que el usuario tenga permisos
+        const currentUser = await ctx.runQuery(internal.clients.queries.getUserByClerkId, {
+            clerk_id: identity.subject
+        });
+
+        if (!currentUser) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        // Verificar permisos (debe ser admin o super admin)
+        const roles = await ctx.runQuery(internal.clients.queries.getUserRolesInternal, {
+            userId: currentUser._id
+        });
+
+        const hasPermission = roles.some((r: { role: string }) => r.role === "ADMIN" || r.role === "SUPER_ADMIN");
+        if (!hasPermission) {
+            throw new Error("No tienes permisos para crear clientes");
+        }
+
+        // Verificar que la clave secreta de Clerk esté disponible
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (!clerkSecretKey) {
+            throw new Error("CLERK_SECRET_KEY no está configurado");
+        }
+
+        const clerkClient = createClerkClient({
+            secretKey: clerkSecretKey
+        });
+
+        try {
+            // Verificar si el email ya existe en Clerk
+            const existingUsers = await clerkClient.users.getUserList({
+                emailAddress: [personalData.personEmail]
+            });
+
+            if (existingUsers.data.length > 0) {
+                throw new Error("Ya existe un usuario con este correo electrónico");
+            }
+
+            // Verificar si el número de documento ya existe
+            const existingPerson = await ctx.runQuery(internal.clients.queries.checkPersonByDocument, {
+                document_number: personalData.personDocumentNumber
+            });
+
+            if (existingPerson) {
+                throw new Error("Ya existe una persona con este número de documento");
+            }
+
+            // 1. Generar contraseña temporal
+            const temporaryPassword = generateSecurePassword();
+
+            // 2. Crear usuario en Clerk
+            const clerkUser = await clerkClient.users.createUser({
+                emailAddress: [personalData.personEmail],
+                password: temporaryPassword,
+                firstName: personalData.personName,
+                lastName: personalData.personLastName,
+                skipPasswordChecks: true,
+            });
+
+            let userId: Id<"users"> | undefined;
+            let personId: Id<"persons"> | undefined;
+            let emergencyContactId: Id<"emergency_contact"> | undefined;
+            let clientId: Id<"clients"> | undefined;
+
+            try {
+                // 3. Crear usuario en Convex
+                userId = await ctx.runMutation(internal.clients.mutations.createUserInDB, {
+                    clerk_id: clerkUser.id,
+                    name: `${personalData.personName} ${personalData.personLastName}`,
+                    email: personalData.personEmail,
+                });
+
+                // 4. Crear persona en Convex
+                personId = await ctx.runMutation(internal.clients.mutations.createPersonInDB, {
+                    user_id: userId,
+                    name: personalData.personName,
+                    last_name: personalData.personLastName,
+                    born_date: personalData.personBornDate,
+                    phone: personalData.personPhone,
+                    document_type: personalData.personDocumentType,
+                    document_number: personalData.personDocumentNumber,
+                });
+
+                // 5. Crear contacto de emergencia
+                emergencyContactId = await ctx.runMutation(
+                    internal.clients.mutations.createEmergencyContactInDB,
+                    {
+                        person_id: personId,
+                        name: emergencyContact.name,
+                        phone: emergencyContact.phone,
+                        relationship: emergencyContact.relationship,
+                    }
+                );
+
+                // 6. Crear cliente
+                clientId = await ctx.runMutation(internal.clients.mutations.createClientInDB, {
+                    person_id: personId,
+                    user_id: userId,
+                    created_by_user_id: currentUser._id,
+                });
+
+                // 7. Asignar rol de CLIENT
+                await ctx.runMutation(internal.clients.mutations.assignRoleInDB, {
+                    user_id: userId,
+                    role: "CLIENT",
+                    assigned_by_user_id: currentUser._id,
+                });
+
+                // 8. Vincular cliente con sede
+                await ctx.runMutation(internal.clients.mutations.linkClientToBranchInDB, {
+                    client_id: clientId,
+                    branch_id: branchId,
+                    created_by_user_id: currentUser._id,
+                });
+            } catch (dbError) {
+                console.error('Error en operaciones de base de datos, haciendo rollback:', dbError);
+
+                try {
+                    await clerkClient.users.deleteUser(clerkUser.id);
+                    console.log('Usuario de Clerk eliminado durante rollback');
+                } catch (clerkDeleteError) {
+                    console.error('Error al eliminar usuario de Clerk durante rollback:', clerkDeleteError);
+                }
+
+                throw dbError;
+            }
+
+            // 9. Enviar email de bienvenida con credenciales
+            console.log("Enviando email de bienvenida al cliente...");
+            try {
+                const resendApiKey = process.env.RESEND_API_KEY;
+                if (!resendApiKey) {
+                    console.log("Advertencia: RESEND_API_KEY no está configurado, saltando envío de email");
+                } else {
+                    const resend = new Resend(resendApiKey);
+                    const clientName = `${personalData.personName} ${personalData.personLastName}`;
+
+                    console.log(`Enviando email de bienvenida a: ${personalData.personEmail}`);
+
+                    const emailHtml = getWelcomeClientEmailTemplate(
+                        clientName,
+                        personalData.personEmail,
+                        temporaryPassword
+                    );
+
+                    await resend.emails.send({
+                        from: 'EHC Gym <onboarding@resend.dev>',
+                        to: [personalData.personEmail],
+                        subject: '¡Bienvenido a EHC Gym! - Tus credenciales de acceso',
+                        html: emailHtml,
+                    });
+
+                    console.log("Email enviado exitosamente");
+                }
+            } catch (emailError) {
+                console.error('Error al enviar email:', emailError);
+                // No lanzar error, el cliente ya fue creado exitosamente
+            }
+
+            return {
+                success: true,
+                data: {
+                    clientId,
+                    personId,
+                    userId,
+                    clerkUserId: clerkUser.id,
+                    temporaryPassword,
+                    message: `Cliente ${personalData.personName} ${personalData.personLastName} creado exitosamente`,
+                },
+            };
+        } catch (error) {
+            console.error('Error al crear cliente:', error);
+
+            // Mejor manejo de errores de Clerk
+            if (error && typeof error === "object" && "errors" in error) {
+                const clerkError = error as any;
+                if (clerkError.errors && Array.isArray(clerkError.errors) && clerkError.errors.length > 0) {
+                    const firstError = clerkError.errors[0];
+                    throw new Error(`Error de Clerk: ${firstError.message || JSON.stringify(firstError)}`);
+                }
+            }
+
+            // Manejo de errores estándar
+            let errorMessage = "Error desconocido";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "string") {
+                errorMessage = error;
+            } else if (error && typeof error === "object" && "message" in error) {
+                errorMessage = (error as { message: string }).message;
+            } else {
+                errorMessage = JSON.stringify(error);
+            }
+
+            throw new Error(`Error al crear cliente: ${errorMessage}`);
+        }
+    },
+});
+
+// Mutations auxiliares internas (pueden ser llamadas desde actions)
+export const createUserInDB = internalMutation({
+    args: {
+        clerk_id: v.string(),
+        name: v.string(),
+        email: v.string(),
+    },
+    handler: async (ctx, args): Promise<Id<"users">> => {
+        return await ctx.db.insert("users", {
+            clerk_id: args.clerk_id,
+            name: args.name,
+            email: args.email,
+            updated_at: Date.now(),
+            active: true,
+        });
+    },
+});
+
+export const createPersonInDB = internalMutation({
+    args: {
+        user_id: v.id("users"),
+        name: v.string(),
+        last_name: v.string(),
+        born_date: v.string(),
+        document_type: v.string(),
+        document_number: v.string(),
+        phone: v.string(),
+    },
+    handler: async (ctx, args): Promise<Id<"persons">> => {
+        return await ctx.db.insert("persons", {
+            user_id: args.user_id,
+            name: args.name,
+            last_name: args.last_name,
+            born_date: args.born_date,
+            document_type: args.document_type as any,
+            document_number: args.document_number,
+            phone: args.phone,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            active: true,
+        });
+    },
+});
+
+export const createEmergencyContactInDB = internalMutation({
+    args: {
+        person_id: v.id("persons"),
+        name: v.string(),
+        phone: v.string(),
+        relationship: v.string(),
+    },
+    handler: async (ctx, args): Promise<Id<"emergency_contact">> => {
+        return await ctx.db.insert("emergency_contact", {
+            person_id: args.person_id,
+            name: args.name,
+            phone: args.phone,
+            relationship: args.relationship,
+            active: true,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+        });
+    },
+});
+
+export const createClientInDB = internalMutation({
+    args: {
+        person_id: v.id("persons"),
+        user_id: v.id("users"),
+        created_by_user_id: v.id("users"),
+    },
+    handler: async (ctx, args): Promise<Id<"clients">> => {
+        return await ctx.db.insert("clients", {
+            person_id: args.person_id,
+            user_id: args.user_id,
+            status: "ACTIVE",
+            is_payment_active: false,
+            join_date: Date.now(),
+            created_by_user_id: args.created_by_user_id,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            active: true,
+        });
+    },
+});
+
+export const assignRoleInDB = internalMutation({
+    args: {
+        user_id: v.id("users"),
+        role: v.string(),
+        assigned_by_user_id: v.id("users"),
+    },
+    handler: async (ctx, args): Promise<Id<"role_assignments">> => {
+        return await ctx.db.insert("role_assignments", {
+            user_id: args.user_id,
+            role: args.role as any,
+            assigned_at: Date.now(),
+            assigned_by_user_id: args.assigned_by_user_id,
+            active: true,
+        });
+    },
+});
+
+export const linkClientToBranchInDB = internalMutation({
+    args: {
+        client_id: v.id("clients"),
+        branch_id: v.id("branches"),
+        created_by_user_id: v.id("users"),
+    },
+    handler: async (ctx, args): Promise<Id<"client_branches">> => {
+        return await ctx.db.insert("client_branches", {
+            client_id: args.client_id,
+            branch_id: args.branch_id,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            active: true,
+        });
+    },
+});
+
+// Función auxiliar para generar contraseña segura
+function generateSecurePassword(): string {
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const symbols = "!@#$%^&*";
+    const allChars = uppercase + lowercase + digits + symbols;
+
+    const getRandomChar = (chars: string): string => {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        return chars[randomValues[0] % chars.length];
+    };
+
+    let password = [
+        getRandomChar(uppercase),
+        getRandomChar(lowercase),
+        getRandomChar(digits),
+        getRandomChar(symbols)
+    ];
+
+    for (let i = 4; i < 12; i++) {
+        password.push(getRandomChar(allChars));
+    }
+
+    for (let i = password.length - 1; i > 0; i--) {
+        const randomValues = new Uint32Array(1);
+        crypto.getRandomValues(randomValues);
+        const j = randomValues[0] % (i + 1);
+        [password[i], password[j]] = [password[j], password[i]];
+    }
+
+    return password.join('');
+}
+
+// Template de email de bienvenida para cliente
+function getWelcomeClientEmailTemplate(
+    clientName: string,
+    email: string,
+    temporaryPassword: string
+): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a EHC Gym</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 40px 0; text-align: center; background-color: #f4f4f4;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%); padding: 40px 20px; text-align: center;">
+                            <h1 style="margin: 0; color: #1F2937; font-size: 28px; font-weight: bold;">
+                                ¡Bienvenido a EHC Gym!
+                            </h1>
+                            <p style="margin: 10px 0 0 0; color: #374151; font-size: 16px;">
+                                Tu cuenta ha sido creada exitosamente
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Hola <strong>${clientName}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                ¡Bienvenido a la familia EHC Gym! Estamos emocionados de tenerte con nosotros. Tu cuenta ha sido configurada y puedes acceder a nuestra app móvil con las siguientes credenciales:
+                            </p>
+                            
+                            <!-- Credentials Box -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0; background-color: #FEF3C7; border-radius: 8px; overflow: hidden;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <p style="margin: 0 0 15px 0; color: #92400E; font-size: 14px; font-weight: bold; text-transform: uppercase;">
+                                            Tus Credenciales de Acceso
+                                        </p>
+                                        
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #78350F; font-size: 14px; font-weight: bold;">
+                                                    Correo:
+                                                </td>
+                                                <td style="padding: 8px 0; color: #1F2937; font-size: 14px; font-family: monospace;">
+                                                    ${email}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #78350F; font-size: 14px; font-weight: bold;">
+                                                    Contraseña temporal:
+                                                </td>
+                                                <td style="padding: 8px 0; color: #1F2937; font-size: 14px; font-family: monospace; background-color: #FFFFFF; padding: 8px; border-radius: 4px;">
+                                                    ${temporaryPassword}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Important Notice -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #FEE2E2; border-left: 4px solid #EF4444; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <p style="margin: 0; color: #991B1B; font-size: 14px; line-height: 1.6;">
+                                            <strong>⚠️ Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión por primera vez desde la app móvil.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 30px 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Descarga nuestra app móvil y comienza tu viaje fitness hoy mismo. Si tienes alguna pregunta, no dudes en contactar a nuestro equipo.
+                            </p>
+                            
+                            <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                ¡Nos vemos en el gym!<br>
+                                <strong>Equipo EHC Gym</strong>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #F3F4F6; padding: 30px; text-align: center;">
+                            <p style="margin: 0 0 10px 0; color: #6B7280; font-size: 12px;">
+                                Este es un correo automático, por favor no respondas a este mensaje.
+                            </p>
+                            <p style="margin: 0; color: #9CA3AF; font-size: 11px;">
+                                © 2025 EHC Gym. Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+}
+
+// Action para eliminar cliente completo
+export const deleteClientComplete = action({
+    args: {
+        clientId: v.id("clients"),
+    },
+    handler: async (ctx, { clientId }): Promise<{
+        success: boolean;
+        message: string;
+    }> => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        const client = await ctx.runQuery(internal.clients.internalQueries.getClientByIdInternal, {
+            clientId
+        });
+
+        if (!client) {
+            throw new Error("Cliente no encontrado");
+        }
+
+        const person = await ctx.runQuery(internal.clients.internalQueries.getPersonByIdInternal, {
+            personId: client.person_id
+        });
+
+        if (!person) {
+            throw new Error("Persona no encontrada");
+        }
+
+        const user = person.user_id
+            ? await ctx.runQuery(internal.clients.internalQueries.getUserByIdInternal, {
+                userId: person.user_id
+            })
+            : null;
+
+        if (!user) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (clerkSecretKey) {
+            try {
+                const clerkClient = createClerkClient({
+                    secretKey: clerkSecretKey
+                });
+                await clerkClient.users.deleteUser(user.clerk_id);
+            } catch (error) {
+                console.error('Error al eliminar usuario de Clerk:', error);
+            }
+        }
+
+        // 1. Eliminar enlaces de cliente a sedes
+        const branchLinks = await ctx.runQuery(internal.clients.internalQueries.getClientBranchLinks, {
+            clientId
+        });
+        for (const link of branchLinks) {
+            await ctx.runMutation(internal.clients.mutations.deleteBranchLinkInDB, {
+                linkId: link._id
+            });
+        }
+
+        // 2. Eliminar asignaciones de roles
+        const roleAssignments = await ctx.runQuery(internal.clients.internalQueries.getUserRoles, {
+            userId: user._id
+        });
+        for (const role of roleAssignments) {
+            await ctx.runMutation(internal.clients.mutations.deleteRoleInDB, {
+                roleId: role._id
+            });
+        }
+
+        // 3. Eliminar cliente
+        await ctx.runMutation(internal.clients.mutations.deleteClientInDB, {
+            clientId
+        });
+
+        // 4. Eliminar contactos de emergencia
+        const emergencyContacts = await ctx.runQuery(internal.clients.internalQueries.getEmergencyContacts, {
+            personId: person._id
+        });
+        for (const contact of emergencyContacts) {
+            await ctx.runMutation(internal.clients.mutations.deleteEmergencyContactInDB, {
+                contactId: contact._id
+            });
+        }
+
+        // 5. Eliminar persona
+        await ctx.runMutation(internal.clients.mutations.deletePersonInDB, {
+            personId: person._id
+        });
+
+        // 6. Eliminar usuario
+        await ctx.runMutation(internal.clients.mutations.deleteUserInDB, {
+            userId: user._id
+        });
+
+        return {
+            success: true,
+            message: `Cliente ${person.name} ${person.last_name} eliminado exitosamente`,
+        };
+    },
+});
+
+export const deleteClientInDB = internalMutation({
+    args: {
+        clientId: v.id("clients"),
+    },
+    handler: async (ctx, { clientId }) => {
+        await ctx.db.delete(clientId);
+        return { success: true };
+    },
+});
+
+export const deleteBranchLinkInDB = internalMutation({
+    args: {
+        linkId: v.id("client_branches"),
+    },
+    handler: async (ctx, { linkId }) => {
+        await ctx.db.delete(linkId);
+        return { success: true };
+    },
+});
+
+export const deleteRoleInDB = internalMutation({
+    args: {
+        roleId: v.id("role_assignments"),
+    },
+    handler: async (ctx, { roleId }) => {
+        await ctx.db.delete(roleId);
+        return { success: true };
+    },
+});
+
+export const deleteEmergencyContactInDB = internalMutation({
+    args: {
+        contactId: v.id("emergency_contact"),
+    },
+    handler: async (ctx, { contactId }) => {
+        await ctx.db.delete(contactId);
+        return { success: true };
+    },
+});
+
+export const deletePersonInDB = internalMutation({
+    args: {
+        personId: v.id("persons"),
+    },
+    handler: async (ctx, { personId }) => {
+        await ctx.db.delete(personId);
+        return { success: true };
+    },
+});
+
+export const deleteUserInDB = internalMutation({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }) => {
+        await ctx.db.delete(userId);
+        return { success: true };
     },
 });
