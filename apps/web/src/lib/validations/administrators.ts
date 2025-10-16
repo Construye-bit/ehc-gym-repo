@@ -1,30 +1,66 @@
 import { z } from "zod";
 
-// Esquema de datos de usuario
+// ===== ESQUEMAS DE VALIDACIÓN PARA ADMINISTRATORS (FRONTEND) =====
+
+// Esquema para datos de usuario
 export const userDataSchema = z.object({
-    userName: z.string().trim().min(1, "El nombre de usuario es requerido"),
-    userEmail: z.string().trim().email("El correo electrónico no es válido"),
-    userPhone: z.string().trim().min(1, "El número de teléfono es requerido"),
+    userName: z.string()
+        .min(1, "El nombre de usuario es requerido")
+        .min(3, "El nombre de usuario debe tener al menos 3 caracteres")
+        .max(50, "El nombre de usuario no puede exceder 50 caracteres")
+        .regex(/^[a-zA-Z0-9_]+$/, "El nombre de usuario solo puede contener letras, números y guiones bajos"),
+    userEmail: z.string()
+        .min(1, "El correo electrónico es requerido")
+        .regex(
+            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+            "El correo electrónico no es válido"
+        )
+        .max(100, "El correo electrónico no puede exceder 100 caracteres"),
+    userPhone: z.string()
+        .min(1, "El número de teléfono es requerido")
+        .refine(
+            (val) => /^[0-9\s\-\+\(\)]{10,15}$/.test(val),
+            "El número de teléfono no es válido (10-15 dígitos)"
+        ),
 });
 
-// Esquema de datos personales
+// Esquema para datos personales
 export const personalDataSchema = z.object({
-    personName: z.string().trim().min(1, "El nombre es requerido"),
-    personLastName: z.string().trim().min(1, "El apellido es requerido"),
+    personName: z.string()
+        .min(1, "El nombre es requerido")
+        .min(2, "El nombre debe tener al menos 2 caracteres")
+        .max(50, "El nombre no puede exceder 50 caracteres")
+        .regex(/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/, "El nombre solo puede contener letras y espacios"),
+    personLastName: z.string()
+        .min(1, "El apellido es requerido")
+        .min(2, "El apellido debe tener al menos 2 caracteres")
+        .max(50, "El apellido no puede exceder 50 caracteres")
+        .regex(/^[a-zA-ZÀ-ÿ\u00f1\u00d1\s]+$/, "El apellido solo puede contener letras y espacios"),
     personBornDate: z.string()
-        .trim()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe estar en formato YYYY-MM-DD")
-        .refine((date) => !isNaN(Date.parse(date)), "La fecha no es válida"),
-    personDocumentType: z.string().trim().min(1, "El tipo de documento es requerido"),
-    personDocumentNumber: z.string().trim().min(1, "El número de documento es requerido"),
+        .min(1, "La fecha de nacimiento es requerida")
+        .refine((date) => {
+            const birthDate = new Date(date);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+            return !isNaN(birthDate.getTime()) && age >= 18 && age <= 80;
+        }, "La edad debe estar entre 18 y 80 años"),
+    personDocumentType: z.enum(["CC", "TI", "CE", "PASSPORT"], {
+        message: "El tipo de documento es requerido",
+    }),
+    personDocumentNumber: z.string()
+        .min(1, "El número de documento es requerido")
+        .min(6, "El número de documento debe tener al menos 6 caracteres")
+        .max(20, "El número de documento no puede exceder 20 caracteres")
+        .regex(/^[a-zA-Z0-9]+$/, "El número de documento solo puede contener letras y números"),
 });
 
-// Esquema de datos laborales
+// Esquema para datos laborales
 export const workDataSchema = z.object({
-    branch: z.string().trim().min(1, "La sede es requerida"),
+    branch: z.string()
+        .min(1, "La sede es requerida"),
 });
 
-// Tipos de datos
+// ===== TIPOS DERIVADOS DE LOS ESQUEMAS =====
 export type UserData = z.infer<typeof userDataSchema>;
 export type PersonalData = z.infer<typeof personalDataSchema>;
 export type WorkData = z.infer<typeof workDataSchema>;

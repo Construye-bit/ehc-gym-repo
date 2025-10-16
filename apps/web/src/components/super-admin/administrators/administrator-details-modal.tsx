@@ -46,7 +46,7 @@ export default function AdministratorDetailsModal({
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Teléfono</p>
-                                    <p className="text-sm text-gray-900">{administrator.user?.phone}</p>
+                                    <p className="text-sm text-gray-900">{administrator.person?.phone || "N/A"}</p>
                                 </div>
                             </div>
                         </div>

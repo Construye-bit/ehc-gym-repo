@@ -28,6 +28,15 @@ async function buildClientDetails(
     const person = client.person_id ? await ctx.db.get(client.person_id) : null;
     const user = client.user_id ? await ctx.db.get(client.user_id) : null;
 
+    // Obtener contacto de emergencia
+    const emergencyContact = person
+        ? await ctx.db
+            .query("emergency_contact")
+            .withIndex("by_person", (q: any) => q.eq("person_id", person._id))
+            .filter((q: any) => q.eq(q.field("active"), true))
+            .first()
+        : null;
+
     return {
         ...client,
         person: person
@@ -43,6 +52,13 @@ async function buildClientDetails(
         user: user
             ? {
                 email: user.email,
+            }
+            : null,
+        emergency_contact: emergencyContact
+            ? {
+                name: emergencyContact.name,
+                phone: emergencyContact.phone,
+                relationship: emergencyContact.relationship,
             }
             : null,
         branches,
@@ -299,5 +315,31 @@ export const checkAdminPermissions = internalQuery({
         );
 
         return { hasPermission, user };
+    },
+});
+
+export const getPersonByUserId = internalQuery({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }) => {
+        return await ctx.db
+            .query("persons")
+            .withIndex("by_user", (q) => q.eq("user_id", userId))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+    },
+});
+
+export const getAdminByPersonId = internalQuery({
+    args: {
+        personId: v.id("persons"),
+    },
+    handler: async (ctx, { personId }) => {
+        return await ctx.db
+            .query("admins")
+            .withIndex("by_person", (q) => q.eq("person_id", personId))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
     },
 });

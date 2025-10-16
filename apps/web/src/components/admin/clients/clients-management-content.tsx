@@ -9,6 +9,7 @@ import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2, Search } from "lucide-react";
 import { ClientCreateModal } from "@/components/admin/clients/clients-create-modal";
 import { ClientDetailModal } from "@/components/admin/clients/clients-details-modal";
+import { ClientEditModal } from "@/components/admin/clients/clients-edit-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -313,6 +314,7 @@ export function ClientsManagementContent() {
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
 
@@ -348,8 +350,8 @@ export function ClientsManagementContent() {
   };
 
   const handleEditClient = (client: Client) => {
-    // TODO: Implementar edición de cliente
-    toast.info("La función de edición estará disponible próximamente");
+    setSelectedClientId(client._id);
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteClient = async (client: Client) => {
@@ -515,6 +517,16 @@ export function ClientsManagementContent() {
           // Refrescar la lista de clientes cuando se crea uno nuevo
           // El query se actualizará automáticamente gracias a la reactividad de Convex
         }}
+      />
+
+      {/* Modal de edición de cliente */}
+      <ClientEditModal
+        open={isEditModalOpen}
+        onOpenChange={(open) => {
+          setIsEditModalOpen(open);
+          if (!open) setSelectedClientId(null);
+        }}
+        client={filteredClients.find(c => c._id === selectedClientId) || null}
       />
     </div>
   );

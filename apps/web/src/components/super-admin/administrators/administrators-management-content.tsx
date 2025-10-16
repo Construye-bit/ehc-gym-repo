@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2 } from "lucide-react";
@@ -72,7 +72,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
 // Componente principal
 export function AdministratorsManagementContent() {
     const administrators = useQuery(api.admins.queries.getAllWithDetails, {}) ?? [];
-    const deleteAdministratorAction = useMutation(api.admins.mutations.deleteAdministratorComplete);
+    const deleteAdministratorAction = useAction(api.admins.mutations.deleteAdministratorComplete);
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [deletingAdministratorId, setDeletingAdministratorId] = useState<Id<"admins"> | null>(null);

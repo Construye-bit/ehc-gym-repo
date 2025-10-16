@@ -68,7 +68,7 @@ export default function EditTrainerForm({ trainerId }: EditTrainerFormProps) {
     const navigate = useNavigate();
     const updateTrainerComplete = useAction(api.trainers.mutations.updateTrainerComplete);
     const branches = useQuery(api.branches.queries.list);
-    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetails, { trainerId: trainerId as Id<"trainers"> });
+    const trainerDetails = useQuery(api.trainers.queries.getTrainerDetailsForAdmin, { trainerId: trainerId as Id<"trainers"> });
 
     const totalSteps: number = 3;
 
