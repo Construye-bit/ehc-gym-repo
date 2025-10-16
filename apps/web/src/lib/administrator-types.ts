@@ -2,6 +2,7 @@ import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 // Tipos para el formulario
 export interface FormErrors {
+    [key: string]: string | undefined;
     userName?: string;
     userEmail?: string;
     userPhone?: string;

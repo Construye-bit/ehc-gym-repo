@@ -954,6 +954,218 @@ export const deleteClientComplete = action({
     },
 });
 
+// Action para actualizar cliente completo
+export const updateClientComplete = action({
+    args: {
+        clientId: v.id("clients"),
+        personalData: v.object({
+            personName: v.string(),
+            personLastName: v.string(),
+            personBornDate: v.string(),
+            personDocumentType: v.string(),
+            personDocumentNumber: v.string(),
+            personPhone: v.string(),
+        }),
+        emergencyContact: v.object({
+            name: v.string(),
+            phone: v.string(),
+            relationship: v.string(),
+        }),
+        clientStatus: v.union(v.literal("ACTIVE"), v.literal("INACTIVE")),
+        isPaymentActive: v.boolean(),
+    },
+    handler: async (ctx, { clientId, personalData, emergencyContact, clientStatus, isPaymentActive }): Promise<{
+        success: boolean;
+        message: string;
+    }> => {
+        // Verificar autenticación
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("No autenticado");
+        }
+
+        // Obtener usuario actual
+        const currentUser = await ctx.runQuery(internal.clients.queries.getUserByClerkId, {
+            clerk_id: identity.subject
+        });
+
+        if (!currentUser) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        // Verificar permisos (debe ser admin o super admin)
+        const roles = await ctx.runQuery(internal.clients.queries.getUserRolesInternal, {
+            userId: currentUser._id
+        });
+
+        const isSuperAdmin = roles.some((r: { role: string }) => r.role === "SUPER_ADMIN");
+        const isAdmin = roles.some((r: { role: string }) => r.role === "ADMIN");
+
+        if (!isSuperAdmin && !isAdmin) {
+            throw new Error("No tienes permisos para actualizar clientes");
+        }
+
+        // Obtener datos actuales del cliente
+        const client = await ctx.runQuery(internal.clients.internalQueries.getClientByIdInternal, {
+            clientId
+        });
+
+        if (!client) {
+            throw new Error("Cliente no encontrado");
+        }
+
+        // Verificar que el admin tiene acceso a este cliente (si no es super admin)
+        if (!isSuperAdmin && isAdmin) {
+            // Obtener el admin asociado al usuario actual
+            const person = await ctx.runQuery(internal.clients.queries.getPersonByUserId, {
+                userId: currentUser._id
+            });
+
+            if (!person) {
+                throw new Error("Persona no encontrada");
+            }
+
+            const admin = await ctx.runQuery(internal.clients.queries.getAdminByPersonId, {
+                personId: person._id
+            });
+
+            if (!admin || !admin.branch_id) {
+                throw new Error("Administrador no encontrado o sin sede asignada");
+            }
+
+            // Verificar que el cliente pertenece a la sede del admin
+            const clientBranchLinks = await ctx.runQuery(internal.clients.internalQueries.getClientBranchLinks, {
+                clientId
+            });
+
+            const hasAccess = clientBranchLinks.some(link => link.branch_id === admin.branch_id);
+            if (!hasAccess) {
+                throw new Error("No tienes permisos para editar este cliente");
+            }
+        }
+
+        try {
+            // 1. Actualizar datos de la persona
+            await ctx.runMutation(internal.clients.mutations.updatePersonInDB, {
+                personId: client.person_id,
+                name: personalData.personName,
+                last_name: personalData.personLastName,
+                born_date: personalData.personBornDate,
+                document_type: personalData.personDocumentType,
+                document_number: personalData.personDocumentNumber,
+                phone: personalData.personPhone,
+            });
+
+            // 2. Actualizar contacto de emergencia
+            // Primero buscar si existe
+            const existingContacts = await ctx.runQuery(internal.clients.internalQueries.getEmergencyContacts, {
+                personId: client.person_id
+            });
+
+            if (existingContacts.length > 0) {
+                // Actualizar el primero
+                await ctx.runMutation(internal.clients.mutations.updateEmergencyContactInDB, {
+                    contactId: existingContacts[0]._id,
+                    name: emergencyContact.name,
+                    phone: emergencyContact.phone,
+                    relationship: emergencyContact.relationship,
+                });
+            } else {
+                // Crear nuevo contacto de emergencia
+                await ctx.runMutation(internal.clients.mutations.createEmergencyContactInDB, {
+                    person_id: client.person_id,
+                    name: emergencyContact.name,
+                    phone: emergencyContact.phone,
+                    relationship: emergencyContact.relationship,
+                });
+            }
+
+            // 3. Actualizar datos del cliente
+            await ctx.runMutation(internal.clients.mutations.updateClientInDB, {
+                clientId,
+                status: clientStatus,
+                is_payment_active: isPaymentActive,
+            });
+
+            return {
+                success: true,
+                message: `Cliente ${personalData.personName} ${personalData.personLastName} actualizado exitosamente`,
+            };
+        } catch (error) {
+            console.error('Error al actualizar cliente:', error);
+
+            let errorMessage = "Error desconocido";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "string") {
+                errorMessage = error;
+            } else if (error && typeof error === "object" && "message" in error) {
+                errorMessage = (error as { message: string }).message;
+            }
+
+            throw new Error(`Error al actualizar cliente: ${errorMessage}`);
+        }
+    },
+});
+
+export const updatePersonInDB = internalMutation({
+    args: {
+        personId: v.id("persons"),
+        name: v.string(),
+        last_name: v.string(),
+        born_date: v.string(),
+        document_type: v.string(),
+        document_number: v.string(),
+        phone: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.personId, {
+            name: args.name,
+            last_name: args.last_name,
+            born_date: args.born_date,
+            document_type: args.document_type as any,
+            document_number: args.document_number,
+            phone: args.phone,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
+export const updateEmergencyContactInDB = internalMutation({
+    args: {
+        contactId: v.id("emergency_contact"),
+        name: v.string(),
+        phone: v.string(),
+        relationship: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.contactId, {
+            name: args.name,
+            phone: args.phone,
+            relationship: args.relationship,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
+export const updateClientInDB = internalMutation({
+    args: {
+        clientId: v.id("clients"),
+        status: v.union(v.literal("ACTIVE"), v.literal("INACTIVE")),
+        is_payment_active: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.clientId, {
+            status: args.status,
+            is_payment_active: args.is_payment_active,
+            updated_at: Date.now(),
+        });
+        return { success: true };
+    },
+});
+
 export const deleteClientInDB = internalMutation({
     args: {
         clientId: v.id("clients"),

@@ -293,7 +293,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
 // Componente principal
 export function TrainersManagementContent() {
-    const trainers = useQuery(api.trainers.queries.getAllWithDetails, {}) ?? [];
+    const trainers = useQuery(api.trainers.queries.getMyTrainersWithDetails, {}) ?? [];
     const deleteTrainerAction = useAction(api.trainers.mutations.deleteTrainerComplete);
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);

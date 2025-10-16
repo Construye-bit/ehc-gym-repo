@@ -95,6 +95,7 @@ export const getAllWithDetails = query({
                         document_type: person.document_type,
                         document_number: person.document_number,
                         born_date: person.born_date,
+                        phone: person.phone,
                     } : undefined,
                     user: user ? {
                         name: user.name,
@@ -140,6 +141,7 @@ export const getById = query({
                 document_type: person.document_type,
                 document_number: person.document_number,
                 born_date: person.born_date,
+                phone: person.phone,
             } : undefined,
             user: user ? {
                 name: user.name,
