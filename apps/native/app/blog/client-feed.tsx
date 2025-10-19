@@ -20,7 +20,7 @@ export default function ClientFeedScreen() {
 
   // Obtener feed de publicaciones desde Convex
   const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
-  
+
   // Mutation para dar/quitar like
   const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
 
@@ -151,6 +151,7 @@ export default function ClientFeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginTop: 20,
     backgroundColor: AppColors.background.gray50,
   },
   infoBanner: {

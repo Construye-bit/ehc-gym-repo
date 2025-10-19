@@ -6,6 +6,13 @@
             },
             "extends": "base"
         },
+        "development": {
+            "developmentClient": true,
+            "extends": "base",
+            "android": {
+                "buildType": "apk"
+            }
+        },
         "preview2": {
             "android": {
                 "gradleCommand": ":app:assembleRelease"

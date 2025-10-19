@@ -1,16 +1,15 @@
-import { useRouter, Stack, usePathname, useSegments } from "expo-router";
+import { useRouter, Stack, usePathname } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
 
-export default function HomeRoutesLayout() {
+export default function BlogRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
-    const { isAdmin, isClient, isSuperAdmin, isLoading } = useAuth();
+    const { isTrainer, isClient, isAdmin, isSuperAdmin, isLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const segments = useSegments();
 
     useEffect(() => {
         // Si no está cargado, no hacer nada aún
@@ -22,18 +21,17 @@ export default function HomeRoutesLayout() {
             return;
         }
 
-        // Si es admin o super admin, redirigir a la pantalla especial
-        // Solo redirigir si NO está ya en la página de admin-redirect
-        if (isAdmin || isSuperAdmin) {
-            const currentSegments = segments as string[];
-            const isOnAdminRedirect = pathname?.includes('admin-redirect') ||
-                currentSegments?.some((segment) => segment === 'admin-redirect');
-
-            if (!isOnAdminRedirect) {
-                router.replace("/(home)/admin-redirect");
-            }
+        // Redirigir según el rol del usuario
+        // Evitar redirecciones si ya está en la página correcta
+        if (isClient && !pathname?.includes('client-feed')) {
+            router.replace("./client-feed");
+        } else if (isTrainer && !pathname?.includes('trainer-feed')) {
+            router.replace("./trainer-feed");
+        } else if ((isAdmin || isSuperAdmin) && !pathname?.includes('trainer-feed')) {
+            // Los admins pueden ver el feed de entrenadores
+            router.replace("./trainer-feed");
         }
-    }, [isSignedIn, isAdmin, isSuperAdmin, isLoading, router, pathname, segments]);
+    }, [isSignedIn, isTrainer, isClient, isAdmin, isSuperAdmin, isLoading, router, pathname]);
 
     // Mostrar loading mientras se cargan los roles
     if (isLoading) {
@@ -49,13 +47,13 @@ export default function HomeRoutesLayout() {
             name: 'home',
             label: 'Inicio',
             icon: 'home-outline' as const,
-            route: '#',
+            route: '/(home)',
         },
         {
             name: 'consejos',
             label: 'Consejos',
             icon: 'bulb-outline' as const,
-            route: isClient ? '/blog/client-feed' : '/blog/trainer-feed',
+            route: '#',
         },
         {
             name: 'chat',
@@ -75,9 +73,12 @@ export default function HomeRoutesLayout() {
         <View className="flex-1">
             <Stack
                 screenOptions={{
-                    headerShown: false,
+                    headerShown: false
                 }}
-            />
+            >
+                <Stack.Screen name="trainer-feed" options={{ headerShown: false }} />
+                <Stack.Screen name="client-feed" options={{ headerShown: false }} />
+            </Stack>
             <BottomNavigation tabs={navigationTabs} />
         </View>
     );

@@ -158,6 +158,8 @@ export const registerClient = mutation({
         emergency_contact_name: v.string(),
         emergency_contact_phone: v.string(),
         emergency_contact_relationship: v.string(),
+        // Sede seleccionada
+        branch_id: v.id("branches"),
     },
     handler: async (ctx, args) => {
         // Validación de campos requeridos
@@ -184,6 +186,12 @@ export const registerClient = mutation({
         }
         if (!args.emergency_contact_phone?.trim()) {
             throw new Error("El teléfono del contacto de emergencia es obligatorio");
+        }
+
+        // Validar que la sede exista
+        const branch = await ctx.db.get(args.branch_id);
+        if (!branch) {
+            throw new Error("La sede seleccionada no existe o no está activa");
         }
 
         const now = Date.now();
@@ -278,6 +286,7 @@ export const registerClient = mutation({
         // Variables para rollback en caso de error
         let emergencyContactId: Id<"emergency_contact"> | undefined;
         let clientId: Id<"clients"> | undefined;
+        let branchLinkId: Id<"client_branches"> | undefined;
 
         try {
             // 4. Crear el contacto de emergencia
@@ -304,15 +313,33 @@ export const registerClient = mutation({
                 active: true,
             });
 
+            // 6. Vincular cliente con la sede seleccionada
+            branchLinkId = await ctx.db.insert("client_branches", {
+                client_id: clientId,
+                branch_id: args.branch_id,
+                created_at: now,
+                updated_at: now,
+                active: true,
+            });
+
             return {
                 clientId,
                 personId,
                 emergencyContactId,
+                branchLinkId,
                 message: "Cliente registrado exitosamente",
             };
         } catch (error) {
             // ROLLBACK MANUAL: Eliminar registros creados si algo falló
             // Nota: Convex no tiene transacciones multi-documento, así que hacemos compensación manual
+
+            if (branchLinkId) {
+                try {
+                    await ctx.db.delete(branchLinkId);
+                } catch (deleteError) {
+                    console.error("Error al eliminar vínculo con sede durante rollback:", deleteError);
+                }
+            }
 
             if (clientId) {
                 try {

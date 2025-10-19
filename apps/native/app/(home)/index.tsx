@@ -109,7 +109,7 @@ export default function Home() {
 
                         {/* Consejos Section */}
                         <TouchableOpacity
-                            onPress={() => router.push('/(drawer)/client-feed')}
+                            onPress={() => router.push('/blog/client-feed')}
                             className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
                         >
                             <View className="flex-row items-center justify-between mb-2">
@@ -193,6 +193,7 @@ export default function Home() {
                         </View>
 
                         <SignOutButton />
+                        <Text>HOllaaaaa</Text>
                     </View>
                 </ScrollView>
             </Container>
@@ -251,7 +252,7 @@ export default function Home() {
 
                         {/* Consejos Section */}
                         <TouchableOpacity
-                            onPress={() => router.push('/(drawer)/trainer-feed')}
+                            onPress={() => router.push('/blog/trainer-feed')}
                             className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
                         >
                             <View className="flex-row items-center justify-between mb-2">

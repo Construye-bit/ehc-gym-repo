@@ -4,5 +4,6 @@ export { PasswordInput } from './password-input';
 export { DateInput } from './date-input';
 export { PhoneInput } from './phone-input';
 export { CodeInput } from './code-input';
+export { Select } from './select';
 export { Text } from './text';
 export { Container } from '../container';

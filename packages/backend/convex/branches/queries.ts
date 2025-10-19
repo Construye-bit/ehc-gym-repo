@@ -444,3 +444,63 @@ export const getMyBranchesWithDetails = query({
         }];
     },
 });
+
+/**
+ * Query pública para obtener todas las sedes activas
+ * Usado en el formulario de registro de nuevos clientes
+ * No requiere autenticación
+ */
+export const getActiveBranches = query({
+    args: {},
+    handler: async (ctx): Promise<Array<{
+        _id: Id<"branches">;
+        name: string;
+        description?: string;
+        city?: {
+            name: string;
+            state_region: string;
+        } | null;
+        address?: {
+            main_address: string;
+            reference?: string;
+        } | null;
+    }>> => {
+        // Obtener todas las sedes activas
+        const branches = await ctx.db
+            .query("branches")
+            .collect();
+
+        const branchesWithDetails = [];
+
+        for (const branch of branches) {
+            // Obtener la dirección si existe
+            const address = branch.address_id
+                ? await ctx.db.get(branch.address_id)
+                : null;
+
+            // Obtener la ciudad si existe
+            const city = address?.city_id
+                ? await ctx.db.get(address.city_id)
+                : null;
+
+            branchesWithDetails.push({
+                _id: branch._id,
+                name: branch.name,
+                city: city
+                    ? {
+                        name: city.name,
+                        state_region: city.state_region,
+                    }
+                    : null,
+                address: address
+                    ? {
+                        main_address: address.main_address,
+                        reference: address.reference,
+                    }
+                    : null,
+            });
+        }
+
+        return branchesWithDetails;
+    },
+});

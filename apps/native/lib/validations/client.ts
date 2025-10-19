@@ -104,6 +104,24 @@ export const registerClientSchema = z.object({
         .min(2, 'El parentesco debe tener al menos 2 caracteres')
         .max(30, 'El parentesco es demasiado largo')
         .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\/]+$/, 'El parentesco solo puede contener letras'),
+
+    // Datos del documento
+    tipoDocumento: z
+        .enum(['CC', 'TI', 'CE', 'PASSPORT'], {
+            message: 'Selecciona un tipo de documento válido'
+        }),
+
+    numeroDocumento: z
+        .string({ message: 'El número de documento es obligatorio' })
+        .trim()
+        .min(5, 'El número de documento debe tener al menos 5 caracteres')
+        .max(20, 'El número de documento es demasiado largo')
+        .regex(/^[a-zA-Z0-9]+$/, 'El número de documento solo puede contener letras y números'),
+
+    // Sede preferida
+    sedeId: z
+        .string({ message: 'Debes seleccionar una sede' })
+        .min(1, 'Debes seleccionar una sede'),
 });
 
 // Schema para validar solo los datos de Clerk (paso 1)

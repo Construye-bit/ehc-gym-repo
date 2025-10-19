@@ -10,8 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { AppColors } from '@/constants/Colors';
 
 interface CreatePostModalProps {
@@ -48,6 +50,36 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       setImageUri(undefined);
     }
   }, [editPost, visible]);
+
+  const pickImage = async () => {
+    try {
+      // Solicitar permisos
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permisos requeridos',
+          'Necesitamos acceso a tus fotos para que puedas seleccionar una imagen.'
+        );
+        return;
+      }
+
+      // Abrir selector de imágenes
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error al seleccionar imagen:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
 
   const handleSubmit = () => {
     if (!title.trim() || !content.trim()) {
@@ -87,7 +119,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         style={styles.container}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.header} className="mt-4">
           <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
             <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
@@ -151,7 +183,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           {/* Botón Agregar Imagen */}
           {!imageUri && (
-            <TouchableOpacity style={styles.addImageButton}>
+            <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
               <Ionicons name="image-outline" size={24} color={AppColors.primary.yellow} />
               <Text style={styles.addImageText}>Agregar imagen (opcional)</Text>
             </TouchableOpacity>

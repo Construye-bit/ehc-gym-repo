@@ -30,7 +30,7 @@ export default function TrainerFeedScreen() {
 
   // Queries
   const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
-  
+
   // Mutations
   const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
   const createPostMutation = useMutation(api.posts.index.createPost);
@@ -94,6 +94,41 @@ export default function TrainerFeedScreen() {
 
   const handleSubmitPost = async (postData: CreatePostData) => {
     try {
+      let image_storage_id: Id<"_storage"> | undefined;
+
+      // Si hay una imagen, subirla primero
+      if (postData.imageUri) {
+        try {
+          // Generar URL de subida
+          const uploadUrl = await generateUploadUrlMutation();
+
+          // Obtener el archivo de la URI
+          const response = await fetch(postData.imageUri);
+          const blob = await response.blob();
+
+          // Subir la imagen a Convex Storage
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': blob.type },
+            body: blob,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Error al subir la imagen');
+          }
+
+          const { storageId } = await uploadResponse.json();
+          image_storage_id = storageId as Id<"_storage">;
+        } catch (uploadError) {
+          console.error('Error al subir imagen:', uploadError);
+          Alert.alert('Error', 'No se pudo subir la imagen. ¿Deseas continuar sin imagen?', [
+            { text: 'Cancelar', style: 'cancel', onPress: () => { return; } },
+            { text: 'Continuar', onPress: () => { image_storage_id = undefined; } },
+          ]);
+          return;
+        }
+      }
+
       if (editingPost) {
         // Editar post existente
         const updateData: any = {
@@ -101,12 +136,9 @@ export default function TrainerFeedScreen() {
           description: postData.content,
         };
 
-        // TODO: Manejar imagen si existe
-        // if (postData.imageUri) {
-        //   const uploadUrl = await generateUploadUrlMutation();
-        //   // Upload image...
-        //   updateData.image_storage_id = ...;
-        // }
+        if (image_storage_id) {
+          updateData.image_storage_id = image_storage_id;
+        }
 
         await updatePostMutation(updateData);
         Alert.alert('Éxito', 'Publicación actualizada correctamente');
@@ -116,12 +148,9 @@ export default function TrainerFeedScreen() {
           description: postData.content,
         };
 
-        // TODO: Manejar imagen si existe
-        // if (postData.imageUri) {
-        //   const uploadUrl = await generateUploadUrlMutation();
-        //   // Upload image...
-        //   createData.image_storage_id = ...;
-        // }
+        if (image_storage_id) {
+          createData.image_storage_id = image_storage_id;
+        }
 
         await createPostMutation(createData);
         Alert.alert('Éxito', 'Publicación creada correctamente');
@@ -155,13 +184,13 @@ export default function TrainerFeedScreen() {
   }
 
   const allPosts = feedData.posts || [];
-  
+
   // Obtener el user_id actual para filtrar "Mis Consejos"
   const currentUserId = person?.user_id;
-  
+
   // Filtrar según la pestaña activa
-  const filteredPosts = activeTab === 'all' 
-    ? allPosts 
+  const filteredPosts = activeTab === 'all'
+    ? allPosts
     : allPosts.filter((post: any) => post.user_id === currentUserId);
 
   // Transformar posts al formato del componente
@@ -196,7 +225,7 @@ export default function TrainerFeedScreen() {
               Todos
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'mine' && styles.activeTab]}
             onPress={() => setActiveTab('mine')}
