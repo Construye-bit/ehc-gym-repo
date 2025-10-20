@@ -40,6 +40,31 @@ export default function RootLayout() {
 	const { colorScheme, isDarkColorScheme } = useColorScheme();
 	const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
 
+	// Suprimir errores de telemetría de Clerk (conocido y no afecta funcionalidad)
+	React.useEffect(() => {
+		const originalConsoleError = console.error;
+		console.error = (...args: any[]) => {
+			// Filtrar errores de telemetría de Clerk
+			const errorMessage = args[0]?.toString() || '';
+			if (
+				errorMessage.includes('[clerk/telemetry]') ||
+				errorMessage.includes('Error recording telemetry event')
+			) {
+				// Convertir a warning silencioso en desarrollo
+				if (__DEV__) {
+					console.warn('[Clerk Telemetry - Non-critical]:', ...args);
+				}
+				return;
+			}
+			// Pasar otros errores normalmente
+			originalConsoleError.apply(console, args);
+		};
+
+		return () => {
+			console.error = originalConsoleError;
+		};
+	}, []);
+
 	useIsomorphicLayoutEffect(() => {
 		if (hasMounted.current) {
 			return;
