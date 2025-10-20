@@ -10,7 +10,7 @@ import { registerClientSchema, formatZodErrors } from "@/lib/validations/client"
 
 export default function SignUpScreen() {
 	const router = useRouter();
-	const { isSignedIn } = useAuth();
+	const { isSignedIn, isLoaded } = useAuth();
 	const registerClient = useRegisterClient();
 	const { branchOptions, isLoading: branchesLoading } = useActiveBranches();
 	const {
@@ -46,12 +46,12 @@ export default function SignUpScreen() {
 		[key: string]: string;
 	}>({});
 
-	// Redirigir si ya está autenticado (solo una vez al montar el componente)
+	// Redirigir cuando Clerk termine de cargar y el usuario esté autenticado
 	React.useEffect(() => {
-		if (isSignedIn) {
+		if (isLoaded && isSignedIn) {
 			router.replace("/(home)");
 		}
-	}, []); // Array vacío = solo se ejecuta al montar
+	}, [isSignedIn, isLoaded, router]);
 
 	const handleInputChange = (field: string, value: string) => {
 		setFormData(prev => ({

@@ -80,6 +80,7 @@ import type * as trainers_queries from "../trainers/queries.js";
 import type * as trainers_utils from "../trainers/utils.js";
 import type * as trainers_validations from "../trainers/validations.js";
 import type * as users from "../users.js";
+import type * as utils_validation from "../utils/validation.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -157,6 +158,7 @@ declare const fullApi: ApiFromModules<{
   "trainers/utils": typeof trainers_utils;
   "trainers/validations": typeof trainers_validations;
   users: typeof users;
+  "utils/validation": typeof utils_validation;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

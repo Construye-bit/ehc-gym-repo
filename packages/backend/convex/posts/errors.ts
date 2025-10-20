@@ -37,6 +37,6 @@ export class PostImageError extends PostError {
     constructor(message: string = "Error al procesar la imagen de la publicación") {
         super(message);
         this.name = "PostImageError";
-        Object.setPrototypeOf(this, PostNotFoundError.prototype);
+        Object.setPrototypeOf(this, PostImageError.prototype);
     }
 }

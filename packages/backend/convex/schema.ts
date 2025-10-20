@@ -163,6 +163,7 @@ export default defineSchema({
     posts: defineTable({
         trainer_id: v.id("trainers"),
         user_id: v.id("users"),
+        title: v.string(),
         description: v.string(),
         // Gestión de imagen
         image_storage_id: v.optional(v.id("_storage")),

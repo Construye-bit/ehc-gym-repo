@@ -6,8 +6,8 @@ import {
   createPostSchema,
   updatePostSchema,
   deletePostSchema,
-  validateWithZod,
 } from "./validations";
+import validateWithZod from "../utils/validation";
 import {
   PostNotFoundError,
   UnauthorizedPostActionError,
@@ -27,6 +27,7 @@ import {
  */
 export const createPost = mutation({
   args: {
+    title: v.string(),
     description: v.string(),
     image_storage_id: v.optional(v.id("_storage")),
   },
@@ -68,6 +69,7 @@ export const createPost = mutation({
       const postId = await ctx.db.insert("posts", {
         trainer_id: trainer._id,
         user_id: user._id,
+        title: validatedData.title,
         description: validatedData.description,
         image_storage_id: validatedData.image_storage_id as
           | Id<"_storage">
@@ -117,6 +119,7 @@ export const createPost = mutation({
 export const updatePost = mutation({
   args: {
     postId: v.id("posts"),
+    title: v.optional(v.string()),
     description: v.optional(v.string()),
     image_storage_id: v.optional(v.id("_storage")),
   },
@@ -156,6 +159,10 @@ export const updatePost = mutation({
       const updates: any = {
         updated_at: Date.now(),
       };
+
+      if (validatedData.title !== undefined) {
+        updates.title = validatedData.title;
+      }
 
       if (validatedData.description !== undefined) {
         updates.description = validatedData.description;

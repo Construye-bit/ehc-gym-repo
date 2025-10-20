@@ -62,6 +62,7 @@ export default function TrainerFeedScreen() {
     if (post) {
       setEditingPost({
         id: post._id,
+        title: post.title,
         description: post.description,
         imageUrl: post.image_url,
       });
@@ -97,6 +98,40 @@ export default function TrainerFeedScreen() {
   };
 
   const handleSubmitPost = async (postData: CreatePostData) => {
+    const submitPost = async (image_storage_id?: Id<"_storage">) => {
+      if (editingPost) {
+        // Editar post existente
+        const updateData: any = {
+          postId: editingPost.id as Id<"posts">,
+          title: postData.title,
+          description: postData.content,
+        };
+
+        if (image_storage_id) {
+          updateData.image_storage_id = image_storage_id;
+        }
+
+        await updatePostMutation(updateData);
+        Alert.alert('Éxito', 'Publicación actualizada correctamente');
+      } else {
+        // Crear nuevo post
+        const createData: any = {
+          title: postData.title,
+          description: postData.content,
+        };
+
+        if (image_storage_id) {
+          createData.image_storage_id = image_storage_id;
+        }
+
+        await createPostMutation(createData);
+        Alert.alert('Éxito', 'Publicación creada correctamente');
+      }
+
+      setIsCreateModalVisible(false);
+      setEditingPost(undefined);
+    };
+
     try {
       let image_storage_id: Id<"_storage"> | undefined;
 
@@ -126,42 +161,15 @@ export default function TrainerFeedScreen() {
         } catch (uploadError) {
           console.error('Error al subir imagen:', uploadError);
           Alert.alert('Error', 'No se pudo subir la imagen. ¿Deseas continuar sin imagen?', [
-            { text: 'Cancelar', style: 'cancel', onPress: () => { return; } },
-            { text: 'Continuar', onPress: () => { image_storage_id = undefined; } },
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Continuar', onPress: () => submitPost(undefined) },
           ]);
-          return;
         }
       }
 
-      if (editingPost) {
-        // Editar post existente
-        const updateData: any = {
-          postId: editingPost.id as Id<"posts">,
-          description: postData.content,
-        };
-
-        if (image_storage_id) {
-          updateData.image_storage_id = image_storage_id;
-        }
-
-        await updatePostMutation(updateData);
-        Alert.alert('Éxito', 'Publicación actualizada correctamente');
-      } else {
-        // Crear nuevo post
-        const createData: any = {
-          description: postData.content,
-        };
-
-        if (image_storage_id) {
-          createData.image_storage_id = image_storage_id;
-        }
-
-        await createPostMutation(createData);
-        Alert.alert('Éxito', 'Publicación creada correctamente');
+      if (image_storage_id !== undefined || !postData.imageUri) {
+        await submitPost(image_storage_id);
       }
-
-      setIsCreateModalVisible(false);
-      setEditingPost(undefined);
     } catch (error) {
       console.error('Error al guardar publicación:', error);
       Alert.alert('Error', 'No se pudo guardar la publicación');
@@ -201,8 +209,9 @@ export default function TrainerFeedScreen() {
   const transformedPosts = filteredPosts.map((post: any) => ({
     id: post._id,
     trainerId: post.trainer_id,
+    userId: post.user_id,
     trainerName: post.trainer_name,
-    title: 'Consejo de entrenador',
+    title: post.title,
     content: post.description,
     imageUrl: post.image_url,
     likesCount: post.likes_count,
@@ -250,7 +259,7 @@ export default function TrainerFeedScreen() {
               onLike={handleLike}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              isOwnPost={item.trainerId === currentUserId}
+              isOwnPost={item.userId === currentUserId}
             />
           )}
           refreshControl={
@@ -287,7 +296,7 @@ export default function TrainerFeedScreen() {
           onSubmit={handleSubmitPost}
           editPost={editingPost ? {
             id: editingPost.id,
-            title: '',
+            title: editingPost.title || '',
             content: editingPost.description,
             imageUri: editingPost.imageUrl,
           } : undefined}

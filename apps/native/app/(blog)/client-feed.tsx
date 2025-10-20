@@ -96,7 +96,7 @@ export default function ClientFeedScreen() {
     trainerId: post.trainer_id,
     trainerName: post.trainer_name,
     trainerAvatar: undefined, // TODO: Agregar avatar en el futuro
-    title: 'Consejo de entrenador', // El schema actual no tiene título
+    title: post.title,
     content: post.description,
     imageUrl: post.image_url,
     likesCount: post.likes_count,

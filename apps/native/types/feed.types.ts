@@ -1,6 +1,7 @@
 export interface TrainerPost {
   id: string;
   trainerId: string;
+  userId?: string;
   trainerName: string;
   trainerAvatar?: string;
   title: string;

@@ -23,12 +23,12 @@ export default function SignInPage() {
 		password?: string;
 	}>({});
 
-	// Redirigir si ya está autenticado (solo una vez al montar el componente)
+	// Redirigir si ya está autenticado o cuando isSignedIn cambie
 	useEffect(() => {
 		if (isSignedIn) {
 			router.replace("/(home)");
 		}
-	}, []); // Array vacío = solo se ejecuta al montar
+	}, [isSignedIn, router]);
 
 	const validateForm = () => {
 		try {

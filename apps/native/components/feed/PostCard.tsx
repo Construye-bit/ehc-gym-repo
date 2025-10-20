@@ -12,8 +12,8 @@ interface PostCardProps {
   isOwnPost?: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ 
-  post, 
+export const PostCard: React.FC<PostCardProps> = ({
+  post,
   onLike,
   onEdit,
   onDelete,
@@ -48,8 +48,8 @@ export const PostCard: React.FC<PostCardProps> = ({
       <View style={styles.header}>
         <View style={styles.trainerInfo}>
           {post.trainerAvatar ? (
-            <Image 
-              source={{ uri: post.trainerAvatar }} 
+            <Image
+              source={{ uri: post.trainerAvatar }}
               style={styles.avatar}
             />
           ) : (
@@ -68,24 +68,24 @@ export const PostCard: React.FC<PostCardProps> = ({
         {/* Menú de opciones */}
         {isOwnPost && (
           <View>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowMenu(!showMenu)}
               style={styles.menuButton}
             >
               <Ionicons name="ellipsis-horizontal" size={20} color={AppColors.text.secondary} />
             </TouchableOpacity>
-            
+
             {showMenu && (
               <View style={styles.menuDropdown}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.menuItem}
                   onPress={handleEdit}
                 >
                   <Ionicons name="create-outline" size={18} color={AppColors.text.primary} />
                   <Text style={styles.menuItemText}>Editar</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.menuItem}
                   onPress={handleDelete}
                 >
@@ -106,10 +106,10 @@ export const PostCard: React.FC<PostCardProps> = ({
         <Text style={styles.contentText}>
           {post.content}
         </Text>
-        
+
         {post.imageUrl && (
-          <Image 
-            source={{ uri: post.imageUrl }} 
+          <Image
+            source={{ uri: post.imageUrl }}
             style={styles.postImage}
             resizeMode="cover"
           />
@@ -118,13 +118,13 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
           onPress={() => onLike(post.id)}
         >
-          <Ionicons 
-            name={post.isLiked ? "heart" : "heart-outline"} 
-            size={20} 
+          <Ionicons
+            name={post.isLiked ? "heart" : "heart-outline"}
+            size={20}
             color={post.isLiked ? AppColors.primary.red : AppColors.text.secondary}
           />
           <Text style={styles.actionText}>{post.likesCount}</Text>
@@ -136,15 +136,15 @@ export const PostCard: React.FC<PostCardProps> = ({
 
 const getTimeAgo = (timestamp: number): string => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  
+
   if (seconds < 60) return 'Ahora';
   if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)}m`;
   if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)}h`;
   if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)}d`;
-  
-  return new Date(timestamp).toLocaleDateString('es-ES', { 
-    day: 'numeric', 
-    month: 'short' 
+
+  return new Date(timestamp).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short'
   });
 };
 
