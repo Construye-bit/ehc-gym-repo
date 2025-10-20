@@ -1,16 +1,15 @@
-import { useRouter, Stack, usePathname, useSegments } from "expo-router";
+import { useRouter, Stack, usePathname } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useRef, useMemo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
 
-export default function HomeRoutesLayout() {
+export default function BlogRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
-    const { isAdmin, isClient, isSuperAdmin, isLoading } = useAuth();
+    const { isTrainer, isClient, isAdmin, isSuperAdmin, isLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const segments = useSegments();
     const hasRedirected = useRef(false);
     const lastPathname = useRef(pathname);
 
@@ -61,19 +60,19 @@ export default function HomeRoutesLayout() {
             return;
         }
 
-        // Si es admin o super admin, redirigir a la pantalla especial
-        // Solo redirigir si NO está ya en la página de admin-redirect
-        if (isAdmin || isSuperAdmin) {
-            const currentSegments = segments as string[];
-            const isOnAdminRedirect = pathname?.includes('admin-redirect') ||
-                currentSegments?.some((segment) => segment === 'admin-redirect');
+        // Solo redirigir si estamos en la ruta base de blog
+        const isBlogRoot = pathname === '/blog' || pathname === '/(blog)' || pathname === '/(blog)/';
 
-            if (!isOnAdminRedirect && !hasRedirected.current) {
-                hasRedirected.current = true;
-                router.replace("/(home)/admin-redirect");
+        if (isBlogRoot && !hasRedirected.current) {
+            hasRedirected.current = true;
+            // Redirigir según el rol del usuario
+            if (isClient) {
+                router.replace("/(blog)/client-feed");
+            } else if (isTrainer || isAdmin || isSuperAdmin) {
+                router.replace("/(blog)/trainer-feed");
             }
         }
-    }, [isSignedIn, isAdmin, isSuperAdmin, isLoading, router, pathname, segments]);
+    }, [isSignedIn, isTrainer, isClient, isAdmin, isSuperAdmin, isLoading, router, pathname]);
 
     // Mostrar loading mientras se cargan los roles
     if (isLoading) {
@@ -98,9 +97,12 @@ export default function HomeRoutesLayout() {
         <View className="flex-1">
             <Stack
                 screenOptions={{
-                    headerShown: false,
+                    headerShown: false
                 }}
-            />
+            >
+                <Stack.Screen name="trainer-feed" options={{ headerShown: false }} />
+                <Stack.Screen name="client-feed" options={{ headerShown: false }} />
+            </Stack>
             <BottomNavigation tabs={navigationTabs} />
         </View>
     );

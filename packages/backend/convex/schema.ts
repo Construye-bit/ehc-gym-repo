@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+
 export default defineSchema({
     // ==================== USUARIOS Y AUTENTICACIÓN ====================
 
@@ -157,8 +158,56 @@ export default defineSchema({
         .index("by_status", ["status"])
         .index("by_specialty", ["specialties"]),
 
+    // ==================== PUBLICACIONES ====================
+
+    posts: defineTable({
+        trainer_id: v.id("trainers"),
+        user_id: v.id("users"),
+        title: v.string(),
+        description: v.string(),
+        // Gestión de imagen
+        image_storage_id: v.optional(v.id("_storage")),
+        image_url: v.optional(v.string()),
+        // Métricas y timestamps
+        likes_count: v.number(), // Inicializa en 0
+        published_at: v.number(),
+        deleted_at: v.optional(v.number()),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        // Índice principal para feed (ordenado por fecha de publicación)
+        .index("by_published", ["published_at"])
+        // Índice para obtener posts de un trainer específico
+        .index("by_trainer", ["trainer_id"])
+        // Índice para obtener posts de un usuario específico
+        .index("by_user", ["user_id"])
+        // Índice para ordenar por fecha de creación
+        .index("by_created", ["created_at"])
+        // Índice para soft deletes
+        .index("by_deleted", ["deleted_at"]),
+
+    // ==================== LIKES DE PUBLICACIONES ====================
+
+    post_likes: defineTable({
+        post_id: v.id("posts"),
+        user_id: v.id("users"),
+        created_at: v.number(),
+    })
+        // Índice compuesto para verificación de duplicados (CRÍTICO)
+        // Usado en: toggleLike para verificar si ya existe like
+        .index("by_post_user", ["post_id", "user_id"])
+        // Índice para obtener todos los likes de una publicación
+        // Usado en: getLikesByPost, contadores
+        .index("by_post", ["post_id"])
+        // Índice para historial de likes del usuario (ordenado por fecha)
+        // Usado en: getUserLikeHistory
+        .index("by_user_created", ["user_id", "created_at"])
+        // Índice simple por usuario
+        // Usado en: obtener todos los likes de un usuario
+        .index("by_user", ["user_id"]),
 
     // ==================== ADMINISTRADORES ====================
+
     admins: defineTable({
         person_id: v.id("persons"),
         user_id: v.optional(v.id("users")),
@@ -175,8 +224,8 @@ export default defineSchema({
         .index("by_status", ["status"])
         .index("by_creator", ["created_by_user_id"]),
 
-
     // ==================== CLIENTES ====================
+
     clients: defineTable({
         person_id: v.id("persons"),
         user_id: v.optional(v.id("users")),
@@ -195,8 +244,8 @@ export default defineSchema({
         .index("by_payment_active", ["is_payment_active"])
         .index("by_creator", ["created_by_user_id"]),
 
-
     // ==================== RELACIÓN CLIENTE–SEDE (múltiples sedes) ====================
+
     client_branches: defineTable({
         client_id: v.id("clients"),
         branch_id: v.id("branches"),
@@ -209,8 +258,8 @@ export default defineSchema({
         .index("by_client_active", ["client_id", "active"])
         .index("by_branch_active", ["branch_id", "active"]),
 
-
     // ==================== INVITACIONES (invitar amigo) ====================
+
     invitations: defineTable({
         inviter_client_id: v.id("clients"),
         invitee_name: v.string(),
@@ -233,7 +282,6 @@ export default defineSchema({
         .index("by_token", ["token"])
         .index("by_preferred_branch", ["preferred_branch_id"])
         .index("by_status", ["status"]),
-
 
     // ==================== EJEMPLO SIMPLE ====================
     todos: defineTable({

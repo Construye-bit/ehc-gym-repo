@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.mybettertapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -43,13 +44,20 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow EHC Gym to use Face ID."
+          "faceIDPermission": "Permitir que EHC Gym acceda a tus datos sensibles."
         }
       ],
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Allow EHC Gym to access your sensitive data."
+          "faceIDPermission": "Permitir que EHC Gym acceda a tus datos sensibles."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La aplicación necesita acceso a tus fotos para que puedas compartir imágenes en tus consejos.",
+          "cameraPermission": "La aplicación necesita acceso a tu cámara para que puedas tomar fotos."
         }
       ]
     ],

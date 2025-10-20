@@ -1,16 +1,15 @@
-import { useRouter, Stack, usePathname, useSegments } from "expo-router";
+import { useRouter, Stack, usePathname } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useRef, useMemo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
 
-export default function HomeRoutesLayout() {
+export default function ChatRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
-    const { isAdmin, isClient, isSuperAdmin, isLoading } = useAuth();
+    const { isClient, isLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const segments = useSegments();
     const hasRedirected = useRef(false);
     const lastPathname = useRef(pathname);
 
@@ -60,20 +59,7 @@ export default function HomeRoutesLayout() {
             }
             return;
         }
-
-        // Si es admin o super admin, redirigir a la pantalla especial
-        // Solo redirigir si NO está ya en la página de admin-redirect
-        if (isAdmin || isSuperAdmin) {
-            const currentSegments = segments as string[];
-            const isOnAdminRedirect = pathname?.includes('admin-redirect') ||
-                currentSegments?.some((segment) => segment === 'admin-redirect');
-
-            if (!isOnAdminRedirect && !hasRedirected.current) {
-                hasRedirected.current = true;
-                router.replace("/(home)/admin-redirect");
-            }
-        }
-    }, [isSignedIn, isAdmin, isSuperAdmin, isLoading, router, pathname, segments]);
+    }, [isSignedIn, isLoading, router, pathname]);
 
     // Mostrar loading mientras se cargan los roles
     if (isLoading) {
@@ -98,9 +84,11 @@ export default function HomeRoutesLayout() {
         <View className="flex-1">
             <Stack
                 screenOptions={{
-                    headerShown: false,
+                    headerShown: false
                 }}
-            />
+            >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+            </Stack>
             <BottomNavigation tabs={navigationTabs} />
         </View>
     );

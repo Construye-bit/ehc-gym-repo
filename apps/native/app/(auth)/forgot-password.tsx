@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn, useAuth } from "@clerk/clerk-expo";
 import { Link, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
@@ -14,11 +14,19 @@ import { Button, Input, Text } from '@/components/ui';
 export default function ForgotPasswordPage() {
     const router = useRouter();
     const { signIn, isLoaded } = useSignIn();
+    const { isSignedIn } = useAuth();
 
     const [emailAddress, setEmailAddress] = useState('');
     const [loading, setLoading] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
     const [fieldError, setFieldError] = useState<string | undefined>();
+
+    // Redirigir si ya está autenticado (solo una vez al montar el componente)
+    useEffect(() => {
+        if (isSignedIn) {
+            router.replace("/(home)");
+        }
+    }, []); // Array vacío = solo se ejecuta al montar
 
     const validateForm = () => {
         if (!emailAddress || emailAddress.trim().length === 0) {
@@ -194,7 +202,7 @@ export default function ForgotPasswordPage() {
                         <Text variant="p" color="tertiary" className="text-base text-gray-600">
                             ¿Recordaste tu contraseña?{' '}
                         </Text>
-                        <Link href="./sign-in" asChild>
+                        <Link href="/(auth)/sign-in" asChild>
                             <TouchableOpacity>
                                 <Text variant="p" className="text-base text-yellow-500 font-semibold">
                                     Iniciar sesión

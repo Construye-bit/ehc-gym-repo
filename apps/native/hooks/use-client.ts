@@ -145,11 +145,12 @@ export function useRegisterClient() {
                 last_name: formData.apellidos.trim(),
                 phone: `${formData.countryCode}${formData.telefono}`,
                 born_date: convertDateFormat(formData.fechaNacimiento),
-                document_type: "CC", // Por defecto, se puede agregar al formulario si es necesario
-                document_number: "", // Se puede agregar al formulario si es necesario
+                document_type: formData.tipoDocumento,
+                document_number: formData.numeroDocumento.trim(),
                 emergency_contact_name: formData.nombreContactoEmergencia.trim(),
                 emergency_contact_phone: `${formData.countryCode}${formData.telefonoContactoEmergencia}`,
                 emergency_contact_relationship: formData.parentescoContactoEmergencia.trim(),
+                branch_id: formData.sedeId as any, // ID de la sede seleccionada
             });
 
             return {

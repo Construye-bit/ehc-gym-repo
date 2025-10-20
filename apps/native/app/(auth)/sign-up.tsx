@@ -1,13 +1,18 @@
 import * as React from "react";
 import { TouchableOpacity, View, ScrollView, StatusBar, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
 import { Link, useRouter } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Input, PasswordInput, DateInput, PhoneInput, Text } from "@/components/ui";
+import { Button, Input, PasswordInput, DateInput, PhoneInput, Select, Text } from "@/components/ui";
 import { useRegisterClient } from "@/hooks/use-client";
+import { useActiveBranches } from "@/hooks/use-branches";
 import { registerClientSchema, formatZodErrors } from "@/lib/validations/client";
 
 export default function SignUpScreen() {
 	const router = useRouter();
+	const { isSignedIn, isLoaded } = useAuth();
+	const registerClient = useRegisterClient();
+	const { branchOptions, isLoading: branchesLoading } = useActiveBranches();
 	const {
 		loading,
 		pendingVerification,
@@ -18,7 +23,7 @@ export default function SignUpScreen() {
 		setVerificationCode,
 		setFieldErrors,
 		goBackToSignUp,
-	} = useRegisterClient();
+	} = registerClient;
 
 	// Form state
 	const [formData, setFormData] = React.useState({
@@ -28,15 +33,25 @@ export default function SignUpScreen() {
 		fechaNacimiento: '',
 		telefono: '',
 		countryCode: '+57',
+		tipoDocumento: 'CC' as 'CC' | 'TI' | 'CE' | 'PASSPORT',
+		numeroDocumento: '',
 		contrasena: '',
 		nombreContactoEmergencia: '',
 		telefonoContactoEmergencia: '',
 		parentescoContactoEmergencia: '',
+		sedeId: '',
 	});
 
 	const [localFieldErrors, setLocalFieldErrors] = React.useState<{
 		[key: string]: string;
 	}>({});
+
+	// Redirigir cuando Clerk termine de cargar y el usuario esté autenticado
+	React.useEffect(() => {
+		if (isLoaded && isSignedIn) {
+			router.replace("/(home)");
+		}
+	}, [isSignedIn, isLoaded, router]);
 
 	const handleInputChange = (field: string, value: string) => {
 		setFormData(prev => ({
@@ -52,7 +67,7 @@ export default function SignUpScreen() {
 			}));
 		}
 		if (fieldErrors[field]) {
-			setFieldErrors(prev => ({
+			setFieldErrors((prev: { [key: string]: string }) => ({
 				...prev,
 				[field]: '',
 			}));
@@ -179,7 +194,7 @@ export default function SignUpScreen() {
 							onChangeText={(text) => {
 								setVerificationCode(text);
 								if (fieldErrors.code) {
-									setFieldErrors(prev => ({ ...prev, code: '' }));
+									setFieldErrors((prev: { [key: string]: string }) => ({ ...prev, code: '' }));
 								}
 							}}
 							placeholder="000000"
@@ -227,7 +242,7 @@ export default function SignUpScreen() {
 						<Text className="text-white opacity-80 text-base">
 							¿Ya tienes una cuenta?
 						</Text>
-						<Link href="./sign-in" asChild>
+						<Link href="/(auth)/sign-in" asChild>
 							<TouchableOpacity>
 								<Text className="text-white text-base font-semibold underline ml-1">
 									Ingresar
@@ -306,6 +321,32 @@ export default function SignUpScreen() {
 						error={allErrors.telefono}
 					/>
 
+					{/* Tipo de documento */}
+					<Select
+						label="Tipo de documento"
+						value={formData.tipoDocumento}
+						onValueChange={(value) => handleInputChange('tipoDocumento', value)}
+						options={[
+							{ label: 'Cédula de Ciudadanía', value: 'CC' },
+							{ label: 'Tarjeta de Identidad', value: 'TI' },
+							{ label: 'Cédula de Extranjería', value: 'CE' },
+							{ label: 'Pasaporte', value: 'PASSPORT' },
+						]}
+						error={allErrors.tipoDocumento}
+					/>
+
+					{/* Número de documento */}
+					<Input
+						label="Número de documento"
+						placeholder="1234567890"
+						keyboardType="default"
+						autoCapitalize="characters"
+						value={formData.numeroDocumento}
+						onChangeText={(text) => handleInputChange('numeroDocumento', text)}
+						onBlur={() => validateField('numeroDocumento')}
+						error={allErrors.numeroDocumento}
+					/>
+
 					{/* Contraseña */}
 					<PasswordInput
 						label="Contraseña"
@@ -349,6 +390,20 @@ export default function SignUpScreen() {
 						onBlur={() => validateField('parentescoContactoEmergencia')}
 						error={allErrors.parentescoContactoEmergencia}
 						autoCapitalize="words"
+					/>
+
+					{/* Sede preferida */}
+					<Text className="mt-5 mb-4 text-xl font-bold text-gray-900">
+						Sede de preferencia
+					</Text>
+
+					<Select
+						label="¿A qué sede te gustaría asistir?"
+						value={formData.sedeId}
+						onValueChange={(value) => handleInputChange('sedeId', value)}
+						options={branchOptions}
+						placeholder={branchesLoading ? "Cargando sedes..." : "Selecciona una sede"}
+						error={allErrors.sedeId}
 					/>
 
 					{/* Botón de registro */}
