@@ -7,7 +7,7 @@ import {
   updatePostSchema,
   deletePostSchema,
 } from "./validations";
-import validateWithZod from "../utils/validation";
+import { validateWithZod } from "../utils/validation";
 import {
   PostNotFoundError,
   UnauthorizedPostActionError,

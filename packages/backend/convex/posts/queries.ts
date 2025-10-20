@@ -5,8 +5,8 @@ import {
   getPostSchema,
   getPostsFeedSchema,
   getTrainerPostsSchema,
-  validateWithZod,
 } from "./validations";
+import { validateWithZod } from "../utils/validation";
 import { PostNotFoundError } from "./errors";
 
 /**

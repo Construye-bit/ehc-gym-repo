@@ -2,7 +2,8 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
-import { toggleLikeSchema, validateWithZod } from './validations';
+import { toggleLikeSchema } from './validations';
+import { validateWithZod } from '../utils/validation';
 
 /**
  * Toggle like en una publicación (transaccional)
@@ -40,7 +41,7 @@ export const toggleLike = mutation({
 
             // 3. Verificar que la publicación existe y no está eliminada
             const post = await ctx.db.get(validatedData.postId as Id<"posts">);
-            
+
             if (!post) {
                 throw new Error("Publicación no encontrada");
             }
@@ -52,9 +53,9 @@ export const toggleLike = mutation({
             // 4. Verificar si ya existe un like (transaccional)
             const existingLike = await ctx.db
                 .query("post_likes")
-                .withIndex("by_post_user", (q) => 
+                .withIndex("by_post_user", (q) =>
                     q.eq("post_id", validatedData.postId as Id<"posts">)
-                     .eq("user_id", user._id)
+                        .eq("user_id", user._id)
                 )
                 .unique();
 

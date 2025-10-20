@@ -5,8 +5,8 @@ import { Id } from "../_generated/dataModel";
 import {
     checkIfUserLikedSchema,
     getLikesCountSchema,
-    validateWithZod
 } from './validations';
+import { validateWithZod } from '../utils/validation';
 
 /**
  * Verificar si el usuario actual dio like a una publicación
@@ -38,9 +38,9 @@ export const checkIfUserLiked = query({
         // 3. Buscar like
         const like = await ctx.db
             .query("post_likes")
-            .withIndex("by_post_user", (q) => 
+            .withIndex("by_post_user", (q) =>
                 q.eq("post_id", validatedData.postId as Id<"posts">)
-                 .eq("user_id", user._id)
+                    .eq("user_id", user._id)
             )
             .unique();
 
@@ -101,7 +101,7 @@ export const getUserLikeHistory = query({
         // 2. Obtener likes del usuario ordenados por fecha
         const likes = await ctx.db
             .query("post_likes")
-            .withIndex("by_user_created", (q) => 
+            .withIndex("by_user_created", (q) =>
                 q.eq("user_id", user._id)
             )
             .order("desc")
@@ -111,7 +111,7 @@ export const getUserLikeHistory = query({
         const enrichedLikes = await Promise.all(
             likes.map(async (like) => {
                 const post = await ctx.db.get(like.post_id);
-                
+
                 if (!post || post.deleted_at) {
                     return null; // Post eliminado
                 }
@@ -128,8 +128,8 @@ export const getUserLikeHistory = query({
                         image_url: post.image_url,
                         likes_count: post.likes_count,
                         published_at: post.published_at,
-                        trainer_name: person 
-                            ? `${person.name} ${person.last_name}` 
+                        trainer_name: person
+                            ? `${person.name} ${person.last_name}`
                             : "Entrenador",
                     },
                 };

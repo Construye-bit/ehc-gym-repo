@@ -5,7 +5,7 @@ import { z } from "zod";
  * Función auxiliar para validar datos con Zod
  * Lanza errores descriptivos cuando la validación falla
  */
-export default function validateWithZod<T>(
+export function validateWithZod<T>(
     schema: z.ZodSchema<T>,
     data: unknown,
     context: string
