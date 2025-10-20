@@ -49,13 +49,13 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow EHC Gym to use Face ID."
+          "faceIDPermission": "Permitir que EHC Gym acceda a tus datos sensibles."
         }
       ],
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Allow EHC Gym to access your sensitive data."
+          "faceIDPermission": "Permitir que EHC Gym acceda a tus datos sensibles."
         }
       ],
       [

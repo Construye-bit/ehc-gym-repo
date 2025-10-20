@@ -1,17 +1,10 @@
-import { useRouter, Stack } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
-import { useEffect } from "react";
+import { Stack } from "expo-router";
 
 export default function AuthRoutesLayout() {
-	const { isSignedIn } = useAuth();
-	const router = useRouter();
-
-	useEffect(() => {
-		if (isSignedIn) {
-			router.replace("/(home)");
-		}
-	}, [isSignedIn, router]);
-
+	// No hacemos ninguna redirección aquí
+	// Las pantallas individuales (sign-in, sign-up, etc.) manejarán 
+	// su propia lógica si el usuario ya está autenticado
+	
 	return (
 		<Stack
 			screenOptions={{

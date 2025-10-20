@@ -70,6 +70,16 @@ export default function ChatRoutesLayout() {
         );
     }
 
+    // Guard: No renderizar UI autenticada si no está autenticado
+    // Esto evita mostrar Stack/BottomNavigation mientras se redirige al login
+    if (!isSignedIn) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+                <ActivityIndicator size="large" color="#EBB303" />
+            </View>
+        );
+    }
+
     return (
         <View className="flex-1">
             <Stack

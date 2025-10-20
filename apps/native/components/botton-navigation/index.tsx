@@ -28,7 +28,7 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
 
         // Para chat - soportar ambos formatos
         if (route.includes('/(chat)/')) {
-            return true
+            return pathname?.includes('/(chat)/');
         }
 
         // Para la ruta home
@@ -89,7 +89,7 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
                                 <Ionicons
                                     name={tab.icon}
                                     size={26}
-                                    color={isActive ? '#EBB303' : '#000'}
+                                    color={isActive ? '#EAB308' : '#000'}
                                 />
                                 <Text
                                     className={`text-xs mt-1 ${isActive

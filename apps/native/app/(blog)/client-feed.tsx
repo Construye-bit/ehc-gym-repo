@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -17,17 +17,21 @@ import type { Id } from '@/api';
 
 export default function ClientFeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Obtener feed de publicaciones desde Convex
-  const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
+  // useMemo con refreshKey fuerza la recreación de args y por ende re-fetch
+  const queryArgs = useMemo(() => ({ limit: 50 }), [refreshKey]);
+  const feedData = useQuery(api.posts.index.getPostsFeed, queryArgs);
 
   // Mutation para dar/quitar like
   const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // El useQuery se refresca automáticamente
-    setTimeout(() => setRefreshing(false), 500);
+    setRefreshKey(prev => prev + 1);
+    // Give Convex time to refetch
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handleLike = async (postId: string) => {

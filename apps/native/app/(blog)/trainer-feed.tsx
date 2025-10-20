@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -24,12 +24,14 @@ import type { Id } from '@/api';
 export default function TrainerFeedScreen() {
   const { person } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTab>('all');
   const [editingPost, setEditingPost] = useState<any | undefined>();
 
-  // Queries
-  const feedData = useQuery(api.posts.index.getPostsFeed, { limit: 50 });
+  // Queries - useMemo con refreshKey fuerza el re-fetch
+  const queryArgs = useMemo(() => ({ limit: 50 }), [refreshKey]);
+  const feedData = useQuery(api.posts.index.getPostsFeed, queryArgs);
 
   // Mutations
   const toggleLikeMutation = useMutation(api.postLikes.index.toggleLike);
@@ -40,7 +42,9 @@ export default function TrainerFeedScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
+    setRefreshKey(prev => prev + 1);
+    // Give Convex time to refetch
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handleLike = async (postId: string) => {

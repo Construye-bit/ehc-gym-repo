@@ -1,8 +1,8 @@
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn, useAuth } from "@clerk/clerk-expo";
 import { useLocalCredentials } from "@clerk/clerk-expo/local-credentials";
 import { Link, useRouter } from "expo-router";
 import { TouchableOpacity, View, ScrollView, Image, StatusBar, KeyboardAvoidingView, Platform, Alert } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Input, PasswordInput, Text } from "@/components/ui";
 import { signInSchema } from "@/lib/validations/auth";
 import { ZodError } from "zod";
@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function SignInPage() {
 	const { signIn, setActive, isLoaded } = useSignIn();
+	const { isSignedIn } = useAuth();
 	const { hasCredentials, setCredentials, authenticate, biometricType } = useLocalCredentials();
 	const router = useRouter();
 
@@ -21,6 +22,13 @@ export default function SignInPage() {
 		email?: string;
 		password?: string;
 	}>({});
+
+	// Redirigir si ya está autenticado (solo una vez al montar el componente)
+	useEffect(() => {
+		if (isSignedIn) {
+			router.replace("/(home)");
+		}
+	}, []); // Array vacío = solo se ejecuta al montar
 
 	const validateForm = () => {
 		try {
@@ -215,7 +223,7 @@ export default function SignInPage() {
 						<Text variant="p" color="tertiary" className="text-lg">
 							¿No tienes una cuenta?{' '}
 						</Text>
-						<Link href="./sign-up" asChild>
+						<Link href="/(auth)/sign-up" asChild>
 							<TouchableOpacity>
 								<Text variant="p" className="text-lg text-yellow-500 font-semibold">
 									Regístrate
@@ -257,7 +265,7 @@ export default function SignInPage() {
 
 					{/* Forgot Password */}
 					<View className="items-center mt-3 mb-6">
-						<Link href="./forgot-password" asChild>
+						<Link href="/(auth)/forgot-password" asChild>
 							<TouchableOpacity>
 								<Text variant="p" className="text-lg text-yellow-500 font-medium">
 									¿Olvidaste tu contraseña?

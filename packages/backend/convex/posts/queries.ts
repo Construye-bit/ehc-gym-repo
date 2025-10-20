@@ -122,22 +122,57 @@ export const getPostsFeed = query({
       userLikes = new Set(likes.map((like) => like.post_id));
     }
 
-    // 5. Enriquecer publicaciones con información del trainer
-    const enrichedPosts = await Promise.all(
-      posts.map(async (post) => {
-        const trainer = await ctx.db.get(post.trainer_id);
-        const person = trainer ? await ctx.db.get(trainer.person_id) : null;
+    // 5. Enriquecer publicaciones con información del trainer (optimizado para evitar N+1)
+    // 5a. Recolectar IDs únicos de trainers
+    const uniqueTrainerIds = [...new Set(posts.map((post) => post.trainer_id))];
 
-        return {
-          ...post,
-          trainer_name: person
-            ? `${person.name} ${person.last_name}`
-            : "Entrenador",
-          trainer_specialties: trainer?.specialties || [],
-          user_has_liked: userLikes.has(post._id),
-        };
-      })
+    // 5b. Obtener todos los trainers en una sola llamada batch
+    const trainers = await Promise.all(
+      uniqueTrainerIds.map((id) => ctx.db.get(id))
     );
+
+    // Crear un mapa de trainer_id -> trainer para acceso rápido
+    const trainerMap = new Map(
+      trainers
+        .filter((t) => t !== null)
+        .map((t) => [t!._id, t!])
+    );
+
+    // 5c. Recolectar IDs únicos de personas de los trainers obtenidos
+    const uniquePersonIds = [
+      ...new Set(
+        trainers
+          .filter((t) => t !== null && t.person_id)
+          .map((t) => t!.person_id)
+      ),
+    ];
+
+    // 5d. Obtener todas las personas en una sola llamada batch
+    const persons = await Promise.all(
+      uniquePersonIds.map((id) => ctx.db.get(id))
+    );
+
+    // Crear un mapa de person_id -> person para acceso rápido
+    const personMap = new Map(
+      persons
+        .filter((p) => p !== null)
+        .map((p) => [p!._id, p!])
+    );
+
+    // 5e. Enriquecer publicaciones usando los mapas (sin awaits adicionales)
+    const enrichedPosts = posts.map((post) => {
+      const trainer = trainerMap.get(post.trainer_id);
+      const person = trainer ? personMap.get(trainer.person_id) : null;
+
+      return {
+        ...post,
+        trainer_name: person
+          ? `${person.name} ${person.last_name}`
+          : "Entrenador",
+        trainer_specialties: trainer?.specialties || [],
+        user_has_liked: userLikes.has(post._id),
+      };
+    });
 
     // 6. Retornar con cursor de paginación
     return {
@@ -296,20 +331,20 @@ export const getPostDetails = query({
       },
       person: person
         ? {
-            name: person.name,
-            last_name: person.last_name,
-          }
+          name: person.name,
+          last_name: person.last_name,
+        }
         : null,
       user: user
         ? {
-            name: user.name,
-            email: user.email,
-          }
+          name: user.name,
+          email: user.email,
+        }
         : null,
       branch: branch
         ? {
-            name: branch.name,
-          }
+          name: branch.name,
+        }
         : null,
       user_has_liked,
     };

@@ -93,13 +93,13 @@ export function Select({
                                 >
                                     <View className="flex-row items-center justify-between">
                                         <Text className={`text-base ${item.value === value
-                                                ? 'text-yellow-700 font-semibold'
-                                                : 'text-gray-700'
+                                            ? 'text-yellow-700 font-semibold'
+                                            : 'text-gray-700'
                                             }`}>
                                             {item.label}
                                         </Text>
                                         {item.value === value && (
-                                            <Ionicons name="checkmark" size={24} color="#a16207" />
+                                            <Ionicons name="checkmark" size={24} color="#b45309" />
                                         )}
                                     </View>
                                 </TouchableOpacity>

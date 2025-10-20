@@ -9,8 +9,8 @@ interface ClientPostCardProps {
   onLike: (postId: string) => void;
 }
 
-export const ClientPostCard: React.FC<ClientPostCardProps> = ({ 
-  post, 
+export const ClientPostCard: React.FC<ClientPostCardProps> = ({
+  post,
   onLike,
 }) => {
   return (
@@ -19,8 +19,8 @@ export const ClientPostCard: React.FC<ClientPostCardProps> = ({
       <View style={styles.header}>
         <View style={styles.trainerInfo}>
           {post.trainerAvatar ? (
-            <Image 
-              source={{ uri: post.trainerAvatar }} 
+            <Image
+              source={{ uri: post.trainerAvatar }}
               style={styles.avatar}
             />
           ) : (
@@ -44,10 +44,10 @@ export const ClientPostCard: React.FC<ClientPostCardProps> = ({
         <Text style={styles.content} numberOfLines={4}>
           {post.content}
         </Text>
-        
+
         {post.imageUrl && (
-          <Image 
-            source={{ uri: post.imageUrl }} 
+          <Image
+            source={{ uri: post.imageUrl }}
             style={styles.postImage}
             resizeMode="cover"
           />
@@ -56,21 +56,21 @@ export const ClientPostCard: React.FC<ClientPostCardProps> = ({
 
       {/* Footer con Like */}
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.likeButton}
           onPress={() => onLike(post.id)}
           activeOpacity={0.7}
         >
-          <Ionicons 
-            name={post.isLiked ? "heart" : "heart-outline"} 
-            size={24} 
+          <Ionicons
+            name={post.isLiked ? "heart" : "heart-outline"}
+            size={24}
             color={post.isLiked ? AppColors.primary.red : AppColors.text.secondary}
           />
           <Text style={[
             styles.likeText,
             post.isLiked && styles.likeTextActive
           ]}>
-            {post.likesCount} {post.likesCount === 1 ? 'Me gusta' : 'Me gusta'}
+            {post.likesCount === 1 ? '1 Me gusta' : `${post.likesCount} Me gusta`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -80,7 +80,7 @@ export const ClientPostCard: React.FC<ClientPostCardProps> = ({
 
 const getTimeAgo = (timestamp: number): string => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  
+
   if (seconds < 60) return 'Ahora';
   if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)}m`;
   if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)}h`;

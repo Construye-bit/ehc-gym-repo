@@ -1,6 +1,7 @@
 import * as React from "react";
 import { TouchableOpacity, View, ScrollView, StatusBar, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
 import { Link, useRouter } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Input, PasswordInput, DateInput, PhoneInput, Select, Text } from "@/components/ui";
 import { useRegisterClient } from "@/hooks/use-client";
@@ -9,6 +10,7 @@ import { registerClientSchema, formatZodErrors } from "@/lib/validations/client"
 
 export default function SignUpScreen() {
 	const router = useRouter();
+	const { isSignedIn } = useAuth();
 	const registerClient = useRegisterClient();
 	const { branchOptions, isLoading: branchesLoading } = useActiveBranches();
 	const {
@@ -43,6 +45,13 @@ export default function SignUpScreen() {
 	const [localFieldErrors, setLocalFieldErrors] = React.useState<{
 		[key: string]: string;
 	}>({});
+
+	// Redirigir si ya está autenticado (solo una vez al montar el componente)
+	React.useEffect(() => {
+		if (isSignedIn) {
+			router.replace("/(home)");
+		}
+	}, []); // Array vacío = solo se ejecuta al montar
 
 	const handleInputChange = (field: string, value: string) => {
 		setFormData(prev => ({
@@ -233,7 +242,7 @@ export default function SignUpScreen() {
 						<Text className="text-white opacity-80 text-base">
 							¿Ya tienes una cuenta?
 						</Text>
-						<Link href="./sign-in" asChild>
+						<Link href="/(auth)/sign-in" asChild>
 							<TouchableOpacity>
 								<Text className="text-white text-base font-semibold underline ml-1">
 									Ingresar
