@@ -69,8 +69,8 @@ export default function RootLayout() {
 							<Stack.Screen name="on-boarding" options={{ headerShown: false }} />
 							<Stack.Screen name="(home)" options={{ headerShown: false }} />
 							<Stack.Screen name="(auth)" options={{ headerShown: false }} />
-							<Stack.Screen name="blog" options={{ headerShown: false }} />
-							<Stack.Screen name="chat" options={{ headerShown: false }} />
+							<Stack.Screen name="(blog)" options={{ headerShown: false }} />
+							<Stack.Screen name="(chat)" options={{ headerShown: false }} />
 						</Stack>
 					</GestureHandlerRootView>
 				</ThemeProvider>

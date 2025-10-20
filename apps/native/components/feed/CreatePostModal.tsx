@@ -13,8 +13,19 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { AppColors } from '@/constants/Colors';
+
+// Safely import ImagePicker - might not be available in all environments
+let ImagePicker: typeof import('expo-image-picker') | null = null;
+let isImagePickerAvailable = false;
+
+try {
+  ImagePicker = require('expo-image-picker');
+  isImagePickerAvailable = true;
+} catch (error) {
+  console.warn('ImagePicker not available:', error);
+  isImagePickerAvailable = false;
+}
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -52,6 +63,11 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   }, [editPost, visible]);
 
   const pickImage = async () => {
+    if (!isImagePickerAvailable || !ImagePicker) {
+      Alert.alert('Error', 'La funcionalidad de selección de imágenes no está disponible');
+      return;
+    }
+
     try {
       // Solicitar permisos
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -181,8 +197,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             </View>
           )}
 
-          {/* Botón Agregar Imagen */}
-          {!imageUri && (
+          {/* Botón Agregar Imagen - Solo mostrar si ImagePicker está disponible */}
+          {!imageUri && isImagePickerAvailable && (
             <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
               <Ionicons name="image-outline" size={24} color={AppColors.primary.yellow} />
               <Text style={styles.addImageText}>Agregar imagen (opcional)</Text>

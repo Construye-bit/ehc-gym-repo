@@ -15,7 +15,6 @@ import { useMutation, useQuery } from "convex/react";
 import api from "@/api";
 import type { Id } from "@/api";
 import { Container } from "@/components/container";
-import { SignOutButton } from "@/components/sign-out-button";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
@@ -107,25 +106,6 @@ export default function Home() {
                             </View>
                         </View>
 
-                        {/* Consejos Section */}
-                        <TouchableOpacity
-                            onPress={() => router.push('/blog/client-feed')}
-                            className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
-                        >
-                            <View className="flex-row items-center justify-between mb-2">
-                                <View className="flex-row items-center flex-1">
-                                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF4E6' }}>
-                                        <Ionicons name="newspaper" size={20} color="#FF9500" />
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-gray-900 text-xl font-bold">Consejos</Text>
-                                        <Text className="text-gray-500 text-sm">Tips de tus entrenadores</Text>
-                                    </View>
-                                </View>
-                                <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-                            </View>
-                        </TouchableOpacity>
-
                         {/* Todos Section */}
                         <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
                             <Text className="text-gray-900 text-xl font-bold mb-4">Mis Tareas</Text>
@@ -191,9 +171,6 @@ export default function Home() {
                                 </View>
                             )}
                         </View>
-
-                        <SignOutButton />
-                        <Text>HOllaaaaa</Text>
                     </View>
                 </ScrollView>
             </Container>
@@ -252,7 +229,7 @@ export default function Home() {
 
                         {/* Consejos Section */}
                         <TouchableOpacity
-                            onPress={() => router.push('/blog/trainer-feed')}
+                            onPress={() => router.push('/(blog)/trainer-feed')}
                             className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
                         >
                             <View className="flex-row items-center justify-between mb-2">
@@ -334,8 +311,6 @@ export default function Home() {
                                 </View>
                             )}
                         </View>
-
-                        <SignOutButton />
                     </View>
                 </ScrollView>
             </Container>
@@ -408,7 +383,6 @@ export default function Home() {
                         )}
                     </View>
 
-                    <SignOutButton />
                 </View>
             </ScrollView>
         </Container>
