@@ -11,6 +11,10 @@ import { runMutation } from "./test_utils/run";
 vi.mock("../_generated/server", () => ({
     query: (def: any) => def,
     mutation: (def: any) => def,
+    action: (def: any) => def,
+    internalQuery: (def: any) => def,
+    internalMutation: (def: any) => def,
+    internalAction: (def: any) => def,
 }));
 
 // Mock de users
