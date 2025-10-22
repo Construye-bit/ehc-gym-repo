@@ -1,6 +1,8 @@
 {
   "name": "@ehc-gym2/backend",
   "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
@@ -28,5 +30,9 @@
     "resend": "^6.1.0",
     "svix": "^1.76.1",
     "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
   }
 }

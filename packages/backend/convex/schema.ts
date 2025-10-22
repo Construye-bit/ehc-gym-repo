@@ -283,6 +283,87 @@ export default defineSchema({
         .index("by_preferred_branch", ["preferred_branch_id"])
         .index("by_status", ["status"]),
 
+    // ==================== PERFILES — CLIENTE ====================
+
+    client_preferences: defineTable({
+        client_id: v.id("clients"),
+        preferred_time_range: v.optional(v.object({ start: v.string(), end: v.string() })), // "06:00" - "08:00"
+        routine_type: v.optional(
+            v.union(
+                v.literal("FUERZA"),
+                v.literal("CARDIO"),
+                v.literal("MIXTO"),
+                v.literal("MOVILIDAD")
+            )
+        ),
+        goal: v.optional(
+            v.union(
+                v.literal("BAJAR_PESO"),
+                v.literal("TONIFICAR"),
+                v.literal("GANAR_MASA"),
+                v.literal("RESISTENCIA")
+            )
+        ),
+        notes: v.optional(v.string()),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_client", ["client_id"])
+        .index("by_goal", ["goal"]),
+
+    client_health_metrics: defineTable({
+        client_id: v.id("clients"),
+        measured_at: v.number(), // timestamp (ms)
+        weight_kg: v.optional(v.number()),
+        height_cm: v.optional(v.number()),
+        bmi: v.optional(v.number()),
+        body_fat_pct: v.optional(v.number()),
+        notes: v.optional(v.string()),
+        created_by_user_id: v.id("users"),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_client_measured", ["client_id", "measured_at"])
+        .index("by_creator", ["created_by_user_id"]),
+
+    client_progress: defineTable({
+        client_id: v.id("clients"),
+        kind: v.union(
+            v.literal("MEDICION"), // p. ej. RM, tiempo 5K, etc.
+            v.literal("HITO"),     // logro alcanzado
+            v.literal("RUTINA")    // avance ligado a rutina
+        ),
+        metric_key: v.optional(v.string()),   // p. ej. "RM_SQUAT", "5K_TIME"
+        metric_value: v.optional(v.number()), // número libre (seg, kg, etc.)
+        title: v.optional(v.string()),
+        description: v.optional(v.string()),
+        recorded_at: v.number(),              // timestamp (ms)
+        created_by_user_id: v.id("users"),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_client_time", ["client_id", "recorded_at"])
+        .index("by_kind", ["kind"]),
+
+    client_trainer_contracts: defineTable({
+        client_id: v.id("clients"),
+        trainer_id: v.id("trainers"),
+        status: v.union(
+            v.literal("ACTIVE"),
+            v.literal("INACTIVE"),
+            v.literal("BLOCKED")
+        ),
+        start_at: v.number(),
+        end_at: v.optional(v.number()),
+        notes: v.optional(v.string()),
+        created_by_user_id: v.id("users"),
+        created_at: v.number(),
+        updated_at: v.number(),
+    })
+        .index("by_client_status", ["client_id", "status"])
+        .index("by_trainer_status", ["trainer_id", "status"])
+        .index("by_pair", ["client_id", "trainer_id"]),
+
     // ==================== EJEMPLO SIMPLE ====================
     todos: defineTable({
         text: v.string(),
