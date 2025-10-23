@@ -25,7 +25,7 @@ export function ProtectedRoute({
 
     useEffect(() => {
         if (!isLoading) {
-            // Si no está autenticado, redirigir al dashboard/login
+            // Si no está autenticado, redirigir al dashboard/auth/login
             if (!isAuthenticated) {
                 navigate({ to: "/dashboard" });
                 return;

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminDashboardCards } from "../../components/admin/admin-dashboard-cards";
+import { AdminDashboardCards } from "../../components/commons/dashboard-cards";
 import { AdminDashboardHeader } from "../../components/admin/admin-dashboard-header";
 import { AdminRouteGuard } from "../../components/admin/admin-route-guard";
 import { useAdminAuth } from "@/hooks/use-admin-auth";

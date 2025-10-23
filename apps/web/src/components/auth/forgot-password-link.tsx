@@ -22,7 +22,7 @@ export function ForgotPasswordLink({ onForgotPassword }: ForgotPasswordLinkProps
     return (
         <div className="text-center">
             <Link
-                to="/super-admin/forgot-password"
+                to="/auth/forgot-password"
                 className="text-gray-600 hover:text-yellow-500 text-sm transition-colors"
             >
                 ¿Olvidó su Contraseña?

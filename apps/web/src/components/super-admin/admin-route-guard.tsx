@@ -12,7 +12,7 @@ interface AdminRouteGuardProps {
  * - Si requireSuperAdmin=true: Solo permite SUPER_ADMIN
  * - Si requireSuperAdmin=false: Permite ADMIN y SUPER_ADMIN
  * - Redirige clientes/entrenadores a /redirect-to-mobile
- * - Redirige no autenticados a /super-admin/login
+ * - Redirige no autenticados a /auth/login
  */
 export function AdminRouteGuard({ children, requireSuperAdmin = false }: AdminRouteGuardProps) {
     const { isAuthenticated, isLoading, isSuperAdmin, isAdmin, isTrainer, isClient } = useAuth();
@@ -22,7 +22,7 @@ export function AdminRouteGuard({ children, requireSuperAdmin = false }: AdminRo
         if (!isLoading) {
             // Si no está autenticado, redirigir al login
             if (!isAuthenticated) {
-                navigate({ to: "/super-admin/login" });
+                navigate({ to: "/auth/login" });
                 return;
             }
 
@@ -41,13 +41,13 @@ export function AdminRouteGuard({ children, requireSuperAdmin = false }: AdminRo
 
             // Si requiere super admin y no lo es (ni admin tampoco)
             if (requireSuperAdmin && !isSuperAdmin) {
-                navigate({ to: "/super-admin/login" });
+                navigate({ to: "/auth/login" });
                 return;
             }
 
             // Si no requiere super admin, pero no es ni admin ni super admin
             if (!requireSuperAdmin && !isAdmin && !isSuperAdmin) {
-                navigate({ to: "/super-admin/login" });
+                navigate({ to: "/auth/login" });
             }
         }
     }, [isLoading, isAuthenticated, isSuperAdmin, isAdmin, isTrainer, isClient, requireSuperAdmin, navigate]);

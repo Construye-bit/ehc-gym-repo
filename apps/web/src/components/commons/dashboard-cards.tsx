@@ -7,40 +7,56 @@ import {
     BarChart3,
     ChevronRight
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-export function AdminDashboardCards() {
+interface DashboardItem {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    background: string;
+    image: string;
+    action: () => void;
+}
+
+export function AdminDashboardCards({
+    dashboardItems
+}: {
+    dashboardItems?: DashboardItem[]
+}) {
     const navigate = useNavigate();
 
-    const dashboardItems = [
+    const defaultDashboardItems: DashboardItem[] = [
         {
             title: "Gestión de Sedes",
             description: "Administra todas las sedes del gimnasio",
             icon: Building,
             background: "bg-gradient-to-br from-blue-400 to-blue-600",
             image: "/dashboard-sedes.jpg",
-            action: () => navigate({ to: "/admin/sedes" })
+            action: () => navigate({ to: "/super-admin/sedes" })
         },
         {
-            title: "Administrar clientes",
-            description: "Gestiona el todos los clientes del gimnasio",
+            title: "Asignación de Entrenadores",
+            description: "Gestiona los entrenadores del gimnasio",
             icon: Users,
             background: "bg-gradient-to-br from-purple-400 to-purple-600",
             image: "/dashboard-personal.png",
-            action: () => console.log("Administrar clientes")
+            action: () => console.log("Asignación de Entrenadores")
         },
         {
-            title: "Administrar entrenadores",
-            description: "Gestiona los entrenadores del gimnasio",
+            title: "Asignacion de administradores",
+            description: "Gestiona los administradores de las sedes",
             icon: BarChart3,
             background: "bg-gradient-to-br from-gray-600 to-gray-800",
             image: "/dashboard-monitoreo.png",
-            action: () => navigate({ to: "/admin/trainers" })
+            action: () => navigate({ to: "/super-admin/administrators" })
         }
     ];
 
+    const itemsToRender = dashboardItems || defaultDashboardItems;
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dashboardItems.map((item, index) => (
+            {itemsToRender.map((item, index) => (
                 <DashboardCard key={index} {...item} size="large" />
             ))}
         </div>
@@ -50,7 +66,7 @@ export function AdminDashboardCards() {
 interface DashboardCardProps {
     title: string;
     description: string;
-    icon: any;
+    icon: LucideIcon;
     background: string;
     image: string;
     action: () => void;

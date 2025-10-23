@@ -135,7 +135,7 @@ function RouteComponent() {
 					{/* Admin Login Link */}
 					<div className="top-4 right-4 z-10">
 						<Link
-							to="/super-admin/login"
+							to="/auth/login"
 							className="flex items-center gap-2 px-4 py-2 bg-yellow-500/90 hover:bg-yellow-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg backdrop-blur-sm"
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
