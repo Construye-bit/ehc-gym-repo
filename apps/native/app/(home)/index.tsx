@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     StatusBar,
+    FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -16,16 +17,31 @@ import api from "@/api";
 import type { Id } from "@/api";
 import { Container } from "@/components/container";
 import { useAuth } from "@/hooks/use-auth";
+import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
+import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
+import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
 
 export default function Home() {
     const { isLoading, isClient, isTrainer, person, roles } = useAuth();
     const router = useRouter();
     const [newTodoText, setNewTodoText] = useState("");
+    
+    // Estado para filtros del catálogo de entrenadores
+    const [trainerFilters, setTrainerFilters] = useState({
+        specialty: undefined as string | undefined,
+        branchId: undefined as string | undefined,
+        availableNow: false,
+    });
 
     const todos = useQuery(api.todos.getAll);
     const createTodoMutation = useMutation(api.todos.create);
     const toggleTodoMutation = useMutation(api.todos.toggle);
     const deleteTodoMutation = useMutation(api.todos.deleteTodo);
+    
+    // Hook para el catálogo de entrenadores (solo para clientes)
+    const { trainers, isLoading: isLoadingTrainers, hasMore, loadMore } = useTrainerCatalog(
+        isClient ? trainerFilters : { specialty: undefined, branchId: undefined, availableNow: false }
+    );
 
     const handleAddTodo = async () => {
         const text = newTodoText.trim();
@@ -104,6 +120,90 @@ export default function Home() {
                                 <Text className="text-gray-600 text-xs">Logros</Text>
                                 <Text className="text-gray-900 text-2xl font-bold">0</Text>
                             </View>
+                        </View>
+
+                        {/* Catálogo de Entrenadores */}
+                        <View className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+                            <View className="px-5 pt-5 pb-3">
+                                <View className="flex-row items-center mb-3">
+                                    <View 
+                                        className="w-10 h-10 rounded-full items-center justify-center mr-3" 
+                                        style={{ backgroundColor: '#FFF4E6' }}
+                                    >
+                                        <Ionicons name="people" size={20} color="#FF9500" />
+                                    </View>
+                                    <Text className="text-gray-900 text-xl font-bold">
+                                        Entrenadores Disponibles
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <TrainerFilters
+                                selectedSpecialty={trainerFilters.specialty}
+                                selectedBranchId={trainerFilters.branchId}
+                                availableNow={trainerFilters.availableNow}
+                                onSpecialtyChange={(specialty) =>
+                                    setTrainerFilters({ ...trainerFilters, specialty })
+                                }
+                                onBranchChange={(branchId) => 
+                                    setTrainerFilters({ ...trainerFilters, branchId })
+                                }
+                                onAvailableNowChange={(availableNow) =>
+                                    setTrainerFilters({ ...trainerFilters, availableNow })
+                                }
+                            />
+
+                            {trainers.length > 0 && (
+                                <View className="px-5 py-2">
+                                    <Text className="text-sm text-gray-600">
+                                        {trainers.length} entrenador{trainers.length !== 1 ? "es" : ""} encontrado
+                                        {trainers.length !== 1 ? "s" : ""}
+                                    </Text>
+                                </View>
+                            )}
+
+                            {isLoadingTrainers ? (
+                                <View className="py-8 items-center">
+                                    <ActivityIndicator size="large" color="#FF9500" />
+                                    <Text className="text-gray-500 mt-2">Cargando entrenadores...</Text>
+                                </View>
+                            ) : trainers.length === 0 ? (
+                                <View className="py-8 items-center px-5">
+                                    <Ionicons name="people-outline" size={48} color="#d1d5db" />
+                                    <Text className="text-gray-400 mt-2 text-center">
+                                        No se encontraron entrenadores con los filtros seleccionados
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View>
+                                    {trainers.slice(0, 3).map((trainer) => (
+                                        <TrainerCard
+                                            key={trainer.trainer_id}
+                                            trainer={{
+                                                _id: trainer.trainer_id,
+                                                name: trainer.name,
+                                                specialties: trainer.specialties,
+                                                branch: trainer.branch ?? undefined,
+                                            }}
+                                            compact={true}
+                                            onPress={() => {
+                                                console.log("Trainer pressed:", trainer.trainer_id);
+                                            }}
+                                        />
+                                    ))}
+                                    
+                                    {trainers.length > 3 && (
+                                        <TouchableOpacity
+                                            onPress={() => router.push('/(home)/trainer-catalog')}
+                                            className="py-4 items-center border-t border-gray-100"
+                                        >
+                                            <Text className="text-orange-500 font-semibold">
+                                                Ver todos ({trainers.length}) →
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         {/* Todos Section */}
