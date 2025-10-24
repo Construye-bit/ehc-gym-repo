@@ -32,3 +32,16 @@ export function useActiveBranches() {
         isLoading: branches === undefined,
     };
 }
+
+/**
+ * Hook para obtener todas las sedes
+ * Usado en el catálogo de entrenadores
+ */
+export function useBranches() {
+    const branches = useQuery(api.branches.queries.getActiveBranches);
+
+    return {
+        branches: branches ?? [],
+        isLoading: branches === undefined,
+    };
+}
