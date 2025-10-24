@@ -1,36 +1,22 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createFileRoute } from "@tanstack/react-router";
-import { LogOut, User } from "lucide-react";
-import { AdminRouteGuard } from "@/components/super-admin/admin-route-guard";
-import { useAdminAuth } from "@/hooks/use-admin-auth";
-import { AdminDashboardHeader } from "@/components/super-admin/admin-dashboard-header";
-import { AdminDashboardCards } from "@/components/commons/dashboard-cards";
-import { AdminPageLoader } from "@/components/super-admin/admin-page-loader";
+import { AdminDashboardCards } from "@/components/shared/dashboard-cards";
+import { PageLoader } from "@/components/shared/page-loader";
 
 export const Route = createFileRoute("/super-admin/dashboard")({
     component: AdminDashboardRoute,
-    pendingComponent: () => <AdminPageLoader message="Preparando dashboard..." />,
+    pendingComponent: () => <PageLoader variant="admin" message="Preparando dashboard..." showProgress />,
 });
 
 function AdminDashboardRoute() {
-    const { logout } = useAdminAuth();
-
     return (
-        <AdminRouteGuard requireSuperAdmin={true}>
-            <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
-                <AdminDashboardHeader onLogout={logout} />
-
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="mb-8">
-                        <p className="text-xl text-gray-700 font-bold">
-                            ¿QUÉ QUIERES HACER HOY?
-                        </p>
-                    </div>
-
-                    <AdminDashboardCards />
-                </main>
+        <>
+            <div className="mb-8">
+                <p className="text-xl text-gray-700 font-bold">
+                    ¿QUÉ QUIERES HACER HOY?
+                </p>
             </div>
-        </AdminRouteGuard>
+
+            <AdminDashboardCards />
+        </>
     );
 }
