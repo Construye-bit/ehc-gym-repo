@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { useAuth } from "./use-auth";
 import type {
     BasicInfoData,
     LocationContactData,
@@ -44,6 +45,7 @@ const scheduleAmenitiesSchema = z.object({
 
 export function useEditSedeForm(branchId: string) {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -77,8 +79,14 @@ export function useEditSedeForm(branchId: string) {
     });
 
     // Queries y mutations
-    const cities = useQuery(api.cities.queries.list) ?? [];
-    const addresses = useQuery(api.addresses.queries.list) ?? [];
+    const cities = useQuery(
+        api.cities.queries.listForAdmins,
+        isAuthenticated ? {} : "skip"
+    ) ?? [];
+    const addresses = useQuery(
+        api.addresses.queries.listForAdmins,
+        isAuthenticated ? {} : "skip"
+    ) ?? [];
     const branchDetails = useQuery(
         api.branches.queries.getById,
         branchId ? { branchId: branchId as Id<"branches"> } : "skip"
@@ -198,7 +206,7 @@ export function useEditSedeForm(branchId: string) {
                 locationContactSchema.parse(locationContact);
             } else if (step === 3) {
                 scheduleAmenitiesSchema.parse(scheduleAmenities);
-                
+
                 if (scheduleAmenities.opening_time >= scheduleAmenities.closing_time) {
                     newErrors.closing_time = "El horario de cierre debe ser posterior al de apertura";
                 }
@@ -283,7 +291,7 @@ export function useEditSedeForm(branchId: string) {
 
         } catch (error) {
             console.error('Error al actualizar sede:', error);
-            
+
             let errorMessage = 'Error al actualizar la sede';
             if (error instanceof Error) {
                 errorMessage = error.message;

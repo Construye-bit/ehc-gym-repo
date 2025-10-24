@@ -1,9 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { AddCityModal } from "../add-city-modal";
+import { AddAddressModal } from "../add-address-modal";
 import type { LocationContactData, FormErrors } from "@/lib/sede-types";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
 interface LocationContactStepProps {
     locationContact: LocationContactData;
@@ -20,11 +25,24 @@ export function LocationContactStep({
     addresses,
     onUpdate
 }: LocationContactStepProps) {
+    const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+
     // Filtrar direcciones por ciudad seleccionada
     const filteredAddresses = useMemo(() => {
         if (!locationContact.cityId) return [];
         return addresses.filter(addr => addr.city_id === locationContact.cityId);
     }, [locationContact.cityId, addresses]);
+
+    const handleCityAdded = (cityId: string) => {
+        onUpdate("cityId", cityId);
+        setIsCityModalOpen(false);
+    };
+
+    const handleAddressAdded = (addressId: string) => {
+        onUpdate("addressId", addressId);
+        setIsAddressModalOpen(false);
+    };
 
     return (
         <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
@@ -33,24 +51,36 @@ export function LocationContactStep({
                     <Label htmlFor="cityId" className="text-gray-700 font-semibold">
                         Ciudad *
                     </Label>
-                    <Select
-                        value={locationContact.cityId}
-                        onValueChange={(value) => {
-                            onUpdate("cityId", value);
-                            onUpdate("addressId", ""); // Resetear dirección al cambiar ciudad
-                        }}
-                    >
-                        <SelectTrigger className={`bg-white ${errors.cityId ? "border-red-500" : "border-gray-300"}`}>
-                            <SelectValue placeholder="Selecciona una ciudad" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {cities.map((city) => (
-                                <SelectItem key={city._id} value={city._id}>
-                                    {city.name}, {city.state_region}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                        <Select
+                            value={locationContact.cityId}
+                            onValueChange={(value) => {
+                                onUpdate("cityId", value);
+                                onUpdate("addressId", ""); // Resetear dirección al cambiar ciudad
+                            }}
+                        >
+                            <SelectTrigger className={`bg-white ${errors.cityId ? "border-red-500" : "border-gray-300"}`}>
+                                <SelectValue placeholder="Selecciona una ciudad" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {cities.map((city) => (
+                                    <SelectItem key={city._id} value={city._id}>
+                                        {city.name}, {city.state_region}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setIsCityModalOpen(true)}
+                            className="shrink-0"
+                            title="Añadir nueva ciudad"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
                     {errors.cityId && <p className="text-sm text-red-500">{errors.cityId}</p>}
                 </div>
 
@@ -58,26 +88,39 @@ export function LocationContactStep({
                     <Label htmlFor="addressId" className="text-gray-700 font-semibold">
                         Dirección *
                     </Label>
-                    <Select
-                        value={locationContact.addressId}
-                        onValueChange={(value) => onUpdate("addressId", value)}
-                        disabled={!locationContact.cityId}
-                    >
-                        <SelectTrigger className={`bg-white ${errors.addressId ? "border-red-500" : "border-gray-300"}`}>
-                            <SelectValue placeholder={
-                                locationContact.cityId 
-                                    ? "Selecciona una dirección" 
-                                    : "Primero selecciona una ciudad"
-                            } />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {filteredAddresses.map((address) => (
-                                <SelectItem key={address._id} value={address._id}>
-                                    {address.main_address}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                        <Select
+                            value={locationContact.addressId}
+                            onValueChange={(value) => onUpdate("addressId", value)}
+                            disabled={!locationContact.cityId}
+                        >
+                            <SelectTrigger className={`bg-white ${errors.addressId ? "border-red-500" : "border-gray-300"}`}>
+                                <SelectValue placeholder={
+                                    locationContact.cityId
+                                        ? "Selecciona una dirección"
+                                        : "Primero selecciona una ciudad"
+                                } />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredAddresses.map((address) => (
+                                    <SelectItem key={address._id} value={address._id}>
+                                        {address.main_address}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setIsAddressModalOpen(true)}
+                            disabled={!locationContact.cityId}
+                            className="shrink-0"
+                            title="Añadir nueva dirección"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
                     {errors.addressId && <p className="text-sm text-red-500">{errors.addressId}</p>}
                 </div>
 
@@ -109,6 +152,19 @@ export function LocationContactStep({
                     />
                     {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                 </div>
+
+                <AddCityModal
+                    isOpen={isCityModalOpen}
+                    onOpenChange={setIsCityModalOpen}
+                    onCityAdded={handleCityAdded}
+                />
+
+                <AddAddressModal
+                    isOpen={isAddressModalOpen}
+                    onOpenChange={setIsAddressModalOpen}
+                    cityId={locationContact.cityId as Id<"cities">}
+                    onAddressAdded={handleAddressAdded}
+                />
             </CardContent>
         </Card>
     );

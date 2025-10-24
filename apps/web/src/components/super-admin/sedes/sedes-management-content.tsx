@@ -325,7 +325,7 @@ export function SedesManagementContent() {
     })) || [];
 
     const handleAddSede = () => {
-        navigate({ to: '/super-admin/sedes' }); 
+        navigate({ to: '/super-admin/sedes/new' });
     };
 
     const handleViewSede = (id: string) => {
@@ -334,10 +334,10 @@ export function SedesManagementContent() {
     };
 
     const handleEditSede = (id: string) => {
-        navigate({ 
-        to: '/super-admin/sedes/edit',
-        search: { branchId: id }
-    });
+        navigate({
+            to: '/super-admin/sedes/edit',
+            search: { branchId: id }
+        });
     };
 
     const handleCloseDetailsModal = () => {

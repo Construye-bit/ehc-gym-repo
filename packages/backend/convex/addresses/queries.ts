@@ -1,5 +1,5 @@
 import { query } from "../_generated/server";
-import { requireSuperAdmin } from "./utils";
+import { requireSuperAdmin, requireAdmin } from "./utils";
 import { v } from "convex/values";
 
 export const list = query({
@@ -103,5 +103,16 @@ export const searchByArea = query({
                 )
             )
             .collect();
+    },
+});
+
+// === QUERIES FOR ADMINISTRATORS (without requiring super admin) ===
+
+// List all addresses (for regular admins)
+export const listForAdmins = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireAdmin(ctx);
+        return await ctx.db.query("addresses").collect();
     },
 });

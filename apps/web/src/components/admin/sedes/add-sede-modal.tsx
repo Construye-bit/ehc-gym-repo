@@ -11,6 +11,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import { toast } from "sonner";
 import { extractConvexErrorMessage } from "@/lib/error-utils";
+import { useAuth } from "@/hooks/use-auth";
 import { AddCityModal } from "./add-city-modal";
 import { AddAddressModal } from "./add-address-modal";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
@@ -63,6 +64,7 @@ const initialFormData: FormData = {
 };
 
 export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
+    const { isAuthenticated } = useAuth();
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isAddCityModalOpen, setIsAddCityModalOpen] = useState(false);
@@ -70,9 +72,12 @@ export function AddSedeModal({ isOpen, onOpenChange }: AddSedeModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     // Queries
-    const cities = useQuery(api.cities.queries.listForAdmins);
+    const cities = useQuery(
+        api.cities.queries.listForAdmins,
+        isAuthenticated ? {} : "skip"
+    );
     const addresses = useQuery(api.addresses.queries.getByCityForAdmins,
-        formData.cityId ? { cityId: formData.cityId as Id<"cities"> } : "skip"
+        formData.cityId && isAuthenticated ? { cityId: formData.cityId as Id<"cities"> } : "skip"
     );
 
     // Mutations

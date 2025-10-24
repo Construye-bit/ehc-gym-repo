@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { useAuth } from "./use-auth";
 import type {
     BasicInfoData,
     LocationContactData,
@@ -44,6 +45,7 @@ const scheduleAmenitiesSchema = z.object({
 
 export function useSedeForm() {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
@@ -76,8 +78,14 @@ export function useSedeForm() {
     });
 
     // Queries y mutations
-    const cities = useQuery(api.cities.queries.list) ?? [];
-    const addresses = useQuery(api.addresses.queries.list) ?? [];
+    const cities = useQuery(
+        api.cities.queries.listForAdmins,
+        isAuthenticated ? {} : "skip"
+    ) ?? [];
+    const addresses = useQuery(
+        api.addresses.queries.listForAdmins,
+        isAuthenticated ? {} : "skip"
+    ) ?? [];
     const createBranchMutation = useMutation(api.branches.mutations.create);
 
     // Funciones de actualización
@@ -114,7 +122,7 @@ export function useSedeForm() {
                 locationContactSchema.parse(locationContact);
             } else if (step === 3) {
                 scheduleAmenitiesSchema.parse(scheduleAmenities);
-                
+
                 // Validación adicional de horarios
                 if (scheduleAmenities.opening_time >= scheduleAmenities.closing_time) {
                     newErrors.closing_time = "El horario de cierre debe ser posterior al de apertura";
@@ -202,7 +210,7 @@ export function useSedeForm() {
 
         } catch (error) {
             console.error('Error al crear sede:', error);
-            
+
             let errorMessage = 'Error al crear la sede';
             if (error instanceof Error) {
                 errorMessage = error.message;
