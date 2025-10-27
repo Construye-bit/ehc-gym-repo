@@ -103,7 +103,7 @@ export default function SettingsPage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/edit-profile');
+                            router.push('/(profile)/edit-profile');
                         }}
                     >
                         <View className="flex-row items-center">

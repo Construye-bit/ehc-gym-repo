@@ -25,7 +25,7 @@ export default function EditProfilePage() {
                         <Ionicons name="arrow-back" size={24} color="#1f2937" />
                     </TouchableOpacity>
                     <Text variant="h2" className="text-2xl font-bold text-gray-900 flex-1">
-                        Configuración
+                        Editar Perfil
                     </Text>
                 </View>
 
@@ -39,7 +39,7 @@ export default function EditProfilePage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/personal-info');
+                            router.push('/(profile)/personal-info');
                         }}
                     >
                         <View className="flex-row items-center">
@@ -53,7 +53,7 @@ export default function EditProfilePage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/preferences');
+                            router.push('/(profile)/preferences');
                         }}
                     >
                         <View className="flex-row items-center">
@@ -68,7 +68,7 @@ export default function EditProfilePage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/imc');
+                            router.push('/(profile)/imc');
                         }}
                     >
                         <View className="flex-row items-center">
@@ -82,7 +82,7 @@ export default function EditProfilePage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/personal-info-trainer');
+                            router.push('/(profile)/personal-info-trainer');
                         }}
                     >
                         <View className="flex-row items-center">
@@ -96,7 +96,7 @@ export default function EditProfilePage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
-                            router.push('/(home)/preferences-trainer');
+                            router.push('/(profile)/preferences-trainer');
                         }}
                     >
                         <View className="flex-row items-center">

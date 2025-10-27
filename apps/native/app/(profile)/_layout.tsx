@@ -1,9 +1,8 @@
 import { useRouter, Stack, usePathname, useSegments } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { BottomNavigation } from "@/components/botton-navigation";
 
 export default function ProfileLayout() {
     const { isSignedIn } = useClerkAuth();
@@ -13,34 +12,6 @@ export default function ProfileLayout() {
     const segments = useSegments();
     const hasRedirected = useRef(false);
     const lastPathname = useRef(pathname);
-
-    // Memorizar las tabs para evitar re-renderizados innecesarios
-    const navigationTabs = useMemo(() => [
-        {
-            name: 'home',
-            label: 'Inicio',
-            icon: 'home-outline' as const,
-            route: '/(home)',
-        },
-        {
-            name: 'consejos',
-            label: 'Consejos',
-            icon: 'bulb-outline' as const,
-            route: isClient ? '/(blog)/client-feed' : '/(blog)/trainer-feed',
-        },
-        {
-            name: 'chat',
-            label: 'Chat',
-            icon: 'chatbubble-outline' as const,
-            route: '/(chat)',
-        },
-        {
-            name: 'profile',
-            label: 'Configuración',
-            icon: 'settings-outline' as const,
-            route: '/(home)/settings',
-        },
-    ], [isClient]);
 
     useEffect(() => {
         // Si la ruta cambió, resetear el flag
@@ -85,7 +56,7 @@ export default function ProfileLayout() {
     }
 
     // Guard: No renderizar UI autenticada si no está autenticado
-    // Esto evita mostrar Stack/BottomNavigation mientras se redirige al login
+    // Esto evita mostrar Stack mientras se redirige al login
     if (!isSignedIn) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
@@ -95,13 +66,10 @@ export default function ProfileLayout() {
     }
 
     return (
-        <View className="flex-1">
-            <Stack
-                screenOptions={{
-                    headerShown: true,
-                }}
-            />
-            <BottomNavigation tabs={navigationTabs} />
-        </View>
+        <Stack
+            screenOptions={{
+                headerShown: false,
+            }}
+        />
     );
 }

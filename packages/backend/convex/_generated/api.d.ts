@@ -8,6 +8,11 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 import type * as __tests___test_utils_builders from "../__tests__/test_utils/builders.js";
 import type * as __tests___test_utils_fakeCtx from "../__tests__/test_utils/fakeCtx.js";
 import type * as __tests___test_utils_run from "../__tests__/test_utils/run.js";
@@ -106,12 +111,6 @@ import type * as trainers_utils from "../trainers/utils.js";
 import type * as trainers_validations from "../trainers/validations.js";
 import type * as users from "../users.js";
 import type * as utils_validation from "../utils/validation.js";
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -221,15 +220,11 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   "utils/validation": typeof utils_validation;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
-
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
-
-export declare const components: {};
