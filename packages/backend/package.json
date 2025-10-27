@@ -1,6 +1,8 @@
 {
   "name": "@ehc-gym2/backend",
   "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
@@ -11,8 +13,6 @@
     "coverage": "vitest run --coverage"
   },
   "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@types/node": "^24.3.0",
     "@vitest/coverage-v8": "3.2.4",

@@ -1,354 +1,608 @@
-# Integración Backend → Frontend (Convex + Clerk)
+# 📦 Módulo de Perfiles — README de Integración (Backend → Frontend)
 
-Guía para consumir **mutations** y **queries** del backend. Incluye firmas, payloads, respuestas, validaciones/roles, ejemplos, variables de entorno, TODO y matriz de permisos.
+> Sprint: Perfiles (client / trainer / admin)  
+> Estado: ✅ listo (tests 12/12)  
+> Convex API: `POST {{CONVEX_URL}}/api/query` y `POST {{CONVEX_URL}}/api/mutation}`  
+> Auth: `Authorization: Bearer <JWT>` (Clerk JWT verificado por Convex)
 
-**Base URL (Convex HTTP Functions)**
-- POST https://<CONVEX_URL>/api/functions/<namespace>:<functionName>
-- Ej.: https://vivid-elk-733.convex.cloud/api/functions/admins:getMyBranch
+---
 
-**Autenticación**
-- Header: Authorization: Bearer <JWT de Clerk>
-- En Convex → Authentication → Providers: configurar issuer (URL de Clerk) y audience (Application ID de Clerk)
+## 🧭 Cómo consumir (forma general)
 
-**Envelope estándar de Convex**
-- Éxito: { "status": "success", "value": <resultado> }
-- Error:  { "status": "error",  "errorMessage": "..." }
+Todas las llamadas al backend Convex desde Postman/Front siguen este **contrato HTTP**:
 
+- **URL** (Query): `POST {{CONVEX_URL}}/api/query`  
+- **URL** (Mutation): `POST {{CONVEX_URL}}/api/mutation`
+- **Headers**:
+  - `Authorization: Bearer {{JWT_SUPER}} | {{JWT_ADMIN}} | {{JWT_TRAINER}} | {{JWT_CLIENT}}`
+  - `Content-Type: application/json`
+- **Body JSON**:
+  ```json
+  {
+    "path": "modulo/submodulo/tipo:nombreFuncion",
+    "args": { "...": "ver por función" },
+    "format": "json"
+  }
+  ```
 
-## 1) Endpoints disponibles (firma, payload y respuesta)
+**Notas:**
 
-### A) Admins (namespace: admins)
+- Cuando la función no requiere entradas, args puede ir como `{}`.
+- Cuando hay entradas, el patrón en este módulo es: `args: { "payload": { ... } }`.
 
-1) admins:createAdmin · Mutation
-- Rol: SUPER_ADMIN
-- Firma: (payload)
-- Request
-    POST /api/functions/admins:createAdmin
-    Body:
-      {
-        "payload": {
-          "person_id": "Id<persons>",
-          "user_id": "Id<users>",
-          "branch_id": "Id<branches> | null",
-          "status": "ACTIVE" | "INACTIVE"
-        }
-      }
-- Response
-      { "status": "success", "value": "Id<admins>" }
+### 🔐 RBAC y control de acceso (resumen)
 
-2) admins:assignAdminToBranch · Mutation
-- Rol: SUPER_ADMIN
-- Regla: relación 1:1 (una branch con un admin activo)
-- Request
-    POST /api/functions/admins:assignAdminToBranch
-    Body:
-      { "payload": { "admin_id": "Id<admins>", "branch_id": "Id<branches>" } }
-- Response
-      { "status": "success", "value": "Id<admins>" }
+Rol | Puede llamar a…
+--- | ---
+SUPER_ADMIN | Todo lo de admin, y lectura de cualquier perfil.
+ADMIN | Lectura de perfiles (getUserProfileById), y administración de contratos cliente–entrenador.
+TRAINER | Su propio perfil (getMyTrainerProfile) y edición de specialties, work_schedule, phone.
+CLIENT | Su propio perfil (getMyClientProfile), preferencias, métricas de salud y progreso.
 
-3) admins:revokeAdminFromBranch · Mutation
-- Rol: SUPER_ADMIN
-- Request
-    POST /api/functions/admins:revokeAdminFromBranch
-    Body:
-      { "payload": { "admin_id": "Id<admins>" } }
-- Response
-      { "status": "success", "value": "Id<admins>" }
+**Errores comunes:**
 
-4) admins:updateAdminStatus · Mutation
-- Rol: SUPER_ADMIN
-- Request
-    POST /api/functions/admins:updateAdminStatus
-    Body:
-      { "payload": { "admin_id": "Id<admins>", "status": "ACTIVE" | "INACTIVE" } }
-- Response
-      { "status": "success", "value": "Id<admins>" }
+- **UNAUTHORIZED**: falta o inválido el token (sin header Authorization).
+- **FORBIDDEN**: no tiene el rol requerido.
+- **NOT_FOUND**: entidad inexistente.
+- **VALIDATION_ERROR**: payload mal formado.
 
-5) admins:getAdmin · Query
-- Rol: SUPER_ADMIN
-- Request
-    POST /api/functions/admins:getAdmin
-    Body:
-      { "payload": { "admin_id": "Id<admins>" } }
-- Response
-      { "status": "success", "value": { "_id": "Id<admins>", "...": "campos admin" } }
+### 🌳 Estructura de paths de este módulo
 
-6) admins:listAdminsUnassigned · Query
-- Rol: SUPER_ADMIN
-- Request
-    POST /api/functions/admins:listAdminsUnassigned
-    Body:
-      {}
-- Response
-      { "status": "success", "value": [ { "_id": "Id<admins>", "branch_id": null, "...": "otros" } ] }
+```
+profiles/admin/queries:getUserProfileById
+profiles/admin/mutations:adminSetClientContract
+profiles/trainer/queries:getMyTrainerProfile
+profiles/trainer/mutations:updateTrainerSpecialties
+profiles/trainer/mutations:updateTrainerSchedule
+profiles/trainer/mutations:updateMyPhone
+profiles/client/queries:getMyClientProfile
+profiles/client/queries:listHealthMetrics
+profiles/client/queries:listProgress
+profiles/client/queries:listMyContracts
+profiles/client/mutations:upsertClientPreferences
+profiles/client/mutations:addHealthMetric
+profiles/client/mutations:addProgress
+```
 
-7) admins:getAdminByUser · Query
-- Rol: sesión válida (cualquier rol)
-- Request
-    POST /api/functions/admins:getAdminByUser
-    Body:
-      {}
-- Response
-      { "status": "success", "value": { "_id": "Id<admins>", "...": "campos admin" } | null }
+---
 
-8) admins:getMyBranch · Query
-- Rol: ADMIN (logueado como ese admin)
-- Request
-    POST /api/functions/admins:getMyBranch
-    Body:
-      {}
-- Response
-      { "status": "success", "value": { "_id": "Id<branches>", "...": "campos branch" } | null }
+## 📄 DTOs (formas de datos)
 
+**Person (lectura)**  
+json  
 
-### B) Clients (namespace: clients)
+```json
+{
+  "_id": "Id<persons>",
+  "user_id": "Id<users>",
+  "name": "string",
+  "last_name": "string",
+  "born_date": "YYYY-MM-DD",
+  "document_type": "CC|TI|CE|PASSPORT",
+  "document_number": "string",
+  "phone": "string|null",
+  "active": true,
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
-1) clients:createClient · Mutation
-- Rol: SUPER_ADMIN o ADMIN
-- Regla: no dos clientes ACTIVOS para la misma person_id
-- Request
-    POST /api/functions/clients:createClient
-    Body:
-      {
-        "payload": {
-          "person_id": "Id<persons>",
-          "user_id": "Id<users> | null",
-          "status": "ACTIVE" | "INACTIVE",
-          "is_payment_active": true,
-          "join_date": 1738799999999,
-          "preferred_branch_id": "Id<branches> | null"
-        }
-      }
-- Response
-      { "status": "success", "value": "Id<clients>" }
+**Trainer (lectura)**  
+json  
 
-2) clients:setClientPaymentActive · Mutation
-- Rol: ADMIN (de la branch del cliente) o SUPER_ADMIN
-- Request
-    POST /api/functions/clients:setClientPaymentActive
-    Body:
-      { "payload": { "client_id": "Id<clients>", "is_payment_active": true } }
-- Response
-      { "status": "success", "value": "Id<clients>" }
+```json
+{
+  "_id": "Id<trainers>",
+  "person_id": "Id<persons>",
+  "user_id": "Id<users>|null",
+  "branch_id": "Id<branches>|null",
+  "employee_code": "string",
+  "specialties": ["string", "..."],
+  "work_schedule": {
+    "monday": { "start": "HH:MM", "end": "HH:MM" },
+    "...": {}
+  },
+  "status": "ACTIVE|INACTIVE|ON_VACATION",
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
-3) clients:getClient · Query
-- Rol: SUPER_ADMIN, ADMIN (branch del cliente) o dueño CLIENT
-- Request
-    POST /api/functions/clients:getClient
-    Body:
-      { "payload": { "client_id": "Id<clients>" } }
-- Response
-      { "status": "success", "value": { "_id": "Id<clients>", "...": "campos client" } }
+**Client (lectura)**  
+json  
 
-4) clients:listClientsByBranch · Query
-- Rol: ADMIN (de esa branch) o SUPER_ADMIN
-- Request
-    POST /api/functions/clients:listClientsByBranch
-    Body:
-      { "payload": { "branch_id": "Id<branches>", "status": "ACTIVE" | "INACTIVE" | null } }
-- Response
-      { "status": "success", "value": [ { "_id": "Id<clients>", "...": "campos client" } ] }
+```json
+{
+  "_id": "Id<clients>",
+  "person_id": "Id<persons>",
+  "user_id": "Id<users>|null",
+  "status": "ACTIVE|INACTIVE",
+  "is_payment_active": true,
+  "join_date": 0,
+  "end_date": 0,
+  "created_by_user_id": "Id<users>|null",
+  "created_at": 0,
+  "updated_at": 0,
+  "active": true
+}
+```
 
+**ClientPreferences**  
+json  
 
-### C) Client ↔ Branch (namespace: client_branches)
+```json
+{
+  "_id": "Id<client_preferences>",
+  "client_id": "Id<clients>",
+  "preferred_time_range": { "start": "HH:MM", "end": "HH:MM" },
+  "routine_type": "FUERZA|CARDIO|MIXTO|MOVILIDAD",
+  "goal": "BAJAR_PESO|TONIFICAR|GANAR_MASA|RESISTENCIA",
+  "notes": "string|null",
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
-1) client_branches:linkClientToBranch · Mutation
-- Rol: ADMIN (de esa branch) o SUPER_ADMIN
-- Regla: evita duplicado (mismo client_id + branch_id)
-- Request
-    POST /api/functions/client_branches:linkClientToBranch
-    Body:
-      { "payload": { "client_id": "Id<clients>", "branch_id": "Id<branches>" } }
-- Response
-      { "status": "success", "value": "Id<client_branches>" }
+**HealthMetric (lectura)**  
+json  
 
-2) client_branches:unlinkClientFromBranch · Mutation
-- Rol: ADMIN (de esa branch) o SUPER_ADMIN
-- Request
-    POST /api/functions/client_branches:unlinkClientFromBranch
-    Body:
-      { "payload": { "client_id": "Id<clients>", "branch_id": "Id<branches>" } }
-- Response
-      { "status": "success", "value": "Id<client_branches>" }
+```json
+{
+  "_id": "Id<client_health_metrics>",
+  "client_id": "Id<clients>",
+  "measured_at": 0,
+  "weight_kg": 0,
+  "height_cm": 0,
+  "bmi": 0,
+  "body_fat_pct": 0,
+  "notes": "string|null",
+  "created_by_user_id": "Id<users>",
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
+**Progress (lectura)**  
+json  
 
-### D) Invitations (namespace: invitations)
+```json
+{
+  "_id": "Id<client_progress>",
+  "client_id": "Id<clients>",
+  "kind": "MEDICION|HITO|RUTINA",
+  "metric_key": "string|null",
+  "metric_value": 0,
+  "title": "string|null",
+  "description": "string|null",
+  "recorded_at": 0,
+  "created_by_user_id": "Id<users>",
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
-1) invitations:inviteFriend · Mutation
-- Rol: CLIENT
-- Reglas: cliente con pago activo; crea invitación PENDING con token y expires_at (+10 días)
-- Request
-    POST /api/functions/invitations:inviteFriend
-    Body:
-      {
-        "payload": {
-          "inviter_client_id": "Id<clients>",
-          "invitee_name": "string",
-          "invitee_email": "string@email.com",
-          "preferred_branch_id": "Id<branches> | null"
-        }
-      }
-- Response
-      {
-        "status": "success",
-        "value": {
-          "invitationId": "Id<invitations>",
-          "token": "string",
-          "expires_at": 1738899999999
-        }
-      }
+**Contract Client↔Trainer (lectura)**  
+json  
 
-2) invitations:cancelInvitation · Mutation
-- Rol: CLIENT (dueño de la invitación)
-- Regla: solo si status = PENDING
-- Request
-    POST /api/functions/invitations:cancelInvitation
-    Body:
-      { "payload": { "invitation_id": "Id<invitations>" } }
-- Response
-      { "status": "success", "value": "Id<invitations>" }
+```json
+{
+  "_id": "Id<client_trainer_contracts>",
+  "client_id": "Id<clients>",
+  "trainer_id": "Id<trainers>",
+  "status": "ACTIVE|ENDED|BLOCKED",
+  "start_at": 0,
+  "end_at": 0,
+  "notes": "string|null",
+  "created_by_user_id": "Id<users>",
+  "created_at": 0,
+  "updated_at": 0
+}
+```
 
-3) invitations:listInvitationsByBranch · Query
-- Rol: ADMIN (de esa branch) o SUPER_ADMIN
-- Incluye: preferred_branch_id = branch y las de clientes que pertenecen a la branch (vía client_branches)
-- Request
-    POST /api/functions/invitations:listInvitationsByBranch
-    Body:
-      { "payload": { "branch_id": "Id<branches>" } }
-- Response
-      { "status": "success", "value": [ { "_id": "Id<invitations>", "...": "campos invitation" } ] }
+---
 
+## 🧑‍🏫 Admin — Endpoints
 
-## 2) Validaciones y límites (y manejo de errores)
+**1) getUserProfileById (QUERY)**  
+Path: `profiles/admin/queries:getUserProfileById`  
+Rol: ADMIN o SUPER_ADMIN
 
-- Validaciones (Zod)
-  - Tipos, enums (status, role), formato email, longitudes, etc.
-  - Error típico: "Validación fallida en <contexto>: <campo>: <mensaje>"
+**Args:**  
+json  
 
-- RBAC / Permisos
-  - SUPER_ADMIN: gestión global (admins, sedes, listados)
-  - ADMIN: alcance por branch (su sede)
-  - CLIENT: invitar/cancelar invitaciones propias (si pago activo)
+```json
+{ "payload": { "user_id": "Id<users>" } }
+```
 
-- Reglas de negocio clave
-  - Admin ↔ Branch 1:1 (una branch activa solo tiene un admin activo)
-  - Clients por persona: no dos activos para la misma person_id
-  - Invite Friend: requiere rol CLIENT + is_payment_active = true
+**Respuesta (resumen):**  
+json  
 
-- Manejo de errores en Front
-  - "Acceso denegado: requiere rol ..." → toast + redirección según rol
-  - "... no encontrado" (admin/client/branch) → notificación + refresco de listas
-  - Duplicado client_branches → deshabilitar/ocultar acción si ya existe
-  - Envelope de error (HTTP):
-        { "status": "error", "errorMessage": "Mensaje legible para usuario/QA" }
+```json
+{
+  "status": "success",
+  "value": {
+    "user": { "...users" },
+    "person": { "...persons" } | null,
+    "roles": [ "...role_assignments" ],
+    "client": { "...clients" } | null,
+    "trainer": { "...trainers" } | null,
+    "admin": { "...admins" } | null,
+    "preferences": { "...client_preferences" } | null,
+    "latestHealth": { "...client_health_metrics" } | null,
+    "activeContracts": [ "...client_trainer_contracts" ]
+  }
+}
+```
 
+Errores: FORBIDDEN, NOT_FOUND, VALIDATION_ERROR.
 
-## 3) Paginación
+**2) adminSetClientContract (MUTATION)**  
+Path: `profiles/admin/mutations:adminSetClientContract`  
+Rol: ADMIN o SUPER_ADMIN  
+Regla: no duplicar ACTIVE para misma pareja (client_id, trainer_id).
 
-- Estado actual: listados devuelven arrays completos (sin cursor).
-- Plan v2: agregar limit (number) y cursor (string | null) en el payload y responder:
-      { "status": "success", "value": { "items": [ ... ], "nextCursor": "..." } }
+**Args:**  
+json  
 
+```json
+{
+  "payload": {
+    "client_id": "Id<clients>",
+    "trainer_id": "Id<trainers>",
+    "status": "ACTIVE|BLOCKED|ENDED",
+    "start_at": 0,
+    "end_at": 0,
+    "notes": "string|null"
+  }
+}
+```
 
-## 4) Ejemplos completos (requests + responses)
+**Respuesta:**  
+json  
 
-- Headers comunes
-      Authorization: Bearer <JWT Clerk>
-      Content-Type: application/json
+```json
+{ "status": "success", "value": "Id<client_trainer_contracts>" }
+```
 
-- admins:getMyBranch
-      POST /api/functions/admins:getMyBranch
-      {}
-  Respuesta:
-      {
-        "status": "success",
-        "value": { "_id": "br_123", "name": "Sede Centro", "status": "ACTIVE" }
-      }
+Errores: FORBIDDEN, VALIDATION_ERROR.
 
-- admins:assignAdminToBranch
-      POST /api/functions/admins:assignAdminToBranch
-      { "payload": { "admin_id": "ad_1", "branch_id": "br_123" } }
-  Respuesta:
-      { "status": "success", "value": "ad_1" }
+---
 
-- clients:listClientsByBranch
-      POST /api/functions/clients:listClientsByBranch
-      { "payload": { "branch_id": "br_123", "status": "ACTIVE" } }
-  Respuesta:
-      {
-        "status": "success",
-        "value": [
-          { "_id": "cl_1", "person_id": "p1", "is_payment_active": true },
-          { "_id": "cl_2", "person_id": "p2", "is_payment_active": false }
-        ]
-      }
+## 👟 Trainer — Endpoints
 
-- clients:setClientPaymentActive
-      POST /api/functions/clients:setClientPaymentActive
-      { "payload": { "client_id": "cl_1", "is_payment_active": true } }
-  Respuesta:
-      { "status": "success", "value": "cl_1" }
+**1) getMyTrainerProfile (QUERY)**  
+Path: `profiles/trainer/queries:getMyTrainerProfile`  
+Rol: TRAINER
 
-- invitations:inviteFriend
-      POST /api/functions/invitations:inviteFriend
-      {
-        "payload": {
-          "inviter_client_id": "cl_1",
-          "invitee_name": "Amigo Uno",
-          "invitee_email": "amigo@ejemplo.com",
-          "preferred_branch_id": "br_123"
-        }
-      }
-  Respuesta:
-      {
-        "status": "success",
-        "value": {
-          "invitationId": "inv_1",
-          "token": "ABC123TOKEN",
-          "expires_at": 1738899999999
-        }
-      }
+**Args:** `{}` (sin payload)
 
-- client_branches:linkClientToBranch
-      POST /api/functions/client_branches:linkClientToBranch
-      { "payload": { "client_id": "cl_1", "branch_id": "br_123" } }
-  Respuesta:
-      { "status": "success", "value": "cb_1" }
+**Respuesta:**  
+json  
 
+```json
+{
+  "status": "success",
+  "value": {
+    "trainer": { "...trainers" } | null,
+    "person": { "...persons" } | null
+  }
+}
+```
 
-## 5) Variables de entorno necesarias
+Errores: FORBIDDEN.
 
-- Frontend (Vite/React)
-  - VITE_CONVEX_URL → p.ej. https://vivid-elk-733.convex.cloud
-  - VITE_CLERK_PUBLISHABLE_KEY → inicializar Clerk y obtener JWTs
+**2) updateTrainerSpecialties (MUTATION)**  
+Path: `profiles/trainer/mutations:updateTrainerSpecialties`  
+Rol: TRAINER
 
-- Convex (backend)
-  - Authentication → Providers:
-    - Issuer: URL de tu instancia de Clerk (https://<sub>.clerk.accounts.dev)
-    - Audience: Application ID de Clerk
-  - (Opcional) Emails: RESEND_API_KEY si se habilita envío real de invitaciones
+**Args:**  
+json  
 
+```json
+{ "payload": { "specialties": ["string", "string"] } }
+```
 
-## 6) TODO / Known issues
+**Respuesta:**  
+json  
 
-- Paginación: pendiente cursor/limit en listados.
-- Emails de invitación: wiring listo; activar con RESEND_API_KEY y plantillas.
-- Rate limiting: recomendable para inviteFriend.
-- Estructura de errores: hoy es texto; si front requiere { code, field }, estandarizar en v2.
-- Campos extra: coordinar con front antes de extender schema (clients/admins).
+```json
+{ "status": "success", "value": "ok" }
+```
 
+Errores: FORBIDDEN, VALIDATION_ERROR.
 
-## 7) Matriz de permisos (RBAC)
+**3) updateTrainerSchedule (MUTATION)**  
+Path: `profiles/trainer/mutations:updateTrainerSchedule`  
+Rol: TRAINER
 
-| Función                                     | SUPER_ADMIN | ADMIN (su branch) | CLIENT (dueño) |
-|---------------------------------------------|-------------|-------------------|----------------|
-| admins:createAdmin/assign/revoke/update     | ✅           | ❌                 | ❌              |
-| admins:getAdmin / listAdminsUnassigned      | ✅           | ❌                 | ❌              |
-| admins:getAdminByUser / getMyBranch         | ✅           | ✅                 | ❌              |
-| clients:createClient                         | ✅           | ✅                 | ❌              |
-| clients:setClientPaymentActive               | ✅           | ✅                 | ❌              |
-| clients:getClient                            | ✅           | ✅                 | ✅              |
-| clients:listClientsByBranch                  | ✅           | ✅                 | ❌              |
-| client_branches:link/unlink                  | ✅           | ✅                 | ❌              |
-| invitations:inviteFriend / cancelInvitation  | ❌           | ❌                 | ✅              |
-| invitations:listInvitationsByBranch          | ✅           | ✅                 | ❌              |
+**Args:**  
+json  
+
+```json
+{ "payload": { "work_schedule": { "monday": { "start": "07:00", "end": "11:00" } } } }
+```
+
+**Respuesta:**  
+json  
+
+```json
+{ "status": "success", "value": "ok" }
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**4) updateMyPhone (MUTATION)**  
+Path: `profiles/trainer/mutations:updateMyPhone`  
+Rol: TRAINER
+
+**Args:**  
+json  
+
+```json
+{ "payload": { "phone": "+57 3001234567" } }
+```
+
+**Respuesta:**  
+json  
+
+```json
+{ "status": "success", "value": "ok" }
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+---
+
+## 🧘 Client — Endpoints
+
+**1) getMyClientProfile (QUERY)**  
+Path: `profiles/client/queries:getMyClientProfile`  
+Rol: CLIENT
+
+**Args:** `{}`
+
+**Respuesta:**  
+json  
+
+```json
+{
+  "status": "success",
+  "value": {
+    "person": { "...persons" } | null,
+    "client": { "...clients" } | null,
+    "preferences": { "...client_preferences" } | null,
+    "latestHealth": { "...client_health_metrics" } | null
+  }
+}
+```
+
+Errores: FORBIDDEN.
+
+**2) upsertClientPreferences (MUTATION)**  
+Path: `profiles/client/mutations:upsertClientPreferences`  
+Rol: CLIENT
+
+**Args:**  
+json  
+
+```json
+{
+  "payload": {
+    "preferred_time_range": { "start": "06:00", "end": "08:00" },
+    "routine_type": "MIXTO",
+    "goal": "TONIFICAR",
+    "notes": "texto"
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{ "status": "success", "value": "Id<client_preferences>" }
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**3) addHealthMetric (MUTATION)**  
+Path: `profiles/client/mutations:addHealthMetric`  
+Rol: CLIENT
+
+**Args:**  
+json  
+
+```json
+{
+  "payload": {
+    "measured_at": 0,
+    "weight_kg": 74.5,
+    "height_cm": 178,
+    "bmi": 23.5,
+    "body_fat_pct": 15.2,
+    "notes": "opcional"
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{ "status": "success", "value": "Id<client_health_metrics>" }
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**4) listHealthMetrics (QUERY) — paginación simple**  
+Path: `profiles/client/queries:listHealthMetrics`  
+Rol: CLIENT
+
+**Args (todas opcionales):**  
+json  
+
+```json
+{
+  "payload": {
+    "from": 0,
+    "to": 9999999999999,
+    "cursor": 0,
+    "limit": 20
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{
+  "status": "success",
+  "value": {
+    "items": [ { "...HealthMetric" }, "..." ],
+    "nextCursor": 1712345678901
+  }
+}
+```
+
+**Notas de paginación:** `cursor` y `nextCursor` son *timestamps* (`measured_at`). Si `nextCursor` es `null`, no hay más páginas.
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**5) addProgress (MUTATION)**  
+Path: `profiles/client/mutations:addProgress`  
+Rol: CLIENT
+
+**Args:**  
+json  
+
+```json
+{
+  "payload": {
+    "kind": "MEDICION|HITO|RUTINA",
+    "metric_key": "string",
+    "metric_value": 123,
+    "title": "string",
+    "description": "string",
+    "recorded_at": 0
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{ "status": "success", "value": "Id<client_progress>" }
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**6) listProgress (QUERY) — paginación simple**  
+Path: `profiles/client/queries:listProgress`  
+Rol: CLIENT
+
+**Args:**  
+json  
+
+```json
+{
+  "payload": {
+    "from": 0,
+    "to": 9999999999999,
+    "cursor": 0,
+    "limit": 20
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{
+  "status": "success",
+  "value": {
+    "items": [ { "...Progress" }, "..." ],
+    "nextCursor": 1712345678901
+  }
+}
+```
+
+**Notas:** `cursor` y `nextCursor` son *timestamps* (`recorded_at`).
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+**7) listMyContracts (QUERY)**  
+Path: `profiles/client/queries:listMyContracts`  
+Rol: CLIENT
+
+**Args:**  
+json  
+
+```json
+{
+  "payload": {
+    "status": "ACTIVE|ENDED|BLOCKED|null",
+    "limit": 20,
+    "cursor": 0
+  }
+}
+```
+
+**Respuesta:**  
+json  
+
+```json
+{
+  "status": "success",
+  "value": {
+    "items": [ { "...Contract" }, "..." ],
+    "nextCursor": null
+  }
+}
+```
+
+Errores: FORBIDDEN, VALIDATION_ERROR.
+
+---
+
+## 🧩 Errores y manejo recomendado en Front
+
+- **401/UNAUTHORIZED**: redirigir a login.
+- **403/FORBIDDEN**: toast “No tienes permisos” y bloquear UI del flujo.
+- **404/NOT_FOUND**: mostrar “No se encontró información” y ofrecer crear/editar si aplica.
+- **VALIDATION_ERROR**: mostrar mensaje claro (“Revisa los campos”), resaltar inputs.
+- **409 (lógico)**: p. ej. intento de duplicar ACTIVE en `adminSetClientContract`. Mostrar “Ya existe un contrato activo”.
+
+> Nota: Si el path es incorrecto, Convex responde **404 Not Found**. Si hay un `throw` dentro de la función, Convex devolverá un error JSON; manejar `status != "success"`.
+
+---
+
+## 🔧 Variables de entorno (Front y Postman)
+
+- `CONVEX_URL`: URL del despliegue Convex.
+- `JWT_SUPER`, `JWT_ADMIN`, `JWT_TRAINER`, `JWT_CLIENT`: tokens Clerk por rol para probar.
+
+*(Backend ya configurado previamente; no se añadieron nuevas .env en este sprint).*
+
+---
+
+## 🧑‍💻 Mini-guía de integración Front
+
+- **Headers**: siempre enviar `Authorization: Bearer <JWT>` del usuario logueado.
+- **Rutas**: usar `/api/query` o `/api/mutation` con body `{ path, args, format: "json" }`.
+- **Campos editables por rol**:
+  - **TRAINER**: `specialties`, `work_schedule`, `person.phone`.
+  - **CLIENT**: `client_preferences`, `client_health_metrics`, `client_progress` (crear y listar).
+  - **ADMIN/SUPER_ADMIN**: set de contratos Client↔Trainer y lectura de cualquier perfil.
+- **DTOs clave en UI**:
+  - `TrainerProfileDTO` (query `getMyTrainerProfile`): `{ trainer, person }`
+  - `ClientProfileDTO` (query `getMyClientProfile`): `{ person, client, preferences, latestHealth }`
+  - `AdminProfileDTO` (query `getUserProfileById`): `{ user, person, roles, client, trainer, admin, preferences, latestHealth, activeContracts }`
+- **Paginación**:
+  - `listHealthMetrics` y `listProgress` devuelven `{ items, nextCursor }`. Enviar de vuelta `cursor=nextCursor` para la siguiente página.
+- **Estados/UI**:
+  - Deshabilitar botones si el rol no califica (ocultar o inhabilitar).
+  - Mostrar mensajes de error del backend (validation/forbidden).
+- **Optimistic UI**: permitido en preferencias/métricas, con rollback si falla.
