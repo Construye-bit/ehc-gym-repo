@@ -1,15 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
-import { SedeCard } from "./sede-card";
-import { DeleteSedeConfirmDialog } from "./delete-sede-confirm-dialog";
-import { AddSedeModal } from "./add-sede-modal";
-import { EditSedeModal } from "./edit-sede-modal";
+import { Plus, Loader2, Edit, Trash2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import SedeDetailsModal from "./sede-details-modal";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
+import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { extractConvexErrorMessage } from "@/lib/error-utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "@tanstack/react-router";
 
 type SedeData = {
     _id: string;
@@ -34,22 +46,268 @@ type SedeData = {
     isActive: boolean;
 };
 
+type SedeStatus = SedeData['status'];
+
+// Constantes
+const PAGE_SIZE = 8;
+
+const STATUS_STYLES: Record<SedeStatus, string> = {
+    ACTIVE: "bg-green-100 text-green-700 px-2 py-1 rounded text-xs",
+    INACTIVE: "bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs",
+    UNDER_CONSTRUCTION: "bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs",
+    TEMPORARILY_CLOSED: "bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs"
+};
+
+const STATUS_LABELS: Record<SedeStatus, string> = {
+    ACTIVE: "Activa",
+    INACTIVE: "Inactiva",
+    UNDER_CONSTRUCTION: "En Construcción",
+    TEMPORARILY_CLOSED: "Cerrada Temporalmente"
+};
+
+// Componente de fila de sede
+interface SedeRowProps {
+    sede: SedeData;
+    onView: (id: string) => void;
+    onEdit: (id: string) => void;
+    onDelete: (id: string) => void;
+    isDeleting?: boolean;
+}
+
+const SedeRow: React.FC<SedeRowProps> = ({
+    sede,
+    onView,
+    onEdit,
+    onDelete,
+    isDeleting = false,
+}) => {
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const handleConfirmDelete = () => {
+        onDelete(sede._id);
+        setDialogOpen(false);
+    };
+
+    return (
+        <tr className="hover:bg-yellow-50 transition-colors">
+            <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                {sede.name}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">
+                {sede.ciudad}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">
+                {sede.departamento}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">
+                {sede.direccion}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">
+                {sede.telefono}
+            </td>
+            <td className="px-4 py-3 text-sm">
+                <span className={STATUS_STYLES[sede.status]}>
+                    {STATUS_LABELS[sede.status]}
+                </span>
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-600">
+                {sede.max_capacity}
+            </td>
+            <td className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center gap-2">
+                    <Button
+                        onClick={() => onView(sede._id)}
+                        size="sm"
+                        variant="outline"
+                        disabled={isDeleting}
+                        className="hover:bg-blue-50 border-blue-200 disabled:opacity-50 text-black hover:text-gray-900"
+                    >
+                        Ver
+                    </Button>
+                    <Button
+                        onClick={() => onEdit(sede._id)}
+                        size="sm"
+                        disabled={isDeleting}
+                        className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold p-2"
+                    >
+                        <Edit size={16} />
+                    </Button>
+                    <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                size="sm"
+                                disabled={isDeleting}
+                                className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 disabled:hover:bg-red-300 text-white font-semibold p-2"
+                            >
+                                {isDeleting ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Trash2 size={16} />
+                                )}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción eliminará permanentemente la sede{" "}
+                                    <strong>{sede.name}</strong>{" "}
+                                    y todos sus datos asociados del sistema.
+                                    Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleConfirmDelete}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                    Eliminar
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </td>
+        </tr>
+    );
+};
+
+// ...existing code... (TableHeader, EmptyState, LoadingState, Pagination sin cambios)
+
+const TableHeader: React.FC = () => {
+    const headers = [
+        "Nombre",
+        "Ciudad",
+        "Departamento",
+        "Dirección",
+        "Teléfono",
+        "Estado",
+        "Capacidad",
+        "Acciones"
+    ];
+
+    return (
+        <thead className="bg-gray-50">
+            <tr>
+                {headers.map((header, index) => (
+                    <th
+                        key={index}
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    >
+                        {header}
+                    </th>
+                ))}
+            </tr>
+        </thead>
+    );
+};
+
+const EmptyState: React.FC = () => (
+    <tr>
+        <td colSpan={8} className="px-4 py-12 text-center">
+            <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="text-gray-400 text-lg">🏢</div>
+                <p className="text-gray-500 text-sm">No hay sedes para mostrar</p>
+            </div>
+        </td>
+    </tr>
+);
+
+const LoadingState: React.FC = () => (
+    <>
+        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <tr key={i}>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-32" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-24" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-24" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-40" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-24" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                </td>
+                <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-16" />
+                </td>
+                <td className="px-4 py-3 text-center">
+                    <Skeleton className="h-8 w-12 ml-auto" />
+                </td>
+            </tr>
+        ))}
+    </>
+);
+
+interface PaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    sedes: SedeData[];
+}
+
+const Pagination: React.FC<PaginationProps> = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+    sedes,
+}) => {
+    return (
+        <div className="flex justify-between items-center py-4 px-6 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => onPageChange(currentPage - 1)}
+                    className="hover:bg-yellow-50 hover:border-yellow-200"
+                >
+                    Anterior
+                </Button>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => onPageChange(currentPage + 1)}
+                    className="hover:bg-yellow-50 hover:border-yellow-200"
+                >
+                    Siguiente
+                </Button>
+            </div>
+
+            <div className="text-sm text-gray-600">
+                Página <span className="font-medium">{currentPage}</span> de{" "}
+                <span className="font-medium">{totalPages}</span>
+            </div>
+
+            <div className="text-sm text-gray-500">
+                Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, sedes.length)} -{" "}
+                {Math.min(currentPage * PAGE_SIZE, sedes.length)} de{" "}
+                {sedes.length} sedes
+            </div>
+        </div>
+    );
+};
+
 export function SedesManagementContent() {
+    const navigate = useNavigate();
     const [deletingSedeId, setDeletingSedeId] = useState<string | null>(null);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [sedeToDelete, setSedeToDelete] = useState<SedeData | null>(null);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingSedeId, setEditingSedeId] = useState<string | null>(null);
     const [selectedCity, setSelectedCity] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedSedeId, setSelectedSedeId] = useState<Id<"branches"> | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-    // Consumir la query real de branches
     const branchesData = useQuery(api.branches.queries.getAllWithDetails);
-
-    // Mutación para eliminar sede
     const deleteBranchMutation = useMutation(api.branches.mutations.deleteBranch);
 
-    // Transformar los datos de la query a la estructura esperada por el componente
     const sedes: SedeData[] = branchesData?.map(branch => ({
         _id: branch._id,
         name: branch.name,
@@ -67,38 +325,33 @@ export function SedesManagementContent() {
     })) || [];
 
     const handleAddSede = () => {
-        setIsAddModalOpen(true);
+        navigate({ to: '/super-admin/sedes/new' });
+    };
+
+    const handleViewSede = (id: string) => {
+        setSelectedSedeId(id as Id<"branches">);
+        setIsDetailsModalOpen(true);
     };
 
     const handleEditSede = (id: string) => {
-        setEditingSedeId(id);
-        setIsEditModalOpen(true);
+        navigate({
+            to: '/super-admin/sedes/edit',
+            search: { branchId: id }
+        });
     };
 
-    const handleCloseEditModal = () => {
-        setIsEditModalOpen(false);
-        setEditingSedeId(null);
+    const handleCloseDetailsModal = () => {
+        setIsDetailsModalOpen(false);
+        setSelectedSedeId(null);
     };
 
-    const handleDeleteSede = (id: string) => {
-        const sede = sedes.find(s => s._id === id);
-        if (sede) {
-            setSedeToDelete(sede);
-            setDeleteDialogOpen(true);
-        }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!sedeToDelete) return;
-
-        setDeletingSedeId(sedeToDelete._id);
+    const handleDeleteSede = async (id: string) => {
+        setDeletingSedeId(id);
         try {
-            await deleteBranchMutation({ branchId: sedeToDelete._id });
+            await deleteBranchMutation({ branchId: id });
             toast.success("Sede eliminada exitosamente", {
-                description: `La sede "${sedeToDelete.name}" ha sido eliminada correctamente.`
+                description: `La sede ha sido eliminada correctamente.`
             });
-            setDeleteDialogOpen(false);
-            setSedeToDelete(null);
         } catch (error) {
             console.error("Error al eliminar sede:", error);
 
@@ -112,17 +365,13 @@ export function SedesManagementContent() {
         }
     };
 
-    // Estado de carga
     const isLoading = branchesData === undefined;
-    const hasAnyDeletingOperation = deletingSedeId !== null;
 
-    // Obtener lista única de ciudades para el filtro
     const cities = useMemo(() => {
         const uniqueCities = new Set(sedes.map(sede => sede.ciudad));
         return Array.from(uniqueCities).sort();
     }, [sedes]);
 
-    // Filtrar sedes por ciudad seleccionada
     const filteredSedes = useMemo(() => {
         if (selectedCity === "all") {
             return sedes;
@@ -130,130 +379,101 @@ export function SedesManagementContent() {
         return sedes.filter(sede => sede.ciudad === selectedCity);
     }, [sedes, selectedCity]);
 
+    const totalPages = Math.ceil(filteredSedes.length / PAGE_SIZE);
+    const currentSedes = filteredSedes.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE
+    );
+
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
     return (
         <>
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Header Section */}
-                <div className="mb-8 animate-slide-in-left">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        SEDES DISPONIBLES
-                    </h1>
-                    <p className="text-xl text-gray-700 mb-6">
-                        Gerente, Estas Son Las Sedes Disponibles Actualmente
-                    </p>
+            <div className="min-h-full w-full p-8 bg-gradient-to-br from-yellow-50 to-yellow-50">
+                {/* Header */}
+                <div className="mb-6 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                            Gestión de Sedes
+                        </h1>
+                        <p className="text-gray-600">
+                            Administra y visualiza información de todas las sedes
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-black">
+                        <Select
+                            value={selectedCity}
+                            onValueChange={setSelectedCity}
+                        >
+                            <SelectTrigger className="w-64 bg-white border-gray-300">
+                                <SelectValue placeholder="Filtrar por ciudad" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las ciudades</SelectItem>
+                                {cities.map((city) => (
+                                    <SelectItem key={city} value={city}>
+                                        {city}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                    {/* Filtros y botón de añadir */}
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                        {/* Filtro por ciudad */}
-                        <div className="w-full sm:w-64">
-                            <Select
-                                value={selectedCity}
-                                onValueChange={setSelectedCity}
-                            >
-                                <SelectTrigger className="bg-white border-gray-300 text-black">
-                                    <SelectValue placeholder="Filtrar por ciudad" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todas las ciudades</SelectItem>
-                                    {cities.map((city) => (
-                                        <SelectItem key={city} value={city}>
-                                            {city}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Add Sede Button */}
                         <Button
                             onClick={handleAddSede}
-                            className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-scale-in w-full sm:w-auto"
-                            disabled={isLoading || hasAnyDeletingOperation}
+                            size="lg"
+                            className="cursor-pointer bg-yellow-400 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-colors"
                         >
-                            <Plus size={20} />
-                            Añadir Sede
+                            <Plus size={20} className="mr-2" />
+                            Agregar Nueva Sede
                         </Button>
                     </div>
                 </div>
 
-                {/* Loading State */}
-                {isLoading ? (
-                    <div className="flex justify-center items-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
-                        <span className="ml-2 text-gray-600">Cargando sedes...</span>
+                {/* Tabla */}
+                <Card className="shadow-sm border-0 bg-white overflow-hidden p-0">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 border-0">
+                            <TableHeader />
+                            <tbody className="bg-white divide-y divide-gray-100">
+                                {isLoading ? (
+                                    <LoadingState />
+                                ) : currentSedes.length > 0 ? (
+                                    currentSedes.map((sede) => (
+                                        <SedeRow
+                                            key={sede._id}
+                                            sede={sede}
+                                            onView={handleViewSede}
+                                            onEdit={handleEditSede}
+                                            onDelete={handleDeleteSede}
+                                            isDeleting={deletingSedeId === sede._id}
+                                        />
+                                    ))
+                                ) : (
+                                    <EmptyState />
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                ) : (
-                    /* Sedes Grid */
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-slide-in-right">
-                        {filteredSedes.length === 0 ? (
-                            <div className="col-span-full text-center py-12">
-                                <p className="text-gray-500 text-lg">
-                                    {selectedCity === "all"
-                                        ? "No hay sedes disponibles"
-                                        : `No hay sedes en ${selectedCity}`
-                                    }
-                                </p>
-                            </div>
-                        ) : (
-                            filteredSedes.map((sede, index) => (
-                                <div
-                                    key={sede._id}
-                                    className="animate-fade-in-up"
-                                    style={{
-                                        animationDelay: `${index * 0.2}s`,
-                                        animationFillMode: 'both'
-                                    }}
-                                >
-                                    <SedeCard
-                                        sede={{
-                                            id: sede._id, // Usar el ID original de Convex como string
-                                            name: sede.name,
-                                            departamento: sede.departamento,
-                                            ciudad: sede.ciudad,
-                                            direccion: sede.direccion,
-                                            telefono: sede.telefono,
-                                            email: sede.email,
-                                            max_capacity: sede.max_capacity,
-                                            opening_time: sede.opening_time,
-                                            closing_time: sede.closing_time,
-                                            status: sede.status,
-                                            metadata: sede.metadata,
-                                            isActive: sede.isActive,
-                                        }}
-                                        onEdit={() => handleEditSede(sede._id)}
-                                        onDelete={() => handleDeleteSede(sede._id)}
-                                        isDeleting={deletingSedeId === sede._id}
-                                    />
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
-            </main>
+                    {totalPages > 1 && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            sedes={filteredSedes}
+                        />
+                    )}
+                </Card>
+            </div>
 
-            {/* Delete Confirmation Dialog */}
-            <DeleteSedeConfirmDialog
-                isOpen={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                sedeName={sedeToDelete?.name || ""}
-                onConfirm={handleConfirmDelete}
-                isDeleting={deletingSedeId !== null}
+            <SedeDetailsModal
+                branchId={selectedSedeId}
+                isOpen={isDetailsModalOpen}
+                onClose={handleCloseDetailsModal}
             />
-
-            {/* Add Sede Modal */}
-            <AddSedeModal
-                isOpen={isAddModalOpen}
-                onOpenChange={setIsAddModalOpen}
-            />
-
-            {/* Edit Sede Modal */}
-            {editingSedeId && (
-                <EditSedeModal
-                    isOpen={isEditModalOpen}
-                    onOpenChange={setIsEditModalOpen}
-                    branchId={editingSedeId}
-                />
-            )}
         </>
     );
 }

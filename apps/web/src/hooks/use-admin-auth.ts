@@ -72,7 +72,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
         setError(null);
         try {
             await signOut();
-            navigate({ to: "/super-admin/login" });
+            navigate({ to: "/auth/login" });
         } catch (err) {
             setError("Error during sign out");
         } finally {

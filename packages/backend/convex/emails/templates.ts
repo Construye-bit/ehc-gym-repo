@@ -116,7 +116,7 @@ export const getWelcomeAdminEmailTemplate = (
         </div>
         
         <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3001'}/super-admin/login" class="btn">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3001'}/auth/login" class="btn">
                 Iniciar Sesión Ahora
             </a>
         </div>
@@ -181,7 +181,7 @@ PRÓXIMOS PASOS:
 3. Completa tu perfil de administrador
 4. Familiarízate con el panel de control
 
-Enlace de acceso: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/super-admin/login
+Enlace de acceso: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/auth/login
 
 ¡Esperamos trabajar contigo!
 

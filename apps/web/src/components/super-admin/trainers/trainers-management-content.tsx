@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@ehc-gym2/backend/convex/_generated/api";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 import { Edit, Trash2, Loader2 } from "lucide-react";
@@ -20,6 +20,20 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import type {
+    BasicInfoData,
+    LocationContactData,
+    ScheduleAmenitiesData,
+    FormErrors
+} from "@/lib/sede-types";
+import { z } from "zod";
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem
+} from "@/components/ui/select";
 
 
 // Tipos
@@ -300,9 +314,29 @@ export function TrainersManagementContent() {
     const [deletingTrainerId, setDeletingTrainerId] = useState<Id<"trainers"> | null>(null);
     const [selectedTrainerId, setSelectedTrainerId] = useState<Id<"trainers"> | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedBranch, setSelectedBranch] = useState<string>("all");
+    
+    // LÓGICA PARA OBTENER SEDES ÚNICAS
+    const branches = useMemo(() => {
+        const uniqueBranches = new Set(
+            trainers
+                .map(trainer => trainer.branch?.name)
+                .filter((name): name is string => name !== undefined && name !== null)
+        );
+        return Array.from(uniqueBranches).sort();
+    }, [trainers]);
+
+    // LÓGICA DE FILTRADO
+    const filteredTrainers = useMemo(() => {
+        if (selectedBranch === "all") {
+            return trainers;
+        }
+        return trainers.filter(trainer => trainer.branch?.name === selectedBranch);
+    }, [trainers, selectedBranch]);
+
     const PAGE_SIZE = 8;
-    const totalPages = Math.ceil(trainers.length / PAGE_SIZE);
-    const currentTrainers = trainers.slice(
+    const totalPages = Math.ceil(filteredTrainers.length / PAGE_SIZE);
+    const currentTrainers = filteredTrainers.slice(
         (currentPage - 1) * PAGE_SIZE,
         currentPage * PAGE_SIZE
     );
@@ -379,7 +413,29 @@ export function TrainersManagementContent() {
                         Administra y visualiza información de todos los entrenadores
                     </p>
                 </div>
-                <div>
+                <div className="flex items-center gap-4">
+                    {/* SELECT DE FILTRO POR SEDE */}
+                    <Select
+                        value={selectedBranch}
+                        onValueChange={(value) => {
+                            setSelectedBranch(value);
+                            setCurrentPage(1); // Reiniciar a la primera página al cambiar filtro
+                        }}
+                    >
+                        <SelectTrigger className="w-64 bg-white border-gray-300 text-black">
+                            <SelectValue placeholder="Filtrar por sede" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas las sedes</SelectItem>
+                            <SelectItem value="sin-asignar">Sin asignar</SelectItem>
+                            {branches.map((branch) => (
+                                <SelectItem key={branch} value={branch}>
+                                    {branch}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     <Link to="/super-admin/trainers/new">
                         <Button
                             size="lg"

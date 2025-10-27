@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAdminAuth } from "@/hooks/use-admin-auth";
 import EditAdministratorForm from "@/components/super-admin/administrators/edit-administrator-form";
 import type { Id } from "@ehc-gym2/backend/convex/_generated/dataModel";
 
@@ -21,7 +20,6 @@ export const Route = createFileRoute("/super-admin/administrators/edit")({
 });
 
 function EditAdministratorRoute() {
-  useAdminAuth();
   const search = Route.useSearch();
   return <EditAdministratorForm administratorId={search.administratorId} />;
 }

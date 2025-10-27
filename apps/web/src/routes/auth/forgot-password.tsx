@@ -3,10 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth, useClerk, useSignIn } from '@clerk/clerk-react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AdminLoginBackground } from "@/components/super-admin/admin-login-background";
+import { AdminLoginBackground } from "@/components/auth/login-background";
 import { Eye, EyeOff } from "lucide-react";
 
-export const Route = createFileRoute("/super-admin/forgot-password")({
+export const Route = createFileRoute("/auth/forgot-password")({
     component: ForgotPasswordPage,
 });
 
@@ -206,7 +206,7 @@ function ForgotPasswordPage() {
                 <div className="text-center">
                     <button
                         type="button"
-                        onClick={() => navigate({ to: "/super-admin/login" })}
+                        onClick={() => navigate({ to: "/auth/login" })}
                         className="text-gray-600 hover:text-yellow-500 text-sm transition-colors"
                     >
                         Volver al inicio de sesión
