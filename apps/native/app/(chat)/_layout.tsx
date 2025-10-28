@@ -1,6 +1,7 @@
 import { useRouter, Stack, usePathname } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
+import { useUnreadCount } from "@/hooks/use-unread-count";
 import { useEffect, useRef, useMemo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
@@ -8,6 +9,7 @@ import { BottomNavigation } from "@/components/botton-navigation";
 export default function ChatRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
     const { isClient, isLoading } = useAuth();
+    const { unreadCount } = useUnreadCount();
     const router = useRouter();
     const pathname = usePathname();
     const hasRedirected = useRef(false);
@@ -32,6 +34,7 @@ export default function ChatRoutesLayout() {
             label: 'Chat',
             icon: 'chatbubble-outline' as const,
             route: '/(chat)',
+            badge: unreadCount, // ✨ Agregar contador de no leídos
         },
         {
             name: 'profile',
@@ -39,7 +42,7 @@ export default function ChatRoutesLayout() {
             icon: 'settings-outline' as const,
             route: '/(home)/settings',
         },
-    ], [isClient]);
+    ], [isClient, unreadCount]); // ✨ Actualizar cuando cambie unreadCount
 
     useEffect(() => {
         // Si la ruta cambió, resetear el flag

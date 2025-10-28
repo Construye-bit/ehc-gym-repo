@@ -39,11 +39,32 @@ export default function Home() {
     const createTodoMutation = useMutation(api.todos.create);
     const toggleTodoMutation = useMutation(api.todos.toggle);
     const deleteTodoMutation = useMutation(api.todos.deleteTodo);
+    const createOrGetConversationMutation = useMutation(api.chat.conversations.mutations.createOrGet);
     
     // Hook para el catálogo de entrenadores (solo para clientes)
     const { trainers, isLoading: isLoadingTrainers, hasMore, loadMore } = useTrainerCatalog(
         isClient ? trainerFilters : { specialties: [], branchId: undefined, availableNow: false }
     );
+
+    const handleContactTrainer = async (trainerId: string) => {
+        try {
+            // Crear o recuperar conversación
+            const result = await createOrGetConversationMutation({
+                trainerId: trainerId as Id<"trainers">,
+            });
+
+            if (result.success) {
+                // Navegar a la conversación
+                router.push(`/(chat)/${result.data.conversationId}` as any);
+            }
+        } catch (error) {
+            console.error("Error creating conversation:", error);
+            Alert.alert(
+                "Error",
+                error instanceof Error ? error.message : "No se pudo iniciar la conversación"
+            );
+        }
+    };
 
     const handleAddTodo = async () => {
         const text = newTodoText.trim();
@@ -173,14 +194,7 @@ export default function Home() {
                                             onPress={() => {
                                                 console.log("Trainer pressed:", trainer.trainer_id);
                                             }}
-                                            onContactPress={() => {
-                                                // TODO: Implementar navegación al chat cuando esté disponible
-                                                console.log("Contactar entrenador:", trainer.trainer_id);
-                                                Alert.alert(
-                                                    "Próximamente",
-                                                    "La funcionalidad de chat estará disponible pronto"
-                                                );
-                                            }}
+                                            onContactPress={() => handleContactTrainer(trainer.trainer_id)}
                                         />
                                     ))}
                                     

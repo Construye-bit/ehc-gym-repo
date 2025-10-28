@@ -8,22 +8,49 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
+import { useMutation } from "convex/react";
 import { Text } from "@/components/ui";
 import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
 import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
 import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
 import { AppColors } from "@/constants/Colors";
+import api from "@/api";
+import type { Id } from "@/api";
 
 export default function TrainerCatalogScreen() {
+  const router = useRouter();
   const [filters, setFilters] = useState({
     specialties: [] as string[], // Cambiado a array
     branchId: undefined as string | undefined,
     availableNow: false,
   });
 
-  const { trainers, isLoading, hasMore, loadMore } =
-    useTrainerCatalog(filters);
+  const { trainers, isLoading, hasMore, loadMore } = useTrainerCatalog(filters);
+  const createOrGetConversationMutation = useMutation(api.chat.conversations.mutations.createOrGet);
+
+  const handleContactTrainer = async (trainerId: string) => {
+    try {
+      // Mostrar loading
+      Alert.alert("Iniciando conversación...");
+
+      // Crear o recuperar conversación
+      const result = await createOrGetConversationMutation({
+        trainerId: trainerId as Id<"trainers">,
+      });
+
+      if (result.success) {
+        // Navegar a la conversación
+        router.push(`/(chat)/${result.data.conversationId}` as any);
+      }
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "No se pudo iniciar la conversación"
+      );
+    }
+  };
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
@@ -103,14 +130,7 @@ export default function TrainerCatalogScreen() {
               // Navegar a detalle del entrenador
               console.log("Trainer pressed:", item.trainer_id);
             }}
-            onContactPress={() => {
-              // TODO: Implementar navegación al chat cuando esté disponible
-              console.log("Contactar entrenador:", item.trainer_id);
-              Alert.alert(
-                "Próximamente",
-                "La funcionalidad de chat estará disponible pronto"
-              );
-            }}
+            onContactPress={() => handleContactTrainer(item.trainer_id)}
           />
         )}
         keyExtractor={(item) => item.trainer_id}

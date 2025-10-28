@@ -8,6 +8,7 @@ type NavigationTab = {
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
     route: string;
+    badge?: number; // Número a mostrar en el badge (opcional)
 };
 
 type BottomNavigationProps = {
@@ -95,11 +96,21 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
                             asChild
                         >
                             <Pressable className="flex-1 items-center justify-center py-2">
-                                <Ionicons
-                                    name={tab.icon}
-                                    size={26}
-                                    color={isActive ? '#EAB308' : '#000'}
-                                />
+                                <View>
+                                    <Ionicons
+                                        name={tab.icon}
+                                        size={26}
+                                        color={isActive ? '#EAB308' : '#000'}
+                                    />
+                                    {/* Badge de mensajes sin leer */}
+                                    {tab.badge !== undefined && tab.badge > 0 && (
+                                        <View className="absolute -top-1 -right-2 bg-red-500 rounded-full min-w-[18px] h-[18px] items-center justify-center px-1">
+                                            <Text className="text-white text-[10px] font-bold">
+                                                {tab.badge > 99 ? '99+' : tab.badge}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <Text
                                     className={`text-xs mt-1 ${isActive
                                         ? 'text-yellow-500 font-semibold'
