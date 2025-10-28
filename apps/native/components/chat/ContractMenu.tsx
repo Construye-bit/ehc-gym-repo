@@ -50,7 +50,7 @@ export function ContractMenu({ visible, onClose, onMarkContract }: ContractMenuP
         onPress={onClose}
       >
         <TouchableOpacity
-          className="bg-white rounded-t-3xl"
+          className="bg-white rounded-t-3xl max-h-[85%]"
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
         >
@@ -69,8 +69,12 @@ export function ContractMenu({ visible, onClose, onMarkContract }: ContractMenuP
             </View>
           </View>
 
-          {/* Contenido */}
-          <ScrollView className="px-6 py-6" style={{ maxHeight: 500 }}>
+          {/* Contenido scrolleable */}
+          <ScrollView 
+            className="px-6 py-6"
+            contentContainerStyle={{ paddingBottom: 15 }}
+            showsVerticalScrollIndicator={false}
+          >
             <Text className="text-sm text-gray-600 mb-4">
               Indica que el cliente ha contratado tus servicios. Esto le permitirá enviar mensajes ilimitados hasta la fecha de vigencia.
             </Text>
@@ -118,7 +122,7 @@ export function ContractMenu({ visible, onClose, onMarkContract }: ContractMenuP
             </View>
 
             {/* Info */}
-            <View className="bg-blue-50 p-4 rounded-xl mb-6">
+            <View className="bg-blue-50 p-4 rounded-xl">
               <View className="flex-row">
                 <Ionicons name="information-circle" size={20} color="#3B82F6" />
                 <Text className="ml-2 text-sm text-blue-900 flex-1">
@@ -126,8 +130,10 @@ export function ContractMenu({ visible, onClose, onMarkContract }: ContractMenuP
                 </Text>
               </View>
             </View>
+          </ScrollView>
 
-            {/* Botones */}
+          {/* Botones fijos en la parte inferior */}
+          <View className="px-6 py-4 border-t border-gray-200 bg-white">
             <View className="flex-row space-x-3">
               <TouchableOpacity
                 onPress={onClose}
@@ -147,7 +153,7 @@ export function ContractMenu({ visible, onClose, onMarkContract }: ContractMenuP
                 </Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
