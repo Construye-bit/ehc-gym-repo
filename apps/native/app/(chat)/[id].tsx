@@ -40,6 +40,7 @@ export default function ConversationScreen() {
   const { messages, isLoading: messagesLoading, sendMessage, retryMessage } = useMessages(conversationId);
   
   const markContractMutation = useMutation(api.chat.conversations.mutations.markContract);
+  const cancelContractMutation = useMutation(api.chat.conversations.mutations.cancelContract);
 
   // Auto-scroll al final cuando se carguen mensajes
   useEffect(() => {
@@ -129,6 +130,24 @@ export default function ConversationScreen() {
     }
   };
 
+  const handleCancelContract = async () => {
+    try {
+      await cancelContractMutation({
+        conversationId,
+      });
+      Alert.alert(
+        'Contrato cancelado',
+        'El cliente volvió a tener límite de mensajes gratuitos.'
+      );
+    } catch (error) {
+      console.error('Error canceling contract:', error);
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'No se pudo cancelar el contrato'
+      );
+    }
+  };
+
   if (conversationLoading || !conversation) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -169,15 +188,19 @@ export default function ConversationScreen() {
             </TouchableOpacity>
           ),
           headerRight: () =>
-            isTrainer && !isContracted ? (
+            isTrainer ? (
               <TouchableOpacity
                 onPress={() => setShowContractMenu(true)}
                 className="mr-4 flex-row items-center bg-white/20 px-3 py-1.5 rounded-full"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="document-text-outline" size={18} color="white" />
+                <Ionicons 
+                  name={isContracted ? "checkmark-circle" : "document-text-outline"} 
+                  size={18} 
+                  color="white" 
+                />
                 <Text className="ml-1 text-white text-xs font-semibold">
-                  Marcar contrato
+                  {isContracted ? 'Ver contrato' : 'Marcar contrato'}
                 </Text>
               </TouchableOpacity>
             ) : null,
@@ -273,6 +296,9 @@ export default function ConversationScreen() {
             visible={showContractMenu}
             onClose={() => setShowContractMenu(false)}
             onMarkContract={handleMarkContract}
+            onCancelContract={handleCancelContract}
+            hasActiveContract={isContracted}
+            contractValidUntil={conversation.contract_valid_until}
           />
         )}
       </SafeAreaView>
