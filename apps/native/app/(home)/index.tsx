@@ -100,119 +100,139 @@ export default function Home() {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-                <ScrollView className="flex-1 bg-gray-50">
-                    {/* Header */}
-                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                        <View className="flex-row justify-between items-center mb-4">
-                            <View className="flex-1">
-                                <Text className="text-white text-2xl font-bold">
-                                    ¡Hola, {person?.name || "Cliente"}! 👋
-                                </Text>
-                                <Text className="text-white opacity-80 text-sm mt-1">
-                                    Bienvenido a tu espacio de entrenamiento
-                                </Text>
+                
+                {/* Header Fijo */}
+                <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
+                    <View className="flex-row justify-between items-center mb-4">
+                        <View className="flex-1">
+                            <Text className="text-white text-2xl font-bold">
+                                ¡Hola, {person?.name || "Cliente"}! 👋
+                            </Text>
+                            <Text className="text-white opacity-80 text-sm mt-1">
+                                Bienvenido a tu espacio de entrenamiento
+                            </Text>
+                        </View>
+                        <View className="flex-row items-center gap-2">
+                            <View className="bg-white/20 px-3 py-1 rounded-full">
+                                <Text className="text-white text-xs font-semibold">CLIENTE</Text>
                             </View>
-                            <View className="flex-row items-center gap-2">
-                                <View className="bg-white/20 px-3 py-1 rounded-full">
-                                    <Text className="text-white text-xs font-semibold">CLIENTE</Text>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => router.push('/(home)/settings')}
-                                    className="bg-white/20 p-2 rounded-full"
-                                >
-                                    <Ionicons name="settings-outline" size={20} color="white" />
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity
+                                onPress={() => router.push('/(home)/settings')}
+                                className="bg-white/20 p-2 rounded-full"
+                            >
+                                <Ionicons name="settings-outline" size={20} color="white" />
+                            </TouchableOpacity>
                         </View>
                     </View>
+                </View>
 
-                    <View className="px-5 py-6">
-                        {/* Catálogo de Entrenadores */}
-                        <View className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
-                            <View className="px-5 pt-5 pb-3">
-                                <View className="flex-row items-center mb-3">
-                                    <View 
-                                        className="w-10 h-10 rounded-full items-center justify-center mr-3" 
-                                        style={{ backgroundColor: '#FFF4E6' }}
-                                    >
-                                        <Ionicons name="people" size={20} color={AppColors.primary.yellow} />
-                                    </View>
-                                    <Text className="text-gray-900 text-xl font-bold">
-                                        Entrenadores Disponibles
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <TrainerFilters
-                                selectedSpecialties={trainerFilters.specialties}
-                                selectedBranchId={trainerFilters.branchId}
-                                availableNow={trainerFilters.availableNow}
-                                onSpecialtiesChange={(specialties) =>
-                                    setTrainerFilters({ ...trainerFilters, specialties })
-                                }
-                                onBranchChange={(branchId) => 
-                                    setTrainerFilters({ ...trainerFilters, branchId })
-                                }
-                                onAvailableNowChange={(availableNow) =>
-                                    setTrainerFilters({ ...trainerFilters, availableNow })
-                                }
-                            />
-
-                            {trainers.length > 0 && (
-                                <View className="px-5 py-2">
-                                    <Text className="text-sm text-gray-600">
-                                        {trainers.length} entrenador{trainers.length !== 1 ? "es" : ""} encontrado
-                                        {trainers.length !== 1 ? "s" : ""}
-                                    </Text>
-                                </View>
-                            )}
-
-                            {isLoadingTrainers ? (
-                                <View className="py-8 items-center">
-                                    <ActivityIndicator size="large" color={AppColors.primary.yellow} />
-                                    <Text className="text-gray-500 mt-2">Cargando entrenadores...</Text>
-                                </View>
-                            ) : trainers.length === 0 ? (
-                                <View className="py-8 items-center px-5">
-                                    <Ionicons name="people-outline" size={48} color="#d1d5db" />
-                                    <Text className="text-gray-400 mt-2 text-center">
-                                        No se encontraron entrenadores con los filtros seleccionados
-                                    </Text>
-                                </View>
-                            ) : (
-                                <View>
-                                    {trainers.slice(0, 3).map((trainer) => (
-                                        <TrainerCard
-                                            key={trainer.trainer_id}
-                                            trainer={{
-                                                _id: trainer.trainer_id,
-                                                name: trainer.name,
-                                                specialties: trainer.specialties,
-                                                branch: trainer.branch ?? undefined,
-                                            }}
-                                            compact={true}
-                                            onPress={() => {
-                                                console.log("Trainer pressed:", trainer.trainer_id);
-                                            }}
-                                            onContactPress={() => handleContactTrainer(trainer.trainer_id)}
-                                        />
-                                    ))}
-                                    
-                                    {trainers.length > 3 && (
-                                        <TouchableOpacity
-                                            onPress={() => router.push('/(home)/trainer-catalog')}
-                                            className="py-4 items-center border-t border-gray-100"
-                                        >
-                                            <Text className="text-orange-500 font-semibold">
-                                                Ver todos ({trainers.length}) →
+                {/* Lista con scroll */}
+                <FlatList
+                    data={trainers}
+                    keyExtractor={(trainer) => trainer.trainer_id}
+                    ListHeaderComponent={
+                        <>
+                            {/* Catálogo de Entrenadores - Header */}
+                            <View className="px-5 py-6">
+                                <View className="bg-white rounded-t-2xl shadow-sm border border-gray-100">
+                                    <View className="px-5 pt-5 pb-3">
+                                        <View className="flex-row items-center mb-3">
+                                            <View 
+                                                className="w-10 h-10 rounded-full items-center justify-center mr-3" 
+                                                style={{ backgroundColor: '#FFF4E6' }}
+                                            >
+                                                <Ionicons name="people" size={20} color={AppColors.primary.yellow} />
+                                            </View>
+                                            <Text className="text-gray-900 text-xl font-bold">
+                                                Entrenadores Disponibles
                                             </Text>
-                                        </TouchableOpacity>
+                                        </View>
+                                    </View>
+
+                                    <TrainerFilters
+                                        selectedSpecialties={trainerFilters.specialties}
+                                        selectedBranchId={trainerFilters.branchId}
+                                        availableNow={trainerFilters.availableNow}
+                                        onSpecialtiesChange={(specialties) =>
+                                            setTrainerFilters({ ...trainerFilters, specialties })
+                                        }
+                                        onBranchChange={(branchId) => 
+                                            setTrainerFilters({ ...trainerFilters, branchId })
+                                        }
+                                        onAvailableNowChange={(availableNow) =>
+                                            setTrainerFilters({ ...trainerFilters, availableNow })
+                                        }
+                                    />
+
+                                    {trainers.length > 0 && (
+                                        <View className="px-5 py-2">
+                                            <Text className="text-sm text-gray-600">
+                                                {trainers.length} entrenador{trainers.length !== 1 ? "es" : ""} encontrado
+                                                {trainers.length !== 1 ? "s" : ""}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {isLoadingTrainers && (
+                                        <View className="py-8 items-center">
+                                            <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+                                            <Text className="text-gray-500 mt-2">Cargando entrenadores...</Text>
+                                        </View>
+                                    )}
+
+                                    {!isLoadingTrainers && trainers.length === 0 && (
+                                        <View className="py-8 items-center px-5">
+                                            <Ionicons name="people-outline" size={48} color="#d1d5db" />
+                                            <Text className="text-gray-400 mt-2 text-center">
+                                                No se encontraron entrenadores con los filtros seleccionados
+                                            </Text>
+                                        </View>
                                     )}
                                 </View>
-                            )}
+                            </View>
+                        </>
+                    }
+                    renderItem={({ item: trainer }) => (
+                        <View className="px-5">
+                            <View className="bg-white border-x border-gray-100">
+                                <TrainerCard
+                                    trainer={{
+                                        _id: trainer.trainer_id,
+                                        name: trainer.name,
+                                        specialties: trainer.specialties,
+                                        branch: trainer.branch ?? undefined,
+                                    }}
+                                    compact={true}
+                                    onPress={() => {
+                                        console.log("Trainer pressed:", trainer.trainer_id);
+                                    }}
+                                    onContactPress={() => handleContactTrainer(trainer.trainer_id)}
+                                />
+                            </View>
                         </View>
-                    </View>
-                </ScrollView>
+                    )}
+                    ListFooterComponent={
+                        <>
+                            {!isLoadingTrainers && trainers.length > 0 && (
+                                <View className="px-5 pb-6">
+                                    <View className="bg-white rounded-b-2xl shadow-sm border border-gray-100 h-4" />
+                                </View>
+                            )}
+                            {hasMore && (
+                                <View className="py-4 items-center">
+                                    <ActivityIndicator size="small" color={AppColors.primary.yellow} />
+                                </View>
+                            )}
+                        </>
+                    }
+                    onEndReached={() => {
+                        if (hasMore) {
+                            loadMore();
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
+                    className="flex-1 bg-gray-50"
+                />
             </SafeAreaView>
         );
     }

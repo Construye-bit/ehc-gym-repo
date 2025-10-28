@@ -51,6 +51,42 @@ export default function ConversationScreen() {
   }, [messages.length]);
 
   const handleSendMessage = async (text: string) => {
+    // Verificar si el cliente está a punto de agotar mensajes
+    if (conversation && isClient && !isContracted && conversation.message_quota) {
+      const remaining = conversation.message_quota.remaining;
+      
+      // Si no quedan mensajes, mostrar alerta y no enviar
+      if (remaining <= 0) {
+        Alert.alert(
+          'Mensajes agotados',
+          'Has agotado tus mensajes gratuitos. Contacta al entrenador para continuar con un plan.',
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
+      
+      // Advertir cuando quedan 3 o menos mensajes
+      if (remaining <= 3 && remaining > 0) {
+        Alert.alert(
+          'Quedan pocos mensajes',
+          `Solo te quedan ${remaining} mensaje${remaining !== 1 ? 's' : ''} gratuito${remaining !== 1 ? 's' : ''}. Considera contratar al entrenador para continuar.`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { 
+              text: 'Enviar de todas formas', 
+              onPress: async () => {
+                await sendMessage(text);
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }
+            }
+          ]
+        );
+        return;
+      }
+    }
+    
     await sendMessage(text);
     // Auto-scroll después de enviar
     setTimeout(() => {
@@ -151,76 +187,75 @@ export default function ConversationScreen() {
       <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
         <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
 
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-          {/* Indicador de cuota (solo clientes sin contrato) */}
-          {showQuota && <QuotaIndicator quota={conversation.message_quota} />}
+        {/* Indicador de cuota (solo clientes sin contrato) */}
+        {showQuota && <QuotaIndicator quota={conversation.message_quota} />}
 
-          {/* Badge de estado contratado */}
-          {isContracted && (
-            <View className="px-4 py-2 bg-green-50 border-b border-green-200">
-              <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                <Text className="ml-2 text-sm text-green-900">
-                  <Text className="font-semibold">
-                    {isTrainer ? 'Cliente contratado' : 'Contrato activo'}
+        {/* Badge de estado contratado */}
+        {isContracted && (
+          <View className="px-4 py-2 bg-green-50 border-b border-green-200">
+            <View className="flex-row items-center">
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Text className="ml-2 text-sm text-green-900">
+                <Text className="font-semibold">
+                  {isTrainer ? 'Cliente contratado' : 'Contrato activo'}
+                </Text>
+                {conversation.contract_valid_until && (
+                  <Text>
+                    {' '}hasta{' '}
+                    {new Date(conversation.contract_valid_until).toLocaleDateString('es-CO')}
                   </Text>
-                  {conversation.contract_valid_until && (
-                    <Text>
-                      {' '}hasta{' '}
-                      {new Date(conversation.contract_valid_until).toLocaleDateString('es-CO')}
-                    </Text>
-                  )}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Badge de conversación bloqueada */}
-          {isBlocked && (
-            <View className="px-4 py-2 bg-red-50 border-b border-red-200">
-              <View className="flex-row items-center">
-                <Ionicons name="lock-closed" size={16} color="#EF4444" />
-                <Text className="ml-2 text-sm text-red-900">
-                  Conversación bloqueada - Mensajes gratuitos agotados
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Lista de mensajes */}
-          {messagesLoading ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={AppColors.primary.yellow} />
-              <Text className="text-gray-500 mt-4">Cargando mensajes...</Text>
-            </View>
-          ) : messages.length === 0 ? (
-            <View className="flex-1 items-center justify-center p-8">
-              <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
-              <Text className="text-gray-500 text-center mt-4">
-                No hay mensajes aún.{'\n'}¡Envía el primero!
+                )}
               </Text>
             </View>
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => (
-                <MessageBubble message={item} onRetry={retryMessage} />
-              )}
-              contentContainerStyle={{ paddingVertical: 16 }}
-              onContentSizeChange={() => {
-                // Auto-scroll cuando cambie el tamaño del contenido
-                flatListRef.current?.scrollToEnd({ animated: true });
-              }}
-            />
-          )}
+          </View>
+        )}
 
-          {/* Input de mensaje */}
+        {/* Badge de conversación bloqueada */}
+        {isBlocked && (
+          <View className="px-4 py-2 bg-red-50 border-b border-red-200">
+            <View className="flex-row items-center">
+              <Ionicons name="lock-closed" size={16} color="#EF4444" />
+              <Text className="ml-2 text-sm text-red-900">
+                Conversación bloqueada - Mensajes gratuitos agotados
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Lista de mensajes */}
+        {messagesLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+            <Text className="text-gray-500 mt-4">Cargando mensajes...</Text>
+          </View>
+        ) : messages.length === 0 ? (
+          <View className="flex-1 items-center justify-center p-8">
+            <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+            <Text className="text-gray-500 text-center mt-4">
+              No hay mensajes aún.{'\n'}¡Envía el primero!
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <MessageBubble message={item} onRetry={retryMessage} />
+            )}
+            contentContainerStyle={{ paddingVertical: 16 }}
+            onContentSizeChange={() => {
+              // Auto-scroll cuando cambie el tamaño del contenido
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }}
+          />
+        )}
+
+        {/* Input de mensaje con KeyboardAvoidingView */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
           <MessageInput
             onSend={handleSendMessage}
             disabled={!canSend}

@@ -57,6 +57,21 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
       } catch (error) {
         console.error('Error sending message:', error);
         
+        // Formatear mensaje de error amigable
+        let errorMessage = 'Error al enviar';
+        
+        if (error instanceof Error) {
+          // Detectar error de mensajes agotados
+          if (error.message.includes('agotado') || error.message.includes('gratuitos')) {
+            errorMessage = 'Has agotado tus mensajes gratuitos. Contacta al entrenador para continuar.';
+          } else if (error.message.includes('bloqueada')) {
+            errorMessage = 'La conversación está bloqueada';
+          } else {
+            // Usar el mensaje de error original si es legible
+            errorMessage = error.message;
+          }
+        }
+        
         // Marcar como error y permitir reintento
         setOptimisticMessages((prev) =>
           prev.map((m) =>
@@ -64,7 +79,7 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
               ? {
                   ...m,
                   status: 'ERROR' as const,
-                  error: error instanceof Error ? error.message : 'Error al enviar',
+                  error: errorMessage,
                 }
               : m
           )
@@ -96,6 +111,20 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
       } catch (error) {
         console.error('Error retrying message:', error);
         
+        // Formatear mensaje de error amigable
+        let errorMessage = 'Error al enviar';
+        
+        if (error instanceof Error) {
+          // Detectar error de mensajes agotados
+          if (error.message.includes('agotado') || error.message.includes('gratuitos')) {
+            errorMessage = 'Has agotado tus mensajes gratuitos. Contacta al entrenador para continuar.';
+          } else if (error.message.includes('bloqueada')) {
+            errorMessage = 'La conversación está bloqueada';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
         // Volver a marcar como error
         setOptimisticMessages((prev) =>
           prev.map((m) =>
@@ -103,7 +132,7 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
               ? {
                   ...m,
                   status: 'ERROR' as const,
-                  error: error instanceof Error ? error.message : 'Error al enviar',
+                  error: errorMessage,
                 }
               : m
           )
