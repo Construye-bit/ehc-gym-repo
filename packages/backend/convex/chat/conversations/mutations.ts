@@ -4,6 +4,7 @@ import { Id } from "../../_generated/dataModel";
 import {
   createOrGetConversationSchema,
   markContractSchema,
+  cancelContractSchema,
   validateWithZod,
 } from "./validations";
 import {
@@ -52,9 +53,7 @@ export const createOrGet = mutation({
       await requireClientRole(ctx, user._id);
 
       // 4. Obtener trainer y su user_id
-      const trainer = await ctx.db.get(
-        validatedData.trainerId as Id<"trainers">
-      );
+      const trainer = await ctx.db.get(validatedData.trainerId as Id<"trainers">);
       if (!trainer) {
         throw new Error("Entrenador no encontrado");
       }
@@ -71,9 +70,7 @@ export const createOrGet = mutation({
       const existingConversation = await ctx.db
         .query("conversations")
         .withIndex("by_client_trainer", (q) =>
-          q
-            .eq("client_user_id", user._id)
-            .eq("trainer_user_id", trainer.user_id!)
+          q.eq("client_user_id", user._id).eq("trainer_user_id", trainer.user_id!)
         )
         .first();
 
@@ -203,6 +200,90 @@ export const markContract = mutation({
       }
 
       throw new Error(`Error al marcar contrato: ${errorMessage}`);
+    }
+  },
+});
+
+/**
+ * Cancelar contrato en conversación
+ * Solo el entrenador puede cancelar contratos
+ * Revierte el estado a OPEN y elimina la fecha de expiración
+ */
+export const cancelContract = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> => {
+    try {
+      // 1. Validar datos de entrada
+      const validatedData = validateWithZod(
+        cancelContractSchema,
+        args,
+        "cancelContract"
+      );
+
+      // 2. Obtener usuario autenticado
+      const user = await getCurrentUser(ctx);
+
+      // 3. Verificar que tiene rol de TRAINER
+      await requireTrainerRole(ctx, user._id);
+
+      // 4. Verificar que es participante de la conversación
+      const conversation = await assertConversationParticipant(
+        ctx,
+        validatedData.conversationId as Id<"conversations">,
+        user._id
+      );
+
+      // 5. Verificar que el usuario es el TRAINER de la conversación
+      if (conversation.trainer_user_id !== user._id) {
+        throw new UnauthorizedConversationError(
+          "Solo el entrenador puede cancelar contratos"
+        );
+      }
+
+      // 6. Verificar que hay un contrato activo
+      if (conversation.status !== "CONTRACTED") {
+        throw new InvalidContractError(
+          "No hay un contrato activo para cancelar"
+        );
+      }
+
+      // 7. Actualizar conversación - Revertir a OPEN
+      const now = Date.now();
+      await ctx.db.patch(validatedData.conversationId as Id<"conversations">, {
+        status: "OPEN",
+        contract_valid_until: undefined,
+        updated_at: now,
+      });
+
+      return {
+        success: true,
+        message: "Contrato cancelado exitosamente. La conversación volvió a estado OPEN.",
+      };
+    } catch (error) {
+      console.error("Error in cancelContract:", error);
+
+      if (
+        error instanceof UnauthorizedConversationError ||
+        error instanceof InvalidContractError ||
+        error instanceof ConversationNotFoundError
+      ) {
+        throw error;
+      }
+
+      let errorMessage = "Error desconocido";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(`Error al cancelar contrato: ${errorMessage}`);
     }
   },
 });

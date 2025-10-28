@@ -3,7 +3,7 @@
  */
 
 // Mutations
-export { createOrGet, markContract } from "./mutations";
+export { createOrGet, markContract, cancelContract } from "./mutations";
 
 // Queries
 export { listMine, get } from "./queries";
@@ -13,6 +13,7 @@ export type {
   CreateOrGetConversationData,
   ListMyConversationsData,
   MarkContractData,
+  CancelContractData,
   GetConversationData,
 } from "./validations";
 

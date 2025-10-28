@@ -19,10 +19,16 @@ export const listMyConversationsSchema = z.object({
 
 export const markContractSchema = z.object({
   conversationId: z.string().min(1, "El ID de la conversación es requerido"),
-  valid_until: z.number().positive("La fecha de expiración debe ser positiva"),
+  valid_until: z
+    .number()
+    .positive("La fecha de expiración debe ser positiva"),
 });
 
 export const getConversationSchema = z.object({
+  conversationId: z.string().min(1, "El ID de la conversación es requerido"),
+});
+
+export const cancelContractSchema = z.object({
   conversationId: z.string().min(1, "El ID de la conversación es requerido"),
 });
 
@@ -49,6 +55,9 @@ export function validateWithZod<T>(
 export type CreateOrGetConversationData = z.infer<
   typeof createOrGetConversationSchema
 >;
-export type ListMyConversationsData = z.infer<typeof listMyConversationsSchema>;
+export type ListMyConversationsData = z.infer<
+  typeof listMyConversationsSchema
+>;
 export type MarkContractData = z.infer<typeof markContractSchema>;
 export type GetConversationData = z.infer<typeof getConversationSchema>;
+export type CancelContractData = z.infer<typeof cancelContractSchema>;

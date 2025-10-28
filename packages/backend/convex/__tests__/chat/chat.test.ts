@@ -1,3 +1,4 @@
+/* convex/__tests__/chat/chat.test.ts */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeDB, makeCtx } from "../test_utils/fakeCtx";
 import {
@@ -15,15 +16,11 @@ import * as MessageQueries from "../../chat/messages/queries";
 import { runMutation, runQuery } from "../test_utils/run";
 
 // Mock Convex runtime
-// Al inicio de cada archivo, después de los imports
-vi.mock("../_generated/server", () => ({
+vi.mock("../../_generated/server", () => ({
   query: (def: any) => def,
   mutation: (def: any) => def,
-  action: (def: any) => def,
-  internalQuery: (def: any) => def,
-  internalMutation: (def: any) => def,
-  internalAction: (def: any) => def,
 }));
+
 describe("Chat: Catálogo de entrenadores", () => {
   let db: FakeDB;
   beforeEach(() => {
@@ -287,6 +284,115 @@ describe("Chat: Conversaciones", () => {
 
     const conversation = db.get(convId);
     expect(conversation?.status).toBe("CONTRACTED");
+  });
+
+  it("cancelContract: solo entrenador puede cancelar contrato", async () => {
+    const ctx = makeCtx(db);
+
+    const cUser = seedUser(db, {
+      clerk_id: "client1",
+      name: "Client",
+      email: "c@x.com",
+    });
+    seedRole(db, { user_id: cUser, role: "CLIENT" });
+
+    const tUser = seedUser(db, {
+      clerk_id: "trainer1",
+      name: "Trainer",
+      email: "t@x.com",
+    });
+    seedRole(db, { user_id: tUser, role: "TRAINER" });
+    const tPerson = seedPerson(db, {
+      user_id: tUser,
+      name: "Juan",
+      last_name: "Trainer",
+    });
+    seedTrainer(db, {
+      person_id: tPerson,
+      user_id: tUser,
+      status: "ACTIVE",
+    });
+
+    // Crear conversación con contrato
+    const convId = db.insert("conversations", {
+      client_user_id: cUser,
+      trainer_user_id: tUser,
+      status: "CONTRACTED",
+      contract_valid_until: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      last_message_at: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    // Cliente intenta cancelar contrato
+    db.setAuthUser("client1");
+    await expect(
+      runMutation(ConversationMutations.cancelContract as any, ctx, {
+        conversationId: convId,
+      })
+    ).rejects.toThrow();
+
+    // Entrenador cancela contrato
+    db.setAuthUser("trainer1");
+    const result = await runMutation(
+      ConversationMutations.cancelContract as any,
+      ctx,
+      {
+        conversationId: convId,
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("cancelado exitosamente");
+
+    const conversation = db.get(convId);
+    expect(conversation?.status).toBe("OPEN");
+    expect(conversation?.contract_valid_until).toBeUndefined();
+  });
+
+  it("cancelContract: falla si no hay contrato activo", async () => {
+    const ctx = makeCtx(db);
+
+    const cUser = seedUser(db, {
+      clerk_id: "client1",
+      name: "Client",
+      email: "c@x.com",
+    });
+
+    const tUser = seedUser(db, {
+      clerk_id: "trainer1",
+      name: "Trainer",
+      email: "t@x.com",
+    });
+    seedRole(db, { user_id: tUser, role: "TRAINER" });
+    const tPerson = seedPerson(db, {
+      user_id: tUser,
+      name: "Juan",
+      last_name: "Trainer",
+    });
+    seedTrainer(db, {
+      person_id: tPerson,
+      user_id: tUser,
+      status: "ACTIVE",
+    });
+
+    // Crear conversación SIN contrato
+    const convId = db.insert("conversations", {
+      client_user_id: cUser,
+      trainer_user_id: tUser,
+      status: "OPEN",
+      last_message_at: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    db.setAuthUser("trainer1");
+
+    await expect(
+      runMutation(ConversationMutations.cancelContract as any, ctx, {
+        conversationId: convId,
+      })
+    ).rejects.toThrow("No hay un contrato activo");
   });
 });
 

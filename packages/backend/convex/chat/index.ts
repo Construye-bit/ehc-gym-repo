@@ -20,6 +20,7 @@ export type { GetPublicTrainersData } from "./trainer_catalog";
 export {
   createOrGet,
   markContract,
+  cancelContract,
   listMine as listMyConversations,
   get as getConversation,
   ConversationError,
@@ -33,6 +34,7 @@ export type {
   CreateOrGetConversationData,
   ListMyConversationsData,
   MarkContractData,
+  CancelContractData,
   GetConversationData,
 } from "./conversations";
 
