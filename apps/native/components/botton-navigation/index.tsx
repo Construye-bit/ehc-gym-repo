@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, usePathname, Href } from 'expo-router';
+import { Link, usePathname, useSegments, Href } from 'expo-router';
 
 type NavigationTab = {
     name: string;
@@ -16,36 +16,45 @@ type BottomNavigationProps = {
 
 export function BottomNavigation({ tabs }: BottomNavigationProps) {
     const pathname = usePathname();
+    const segments = useSegments();
+
+    // Debug: ver qué pathname y segments recibimos
+    console.log('Current pathname:', pathname);
+    console.log('Current segments:', segments);
 
     const isActiveRoute = (route: string) => {
         // Manejar el caso cuando el route es '#'
         if (route === '#') return false;
 
-        // Para las rutas de blog - verificar directamente el pathname
+        // Convertir segments a string para comparación
+        const segmentsStr = segments ? String(segments) : '';
+        
+        // IMPORTANTE: Verificar rutas específicas PRIMERO antes de home
+        
+        // Para chat
+        if (route === '/(chat)' || route.includes('/(chat)')) {
+            const isChatRoute = segmentsStr.includes('(chat)');
+            console.log('Checking chat route:', { route, segments, segmentsStr, isChatRoute });
+            return isChatRoute;
+        }
+
+        // Para las rutas de blog
         if (route.includes('/(blog)/')) {
-            return pathname?.includes('client-feed') || pathname?.includes('trainer-feed');
-        }
-
-        // Para chat - soportar ambos formatos
-        if (route.includes('/(chat)/')) {
-            return pathname?.includes('/(chat)/');
-        }
-
-        // Para la ruta home
-        if (route === '/(home)' || route === '/(home)/index') {
-            return pathname === '/(home)' ||
-                pathname === '/(home)/index' ||
-                pathname === '/' ||
-                (pathname?.startsWith('/(home)') &&
-                    !pathname?.includes('client-feed') &&
-                    !pathname?.includes('trainer-feed') &&
-                    !pathname?.includes('settings') &&
-                    !pathname?.includes('chat'));
+            return segmentsStr.includes('(blog)') || pathname?.includes('client-feed') || pathname?.includes('trainer-feed');
         }
 
         // Para settings
         if (route === '/(home)/settings') {
             return pathname?.includes('settings') || pathname?.includes('update-password');
+        }
+
+        // Para la ruta home - DEBE IR AL FINAL
+        if (route === '/(home)' || route === '/(home)/index') {
+            return segmentsStr.includes('(home)') && 
+                   !segmentsStr.includes('(chat)') && 
+                   !segmentsStr.includes('(blog)') &&
+                   !pathname?.includes('settings') &&
+                   !pathname?.includes('trainer-catalog');
         }
 
         return pathname?.includes(route);

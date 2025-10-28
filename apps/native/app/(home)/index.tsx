@@ -10,6 +10,7 @@ import {
     StatusBar,
     FlatList,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMutation, useQuery } from "convex/react";
@@ -20,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
 import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
 import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
+import { AppColors } from "@/constants/Colors";
 
 export default function Home() {
     const { isLoading, isClient, isTrainer, person, roles } = useAuth();
@@ -28,7 +30,7 @@ export default function Home() {
     
     // Estado para filtros del catálogo de entrenadores
     const [trainerFilters, setTrainerFilters] = useState({
-        specialty: undefined as string | undefined,
+        specialties: [] as string[], // Cambiado a array
         branchId: undefined as string | undefined,
         availableNow: false,
     });
@@ -40,7 +42,7 @@ export default function Home() {
     
     // Hook para el catálogo de entrenadores (solo para clientes)
     const { trainers, isLoading: isLoadingTrainers, hasMore, loadMore } = useTrainerCatalog(
-        isClient ? trainerFilters : { specialty: undefined, branchId: undefined, availableNow: false }
+        isClient ? trainerFilters : { specialties: [], branchId: undefined, availableNow: false }
     );
 
     const handleAddTodo = async () => {
@@ -75,11 +77,11 @@ export default function Home() {
     // Vista para CLIENTES
     if (isClient) {
         return (
-            <Container>
-                <StatusBar backgroundColor="#FF9500" barStyle="light-content" />
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
                 <ScrollView className="flex-1 bg-gray-50">
                     {/* Header */}
-                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: '#FF9500' }}>
+                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
                         <View className="flex-row justify-between items-center mb-4">
                             <View className="flex-1">
                                 <Text className="text-white text-2xl font-bold">
@@ -104,24 +106,6 @@ export default function Home() {
                     </View>
 
                     <View className="px-5 py-6">
-                        {/* Stats Cards */}
-                        <View className="flex-row mb-6 gap-3">
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="flame" size={20} color="#FF9500" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Entrenamientos</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
-                            </View>
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="trophy" size={20} color="#FF9500" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Logros</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
-                            </View>
-                        </View>
-
                         {/* Catálogo de Entrenadores */}
                         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
                             <View className="px-5 pt-5 pb-3">
@@ -130,7 +114,7 @@ export default function Home() {
                                         className="w-10 h-10 rounded-full items-center justify-center mr-3" 
                                         style={{ backgroundColor: '#FFF4E6' }}
                                     >
-                                        <Ionicons name="people" size={20} color="#FF9500" />
+                                        <Ionicons name="people" size={20} color={AppColors.primary.yellow} />
                                     </View>
                                     <Text className="text-gray-900 text-xl font-bold">
                                         Entrenadores Disponibles
@@ -139,11 +123,11 @@ export default function Home() {
                             </View>
 
                             <TrainerFilters
-                                selectedSpecialty={trainerFilters.specialty}
+                                selectedSpecialties={trainerFilters.specialties}
                                 selectedBranchId={trainerFilters.branchId}
                                 availableNow={trainerFilters.availableNow}
-                                onSpecialtyChange={(specialty) =>
-                                    setTrainerFilters({ ...trainerFilters, specialty })
+                                onSpecialtiesChange={(specialties) =>
+                                    setTrainerFilters({ ...trainerFilters, specialties })
                                 }
                                 onBranchChange={(branchId) => 
                                     setTrainerFilters({ ...trainerFilters, branchId })
@@ -164,7 +148,7 @@ export default function Home() {
 
                             {isLoadingTrainers ? (
                                 <View className="py-8 items-center">
-                                    <ActivityIndicator size="large" color="#FF9500" />
+                                    <ActivityIndicator size="large" color={AppColors.primary.yellow} />
                                     <Text className="text-gray-500 mt-2">Cargando entrenadores...</Text>
                                 </View>
                             ) : trainers.length === 0 ? (
@@ -189,6 +173,14 @@ export default function Home() {
                                             onPress={() => {
                                                 console.log("Trainer pressed:", trainer.trainer_id);
                                             }}
+                                            onContactPress={() => {
+                                                // TODO: Implementar navegación al chat cuando esté disponible
+                                                console.log("Contactar entrenador:", trainer.trainer_id);
+                                                Alert.alert(
+                                                    "Próximamente",
+                                                    "La funcionalidad de chat estará disponible pronto"
+                                                );
+                                            }}
                                         />
                                     ))}
                                     
@@ -205,86 +197,20 @@ export default function Home() {
                                 </View>
                             )}
                         </View>
-
-                        {/* Todos Section */}
-                        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
-                            <Text className="text-gray-900 text-xl font-bold mb-4">Mis Tareas</Text>
-
-                            <View className="mb-4">
-                                <View className="flex-row items-center gap-2">
-                                    <TextInput
-                                        value={newTodoText}
-                                        onChangeText={setNewTodoText}
-                                        placeholder="Agregar nueva tarea..."
-                                        placeholderTextColor="#9ca3af"
-                                        className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 bg-gray-50"
-                                        onSubmitEditing={handleAddTodo}
-                                        returnKeyType="done"
-                                    />
-                                    <TouchableOpacity
-                                        onPress={handleAddTodo}
-                                        disabled={!newTodoText.trim()}
-                                        className="px-5 py-3 rounded-xl"
-                                        style={{ backgroundColor: !newTodoText.trim() ? "#e5e7eb" : "#FF9500" }}
-                                    >
-                                        <Ionicons name="add" size={20} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            {todos === undefined ? (
-                                <View className="flex justify-center py-8">
-                                    <ActivityIndicator size="large" color="#FF9500" />
-                                </View>
-                            ) : todos.length === 0 ? (
-                                <View className="py-8 items-center">
-                                    <Ionicons name="checkmark-circle-outline" size={48} color="#d1d5db" />
-                                    <Text className="text-gray-400 mt-2">No hay tareas pendientes</Text>
-                                </View>
-                            ) : (
-                                <View className="gap-2">
-                                    {todos.map((todo) => (
-                                        <View
-                                            key={todo._id}
-                                            className="flex-row items-center justify-between rounded-xl border border-gray-100 p-3 bg-gray-50"
-                                        >
-                                            <View className="flex-row items-center flex-1">
-                                                <TouchableOpacity
-                                                    onPress={() => handleToggleTodo(todo._id, todo.completed)}
-                                                    className="mr-3"
-                                                >
-                                                    <Ionicons
-                                                        name={todo.completed ? "checkmark-circle" : "ellipse-outline"}
-                                                        size={24}
-                                                        color={todo.completed ? "#FF9500" : "#9ca3af"}
-                                                    />
-                                                </TouchableOpacity>
-                                                <Text className={`flex-1 ${todo.completed ? "line-through text-gray-400" : "text-gray-900"}`}>
-                                                    {todo.text}
-                                                </Text>
-                                            </View>
-                                            <TouchableOpacity onPress={() => handleDeleteTodo(todo._id)} className="ml-2 p-1">
-                                                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
                     </View>
                 </ScrollView>
-            </Container>
+            </SafeAreaView>
         );
     }
 
     // Vista para ENTRENADORES
     if (isTrainer) {
         return (
-            <Container>
-                <StatusBar backgroundColor="#FF9500" barStyle="light-content" />
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
                 <ScrollView className="flex-1 bg-gray-50">
                     {/* Header */}
-                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: '#FF9500' }}>
+                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
                         <View className="flex-row justify-between items-center mb-4">
                             <View className="flex-1">
                                 <Text className="text-white text-2xl font-bold">
@@ -313,14 +239,14 @@ export default function Home() {
                         <View className="flex-row mb-6 gap-3">
                             <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                 <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="people" size={20} color="#FF9500" />
+                                    <Ionicons name="people" size={20} color="AppColors.primary.yellow" />
                                 </View>
                                 <Text className="text-gray-600 text-xs">Clientes</Text>
                                 <Text className="text-gray-900 text-2xl font-bold">0</Text>
                             </View>
                             <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                                 <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="calendar" size={20} color="#FF9500" />
+                                    <Ionicons name="calendar" size={20} color="AppColors.primary.yellow" />
                                 </View>
                                 <Text className="text-gray-600 text-xs">Sesiones</Text>
                                 <Text className="text-gray-900 text-2xl font-bold">0</Text>
@@ -335,7 +261,7 @@ export default function Home() {
                             <View className="flex-row items-center justify-between mb-2">
                                 <View className="flex-row items-center flex-1">
                                     <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF4E6' }}>
-                                        <Ionicons name="newspaper" size={20} color="#FF9500" />
+                                        <Ionicons name="newspaper" size={20} color="AppColors.primary.yellow" />
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-gray-900 text-xl font-bold">Consejos</Text>
@@ -365,7 +291,7 @@ export default function Home() {
                                         onPress={handleAddTodo}
                                         disabled={!newTodoText.trim()}
                                         className="px-5 py-3 rounded-xl"
-                                        style={{ backgroundColor: !newTodoText.trim() ? "#e5e7eb" : "#FF9500" }}
+                                        style={{ backgroundColor: !newTodoText.trim() ? "#e5e7eb" : "AppColors.primary.yellow" }}
                                     >
                                         <Ionicons name="add" size={20} color="white" />
                                     </TouchableOpacity>
@@ -374,7 +300,7 @@ export default function Home() {
 
                             {todos === undefined ? (
                                 <View className="flex justify-center py-8">
-                                    <ActivityIndicator size="large" color="#FF9500" />
+                                    <ActivityIndicator size="large" color="AppColors.primary.yellow" />
                                 </View>
                             ) : todos.length === 0 ? (
                                 <View className="py-8 items-center">
@@ -396,7 +322,7 @@ export default function Home() {
                                                     <Ionicons
                                                         name={todo.completed ? "checkmark-circle" : "ellipse-outline"}
                                                         size={24}
-                                                        color={todo.completed ? "#FF9500" : "#9ca3af"}
+                                                        color={todo.completed ? "AppColors.primary.yellow" : "#9ca3af"}
                                                     />
                                                 </TouchableOpacity>
                                                 <Text className={`flex-1 ${todo.completed ? "line-through text-gray-400" : "text-gray-900"}`}>
@@ -413,7 +339,7 @@ export default function Home() {
                         </View>
                     </View>
                 </ScrollView>
-            </Container>
+            </SafeAreaView>
         );
     }
 

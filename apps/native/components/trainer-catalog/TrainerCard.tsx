@@ -15,14 +15,23 @@ interface TrainerCardProps {
     photo_url?: string;
   };
   onPress?: () => void;
+  onContactPress?: () => void; // Nueva prop para el botón de contacto
   compact?: boolean; // Para usar en el home con menos márgenes
 }
 
 export const TrainerCard: React.FC<TrainerCardProps> = ({
   trainer,
   onPress,
+  onContactPress,
   compact = false,
 }) => {
+  const handleContactPress = (e: any) => {
+    e.stopPropagation(); // Evitar que se active el onPress del card
+    if (onContactPress) {
+      onContactPress();
+    }
+  };
+
   return (
     <TouchableOpacity 
       style={[styles.card, compact && styles.cardCompact]} 
@@ -69,9 +78,22 @@ export const TrainerCard: React.FC<TrainerCardProps> = ({
           )}
         </View>
 
-        <View style={styles.availabilityContainer}>
-          <View style={styles.availableDot} />
-          <Text className="text-sm text-gray-600">Disponible</Text>
+        <View style={styles.footer}>
+          <View style={styles.availabilityContainer}>
+            <View style={styles.availableDot} />
+            <Text className="text-sm text-gray-600">Disponible</Text>
+          </View>
+
+          {/* Botón de contacto */}
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={handleContactPress}
+          >
+            <Ionicons name="chatbubble-ellipses" size={16} color="#10B981" />
+            <Text className="text-green-600 text-sm font-semibold ml-1">
+              Contactar
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -149,5 +171,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#10B981",
     marginRight: 6,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  contactButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
 });

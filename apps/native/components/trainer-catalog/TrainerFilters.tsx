@@ -3,36 +3,43 @@ import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useBranches } from "@/hooks/use-branches";
+import { useSpecialties } from "@/hooks/use-specialties";
 
 interface TrainerFiltersProps {
-  selectedSpecialty?: string;
+  selectedSpecialties: string[]; // Cambiado a array para multi-select
   selectedBranchId?: string;
   availableNow: boolean;
-  onSpecialtyChange: (specialty?: string) => void;
+  onSpecialtiesChange: (specialties: string[]) => void; // Cambiado el nombre
   onBranchChange: (branchId?: string) => void;
   onAvailableNowChange: (value: boolean) => void;
 }
 
-const SPECIALTIES = [
-  "Musculación",
-  "Cardio",
-  "CrossFit",
-  "Yoga",
-  "Pilates",
-  "Funcional",
-  "Boxeo",
-  "Natación",
-];
-
 export const TrainerFilters: React.FC<TrainerFiltersProps> = ({
-  selectedSpecialty,
+  selectedSpecialties,
   selectedBranchId,
   availableNow,
-  onSpecialtyChange,
+  onSpecialtiesChange,
   onBranchChange,
   onAvailableNowChange,
 }) => {
   const { branches } = useBranches();
+  const { specialties, isLoading: isLoadingSpecialties } = useSpecialties();
+
+  // Función para manejar la selección/deselección de especialidades
+  const handleSpecialtyToggle = (specialty: string) => {
+    if (selectedSpecialties.includes(specialty)) {
+      // Si ya está seleccionada, la removemos
+      onSpecialtiesChange(selectedSpecialties.filter((s) => s !== specialty));
+    } else {
+      // Si no está seleccionada, la agregamos
+      onSpecialtiesChange([...selectedSpecialties, specialty]);
+    }
+  };
+
+  // Función para limpiar todas las especialidades
+  const handleClearSpecialties = () => {
+    onSpecialtiesChange([]);
+  };
 
   return (
     <View style={styles.container}>
@@ -57,55 +64,72 @@ export const TrainerFilters: React.FC<TrainerFiltersProps> = ({
 
       {/* Filtro de especialidad */}
       <View style={styles.section}>
-        <Text className="text-sm font-semibold text-gray-700 mb-2">
-          Especialidad
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text className="text-sm font-semibold text-gray-700">
+            Especialidades {selectedSpecialties.length > 0 && `(${selectedSpecialties.length})`}
+          </Text>
+          {selectedSpecialties.length > 0 && (
+            <TouchableOpacity onPress={handleClearSpecialties}>
+              <Text className="text-xs text-blue-600 font-semibold">
+                Limpiar
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsContainer}
         >
-          <TouchableOpacity
-            style={[
-              styles.chip,
-              !selectedSpecialty && styles.chipSelected,
-            ]}
-            onPress={() => onSpecialtyChange(undefined)}
-          >
-            <Text
-              className={
-                !selectedSpecialty ? "text-white font-semibold" : "text-gray-700"
-              }
-            >
-              Todas
+          {isLoadingSpecialties ? (
+            <Text className="text-gray-400 text-sm">Cargando...</Text>
+          ) : specialties.length === 0 ? (
+            <Text className="text-gray-400 text-sm">
+              No hay especialidades disponibles
             </Text>
-          </TouchableOpacity>
-          {SPECIALTIES.map((specialty) => (
-            <TouchableOpacity
-              key={specialty}
-              style={[
-                styles.chip,
-                selectedSpecialty === specialty && styles.chipSelected,
-              ]}
-              onPress={() => onSpecialtyChange(specialty)}
-            >
-              <Text
-                className={
-                  selectedSpecialty === specialty
-                    ? "text-white font-semibold"
-                    : "text-gray-700"
-                }
-              >
-                {specialty}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          ) : (
+            specialties.map((specialty: string) => {
+              const isSelected = selectedSpecialties.includes(specialty);
+              return (
+                <TouchableOpacity
+                  key={specialty}
+                  style={[
+                    styles.chip,
+                    isSelected && styles.chipSelected,
+                  ]}
+                  onPress={() => handleSpecialtyToggle(specialty)}
+                >
+                  <View style={styles.chipContent}>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="white"
+                        style={{ marginRight: 4 }}
+                      />
+                    )}
+                    <Text
+                      className={
+                        isSelected
+                          ? "text-white font-semibold"
+                          : "text-gray-700"
+                      }
+                    >
+                      {specialty}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </ScrollView>
       </View>
 
       {/* Filtro de sede */}
       <View style={styles.section}>
-        <Text className="text-sm font-semibold text-gray-700 mb-2">Sede</Text>
+        <View style={styles.sectionHeader}>
+          <Text className="text-sm font-semibold text-gray-700">Sede</Text>
+        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -170,6 +194,13 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
   chipsContainer: {
     paddingHorizontal: 16,
   },
@@ -182,5 +213,9 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: "#3B82F6",
+  },
+  chipContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

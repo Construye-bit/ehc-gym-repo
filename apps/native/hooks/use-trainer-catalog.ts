@@ -3,7 +3,7 @@ import api from "@/api";
 import { useState, useMemo } from "react";
 
 export interface TrainerCatalogFilters {
-  specialty?: string;
+  specialties?: string[]; // Cambiado a array
   branchId?: string;
   availableNow?: boolean;
 }
@@ -15,7 +15,7 @@ export const useTrainerCatalog = (filters: TrainerCatalogFilters = {}) => {
   const result = useQuery(
     api.chat.trainer_catalog.queries.getPublicTrainers,
     {
-      specialty: filters.specialty,
+      specialty: filters.specialties?.[0], // Por ahora usamos la primera especialidad
       branchId: filters.branchId as any,
       cursor,
       limit: 10,
@@ -27,6 +27,16 @@ export const useTrainerCatalog = (filters: TrainerCatalogFilters = {}) => {
     
     let filtered = result.trainers;
     
+    // Filtro de especialidades múltiples (frontend)
+    if (filters.specialties && filters.specialties.length > 0) {
+      filtered = filtered.filter((trainer) => {
+        // El entrenador debe tener al menos una de las especialidades seleccionadas
+        return trainer.specialties.some((specialty) =>
+          filters.specialties!.includes(specialty)
+        );
+      });
+    }
+    
     // Filtro de disponibilidad (frontend)
     if (filters.availableNow) {
       filtered = filtered.filter((trainer) => {
@@ -37,7 +47,7 @@ export const useTrainerCatalog = (filters: TrainerCatalogFilters = {}) => {
     }
     
     return filtered;
-  }, [result, filters.availableNow]);
+  }, [result, filters.specialties, filters.availableNow]);
 
   const loadMore = () => {
     if (result?.nextCursor !== null) {

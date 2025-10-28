@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
@@ -12,10 +13,11 @@ import { Text } from "@/components/ui";
 import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
 import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
 import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
+import { AppColors } from "@/constants/Colors";
 
 export default function TrainerCatalogScreen() {
   const [filters, setFilters] = useState({
-    specialty: undefined as string | undefined,
+    specialties: [] as string[], // Cambiado a array
     branchId: undefined as string | undefined,
     availableNow: false,
   });
@@ -50,20 +52,27 @@ export default function TrainerCatalogScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           title: "Entrenadores",
           headerShown: true,
+          headerStyle: {
+            backgroundColor: AppColors.primary.yellow,
+          },
+          headerTintColor: "#FFFFFF",
+          headerTitleStyle: {
+            fontWeight: "bold",
+          },
         }}
       />
 
       <TrainerFilters
-        selectedSpecialty={filters.specialty}
+        selectedSpecialties={filters.specialties}
         selectedBranchId={filters.branchId}
         availableNow={filters.availableNow}
-        onSpecialtyChange={(specialty) =>
-          setFilters({ ...filters, specialty })
+        onSpecialtiesChange={(specialties) =>
+          setFilters({ ...filters, specialties })
         }
         onBranchChange={(branchId) => setFilters({ ...filters, branchId })}
         onAvailableNowChange={(availableNow) =>
@@ -94,6 +103,14 @@ export default function TrainerCatalogScreen() {
               // Navegar a detalle del entrenador
               console.log("Trainer pressed:", item.trainer_id);
             }}
+            onContactPress={() => {
+              // TODO: Implementar navegación al chat cuando esté disponible
+              console.log("Contactar entrenador:", item.trainer_id);
+              Alert.alert(
+                "Próximamente",
+                "La funcionalidad de chat estará disponible pronto"
+              );
+            }}
           />
         )}
         keyExtractor={(item) => item.trainer_id}
@@ -107,7 +124,7 @@ export default function TrainerCatalogScreen() {
             onRefresh={() => {
               // Reset filters and reload
               setFilters({
-                specialty: undefined,
+                specialties: [],
                 branchId: undefined,
                 availableNow: false,
               });

@@ -427,3 +427,26 @@ export const getRolesByUserId = query({
             .collect();
     },
 });
+
+/**
+ * Query pública para obtener especialidades únicas de entrenadores activos
+ * No requiere autenticación - usada para filtros del catálogo público
+ */
+export const getActiveSpecialties = query({
+    args: {},
+    handler: async (ctx) => {
+        // Obtener todos los entrenadores activos
+        const activeTrainers = await ctx.db
+            .query("trainers")
+            .withIndex("by_status", (q) => q.eq("status", "ACTIVE"))
+            .collect();
+
+        // Extraer todas las especialidades
+        const allSpecialties = activeTrainers.flatMap((trainer) => trainer.specialties);
+
+        // Obtener especialidades únicas y ordenar
+        const uniqueSpecialties = [...new Set(allSpecialties)].sort();
+
+        return uniqueSpecialties;
+    },
+});
