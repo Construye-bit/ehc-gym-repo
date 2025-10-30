@@ -21,7 +21,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mybettertapp"
+      "package": "com.anonymous.mybettertapp",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -51,6 +57,13 @@
         "expo-secure-store",
         {
           "faceIDPermission": "Permitir que EHC Gym acceda a tus datos sensibles."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La aplicación necesita acceso a tus fotos para que puedas compartir imágenes en tus consejos.",
+          "cameraPermission": "La aplicación necesita acceso a tu cámara para que puedas tomar fotos."
         }
       ],
       [

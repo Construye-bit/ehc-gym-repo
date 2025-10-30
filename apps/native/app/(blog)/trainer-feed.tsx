@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import { PostCard } from '@/components/feed/PostCard';
@@ -23,6 +25,7 @@ import type { Id } from '@/api';
 
 export default function TrainerFeedScreen() {
   const { person } = useAuth();
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -179,19 +182,36 @@ export default function TrainerFeedScreen() {
   // Estado de carga
   if (feedData === undefined) {
     return (
-      <>
-        <Stack.Screen
-          options={{
-            title: 'Consejos de Entrenadores',
-          }}
-        />
-        <View style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={AppColors.primary.yellow} />
-            <Text style={styles.loadingText}>Cargando consejos...</Text>
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+        
+        {/* Header */}
+        <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <View className="flex-1">
+              <Text className="text-white text-2xl font-bold">
+                ¡Hola, {person?.name || "Entrenador"}! 💪
+              </Text>
+              <Text className="text-white opacity-80 text-sm mt-1">
+                Panel de entrenador
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <View className="bg-white/20 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push('/(home)/settings')}>
+                <Ionicons name="settings-outline" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </>
+
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+          <Text className="text-gray-500 mt-4">Cargando consejos...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -220,12 +240,31 @@ export default function TrainerFeedScreen() {
   }));
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'Consejos de Entrenadores',
-        }}
-      />
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+      
+      {/* Header */}
+      <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
+        <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-1">
+            <Text className="text-white text-2xl font-bold">
+              ¡Hola, {person?.name || "Entrenador"}! 💪
+            </Text>
+            <Text className="text-white opacity-80 text-sm mt-1">
+              Panel de entrenador
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <View className="bg-white/20 px-3 py-1 rounded-full">
+              <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/(home)/settings')}>
+              <Ionicons name="settings-outline" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
 
       <View style={styles.container}>
         {/* Pestañas */}
@@ -302,7 +341,7 @@ export default function TrainerFeedScreen() {
           } : undefined}
         />
       </View>
-    </>
+    </SafeAreaView>
   );
 }
 

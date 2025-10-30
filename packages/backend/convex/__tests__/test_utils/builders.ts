@@ -79,7 +79,7 @@ export function seedInvitation(db: FakeDB, { inviter_client_id, preferred_branch
     return db.seed("invitations", {
         inviter_client_id, preferred_branch_id, invitee_name, token,
         status: "PENDING", active: true,
-        expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 días
+        expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
         created_at: Date.now(), updated_at: Date.now()
     });
 }
@@ -98,5 +98,32 @@ export function seedPostLike(db: FakeDB, { post_id, user_id }:
     { post_id: string; user_id: string; }) {
     return db.insert("post_likes", {
         post_id, user_id, created_at: Date.now()
+    });
+}
+// ==================== CHAT: NUEVOS BUILDERS ====================
+
+export function seedConversation(db: FakeDB, { client_user_id, trainer_user_id, status = "OPEN", contract_valid_until }:
+    { client_user_id: string; trainer_user_id: string; status?: "OPEN" | "BLOCKED" | "CONTRACTED"; contract_valid_until?: number; }) {
+    return db.seed("conversations", {
+        client_user_id, trainer_user_id, status, contract_valid_until,
+        last_message_at: Date.now(),
+        created_at: Date.now(), updated_at: Date.now()
+    });
+}
+
+export function seedMessage(db: FakeDB, { conversation_id, author_user_id, text = "Test message", status = "SENT" }:
+    { conversation_id: string; author_user_id: string; text?: string; status?: "SENT" | "READ"; }) {
+    return db.insert("messages", {
+        conversation_id, author_user_id, text, status,
+        created_at: Date.now()
+    });
+}
+
+export function seedMessageQuota(db: FakeDB, { conversation_id, used_count = 0 }:
+    { conversation_id: string; used_count?: number; }) {
+    return db.seed("message_quotas", {
+        conversation_id, used_count,
+        reset_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        created_at: Date.now(), updated_at: Date.now()
     });
 }

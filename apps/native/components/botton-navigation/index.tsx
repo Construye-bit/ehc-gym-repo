@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, usePathname, Href } from 'expo-router';
+import { Link, usePathname, useSegments, Href } from 'expo-router';
 
 type NavigationTab = {
     name: string;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
     route: string;
+    badge?: number; // Número a mostrar en el badge (opcional)
 };
 
 type BottomNavigationProps = {
@@ -16,36 +17,45 @@ type BottomNavigationProps = {
 
 export function BottomNavigation({ tabs }: BottomNavigationProps) {
     const pathname = usePathname();
+    const segments = useSegments();
+
+    // Debug: ver qué pathname y segments recibimos
+    console.log('Current pathname:', pathname);
+    console.log('Current segments:', segments);
 
     const isActiveRoute = (route: string) => {
         // Manejar el caso cuando el route es '#'
         if (route === '#') return false;
 
-        // Para las rutas de blog - verificar directamente el pathname
+        // Convertir segments a string para comparación
+        const segmentsStr = segments ? String(segments) : '';
+        
+        // IMPORTANTE: Verificar rutas específicas PRIMERO antes de home
+        
+        // Para chat
+        if (route === '/(chat)' || route.includes('/(chat)')) {
+            const isChatRoute = segmentsStr.includes('(chat)');
+            console.log('Checking chat route:', { route, segments, segmentsStr, isChatRoute });
+            return isChatRoute;
+        }
+
+        // Para las rutas de blog
         if (route.includes('/(blog)/')) {
-            return pathname?.includes('client-feed') || pathname?.includes('trainer-feed');
-        }
-
-        // Para chat - soportar ambos formatos
-        if (route.includes('/(chat)/')) {
-            return pathname?.includes('/(chat)/');
-        }
-
-        // Para la ruta home
-        if (route === '/(home)' || route === '/(home)/index') {
-            return pathname === '/(home)' ||
-                pathname === '/(home)/index' ||
-                pathname === '/' ||
-                (pathname?.startsWith('/(home)') &&
-                    !pathname?.includes('client-feed') &&
-                    !pathname?.includes('trainer-feed') &&
-                    !pathname?.includes('settings') &&
-                    !pathname?.includes('chat'));
+            return segmentsStr.includes('(blog)') || pathname?.includes('client-feed') || pathname?.includes('trainer-feed');
         }
 
         // Para settings
         if (route === '/(home)/settings') {
             return pathname?.includes('settings') || pathname?.includes('update-password');
+        }
+
+        // Para la ruta home - DEBE IR AL FINAL
+        if (route === '/(home)' || route === '/(home)/index') {
+            return segmentsStr.includes('(home)') && 
+                   !segmentsStr.includes('(chat)') && 
+                   !segmentsStr.includes('(blog)') &&
+                   !pathname?.includes('settings') &&
+                   !pathname?.includes('trainer-catalog');
         }
 
         return pathname?.includes(route);
@@ -86,11 +96,21 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
                             asChild
                         >
                             <Pressable className="flex-1 items-center justify-center py-2">
-                                <Ionicons
-                                    name={tab.icon}
-                                    size={26}
-                                    color={isActive ? '#EAB308' : '#000'}
-                                />
+                                <View>
+                                    <Ionicons
+                                        name={tab.icon}
+                                        size={26}
+                                        color={isActive ? '#EAB308' : '#000'}
+                                    />
+                                    {/* Badge de mensajes sin leer */}
+                                    {tab.badge !== undefined && tab.badge > 0 && (
+                                        <View className="absolute -top-1 -right-2 bg-red-500 rounded-full min-w-[18px] h-[18px] items-center justify-center px-1">
+                                            <Text className="text-white text-[10px] font-bold">
+                                                {tab.badge > 99 ? '99+' : tab.badge}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <Text
                                     className={`text-xs mt-1 ${isActive
                                         ? 'text-yellow-500 font-semibold'

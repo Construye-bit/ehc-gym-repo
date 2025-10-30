@@ -6,18 +6,25 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
+  TouchableOpacity,
+  StatusBar,
+  ScrollView,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import { ClientPostCard } from '@/components/client-feed';
 import { AppColors } from '@/constants/Colors';
+import { useAuth } from '@/hooks/use-auth';
 import api from '@/api';
 import type { Id } from '@/api';
 
 export default function ClientFeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
+  const { person } = useAuth();
 
   // Obtener feed de publicaciones desde Convex
   // useMemo con refreshKey fuerza la recreación de args y por ende re-fetch
@@ -68,22 +75,38 @@ export default function ClientFeedScreen() {
       <>
         <Stack.Screen
           options={{
-            title: 'Consejos de Entrenadores',
-            headerStyle: {
-              backgroundColor: AppColors.primary.yellow,
-            },
-            headerTintColor: AppColors.text.primary,
+            headerShown: false,
           }}
         />
-        <View style={styles.container}>
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={20} color={AppColors.primary.yellow} />
-            <Text style={styles.infoBannerText}>
-              Descubre consejos y tips de nuestros entrenadores profesionales
-            </Text>
+        <SafeAreaView style={styles.container}>
+          <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+          {/* Header personalizado */}
+          <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
+            <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-1">
+                <Text className="text-white text-2xl font-bold">
+                  ¡Hola, {person?.name || "Cliente"}! 👋
+                </Text>
+                <Text className="text-white opacity-80 text-sm mt-1">
+                  Bienvenido a tu espacio de entrenamiento
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <View className="bg-white/20 px-3 py-1 rounded-full">
+                  <Text className="text-white text-xs font-semibold">CLIENTE</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/(home)/settings')}
+                  className="bg-white/20 p-2 rounded-full"
+                >
+                  <Ionicons name="settings-outline" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
+
           {renderLoadingState()}
-        </View>
+        </SafeAreaView>
       </>
     );
   }
@@ -108,15 +131,36 @@ export default function ClientFeedScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Consejos de Entrenadores',
-          headerStyle: {
-            backgroundColor: AppColors.primary.yellow,
-          },
-          headerTintColor: AppColors.text.primary,
+          headerShown: false,
         }}
       />
+      <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+        {/* Header personalizado */}
+        <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <View className="flex-1">
+              <Text className="text-white text-2xl font-bold">
+                ¡Hola, {person?.name || "Cliente"}! 👋
+              </Text>
+              <Text className="text-white opacity-80 text-sm mt-1">
+                Bienvenido a tu espacio de entrenamiento
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <View className="bg-white/20 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-semibold">CLIENTE</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(home)/settings')}
+                className="bg-white/20 p-2 rounded-full"
+              >
+                <Ionicons name="settings-outline" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
 
-      <View style={styles.container}>
         {/* Banner informativo */}
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle" size={20} color={AppColors.primary.yellow} />
@@ -147,7 +191,7 @@ export default function ClientFeedScreen() {
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
         />
-      </View>
+      </SafeAreaView>
     </>
   );
 }
@@ -155,7 +199,6 @@ export default function ClientFeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 20,
     backgroundColor: AppColors.background.gray50,
   },
   infoBanner: {

@@ -1,6 +1,7 @@
 import { useRouter, Stack, usePathname } from "expo-router";
 import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
 import { useAuth } from "@/hooks/use-auth";
+import { useUnreadCount } from "@/hooks/use-unread-count";
 import { useEffect, useRef, useMemo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
@@ -8,6 +9,7 @@ import { BottomNavigation } from "@/components/botton-navigation";
 export default function BlogRoutesLayout() {
     const { isSignedIn } = useClerkAuth();
     const { isTrainer, isClient, isAdmin, isSuperAdmin, isLoading } = useAuth();
+    const { unreadCount } = useUnreadCount();
     const router = useRouter();
     const pathname = usePathname();
     const hasRedirected = useRef(false);
@@ -32,6 +34,7 @@ export default function BlogRoutesLayout() {
             label: 'Chat',
             icon: 'chatbubble-outline' as const,
             route: '/(chat)',
+            badge: unreadCount,
         },
         {
             name: 'profile',
@@ -39,7 +42,7 @@ export default function BlogRoutesLayout() {
             icon: 'settings-outline' as const,
             route: '/(home)/settings',
         },
-    ], [isClient]);
+    ], [isClient, unreadCount]);
 
     useEffect(() => {
         // Si la ruta cambió, resetear el flag

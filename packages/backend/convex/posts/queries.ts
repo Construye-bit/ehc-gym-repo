@@ -331,22 +331,23 @@ export const getPostDetails = query({
       },
       person: person
         ? {
-          name: person.name,
-          last_name: person.last_name,
-        }
+            name: person.name,
+            last_name: person.last_name,
+          }
         : null,
       user: user
         ? {
-          name: user.name,
-          email: user.email,
-        }
+            name: user.name,
+            email: user.email,
+          }
         : null,
       branch: branch
         ? {
-          name: branch.name,
-        }
+            name: branch.name,
+          }
         : null,
       user_has_liked,
     };
   },
 });
+
