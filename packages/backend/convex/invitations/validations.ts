@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { INVITATION_ERRORS } from "./errors";
+
+// ===== CONSTANTES =====
+export const MAX_INVITATIONS_PER_MONTH = 5;
 
 // ===== REGLAS =====
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -31,12 +35,20 @@ export const cancelInvitationSchema = z.object({
     invitation_id: z.string().min(1, "invitation_id es requerido"),
 });
 
+export const redeemInvitationSchema = z.object({
+    invitation_id: z.string().min(1, "invitation_id es requerido"),
+});
+
 // listar por branch o por invitador
 export const listInvitationsByBranchSchema = z.object({
     branch_id: z.string().min(1, "branch_id es requerido"),
 });
 export const listInvitationsByInviterSchema = z.object({
     inviter_client_id: z.string().min(1, "inviter_client_id es requerido"),
+});
+
+export const getInvitationByIdSchema = z.object({
+    invitation_id: z.string().min(1, "invitation_id es requerido"),
 });
 
 // ===== FUNCIÓN AUXILIAR PARA VALIDACIÓN =====
@@ -48,14 +60,16 @@ export function validateWithZod<T>(schema: z.ZodSchema<T>, data: unknown, contex
             const errorMessages = error.issues.map(issue =>
                 `${issue.path.join(".")}: ${issue.message}`
             ).join(", ");
-            throw new Error(`Validación fallida en ${context}: ${errorMessages}`);
+            throw new Error(INVITATION_ERRORS.VALIDATION_FAILED(context, errorMessages));
         }
-        throw new Error(`Error de validación en ${context}: ${error}`);
+        throw new Error(INVITATION_ERRORS.VALIDATION_ERROR(context, error));
     }
 }
 
 // ===== TIPOS DERIVADOS =====
 export type InviteFriendData = z.infer<typeof inviteFriendSchema>;
 export type CancelInvitationData = z.infer<typeof cancelInvitationSchema>;
+export type RedeemInvitationData = z.infer<typeof redeemInvitationSchema>;
 export type ListInvitationsByBranchData = z.infer<typeof listInvitationsByBranchSchema>;
 export type ListInvitationsByInviterData = z.infer<typeof listInvitationsByInviterSchema>;
+export type GetInvitationByIdData = z.infer<typeof getInvitationByIdSchema>;

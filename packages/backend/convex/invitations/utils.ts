@@ -1,5 +1,6 @@
 import { QueryCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
+import { INVITATION_ERRORS } from "./errors";
 
 /**
  * Valida que el cliente invitador exista, esté activo y con pagos al día.
@@ -11,12 +12,12 @@ export async function assertClientPaymentActive(
 ): Promise<void> {
     const client = await ctx.db.get(inviter_client_id);
     if (!client) {
-        throw new Error("Cliente no encontrado.");
+        throw new Error(INVITATION_ERRORS.CLIENT_NOT_FOUND);
     }
     if (client.active !== true || client.status !== "ACTIVE") {
-        throw new Error("Cliente inactivo.");
+        throw new Error(INVITATION_ERRORS.CLIENT_INACTIVE);
     }
     if (client.is_payment_active !== true) {
-        throw new Error("El cliente no está al día con los pagos.");
+        throw new Error(INVITATION_ERRORS.CLIENT_PAYMENT_NOT_ACTIVE);
     }
 }
