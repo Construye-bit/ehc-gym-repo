@@ -5,8 +5,10 @@ import { mustGetCurrentUser } from "../users";
 import {
     listInvitationsByBranchSchema,
     listInvitationsByInviterSchema,
+    getInvitationByIdSchema,
     validateWithZod,
 } from "./validations";
+import { INVITATION_ERRORS } from "./errors";
 
 // helper: es CLIENT?
 async function requireClientRole(ctx: any): Promise<void> {
@@ -16,7 +18,7 @@ async function requireClientRole(ctx: any): Promise<void> {
         .withIndex("by_user_active", (q: any) => q.eq("user_id", user._id).eq("active", true))
         .collect();
     const isClient = roles.some((r: any) => r.role === "CLIENT");
-    if (!isClient) throw new Error("Acceso denegado: requiere rol CLIENT.");
+    if (!isClient) throw new Error(INVITATION_ERRORS.ACCESS_DENIED_CLIENT);
 }
 
 // helper: es ADMIN asignado a branch?
@@ -29,7 +31,7 @@ async function requireAdminOfBranch(ctx: any, branchId: Id<"branches">): Promise
         .filter((q: any) => q.eq(q.field("active"), true))
         .filter((q: any) => q.eq(q.field("branch_id"), branchId))
         .first();
-    if (!admin) throw new Error("Acceso denegado: requiere ADMIN de esta sede.");
+    if (!admin) throw new Error(INVITATION_ERRORS.ACCESS_DENIED_ADMIN_BRANCH);
 }
 
 // Listar invitaciones relacionadas a una branch:
@@ -91,9 +93,9 @@ export const listInvitationsByInviter = query({
 
         const user = await mustGetCurrentUser(ctx);
         const client = await ctx.db.get(data.inviter_client_id as Id<"clients">);
-        if (!client) throw new Error("Cliente no encontrado.");
+        if (!client) throw new Error(INVITATION_ERRORS.CLIENT_NOT_FOUND);
         if (client.user_id !== user._id) {
-            throw new Error("No autorizado: el cliente no pertenece al usuario actual.");
+            throw new Error(INVITATION_ERRORS.CLIENT_NOT_BELONGS_TO_USER);
         }
 
         const invitations = await ctx.db
@@ -104,5 +106,21 @@ export const listInvitationsByInviter = query({
             .collect();
 
         return invitations;
+    },
+});
+
+// Obtener una invitación específica por su ID
+export const getInvitationById = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(getInvitationByIdSchema, args.payload, "getInvitationById");
+        const invitationId = data.invitation_id as Id<"invitations">;
+
+        const invitation = await ctx.db.get(invitationId);
+        if (!invitation) {
+            throw new Error(INVITATION_ERRORS.INVITATION_NOT_FOUND);
+        }
+
+        return invitation;
     },
 });
