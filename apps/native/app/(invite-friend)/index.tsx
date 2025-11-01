@@ -7,15 +7,14 @@ export default function InviteFriendScreen() {
         <>
             <Stack.Screen
                 options={{
-                    title: 'Chat',
-                    headerShown: true,
+                    headerShown: false,
                 }}
             />
             <Container>
                 <View className="flex-1 justify-center items-center p-6">
                     <Text className="text-6xl mb-4">💬</Text>
                     <Text className="text-2xl font-bold text-foreground mb-2 text-center">
-                        Chat
+                       Invita a un amigo 
                     </Text>
                     <Text className="text-muted-foreground text-center mb-8 max-w-sm">
                         La funcionalidad de chat estará disponible próximamente.

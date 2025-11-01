@@ -109,7 +109,7 @@ export const setClientPaymentActive = mutation({
         const clientId = data.client_id as Id<"clients">;
 
         const admin = await getCurrentActiveAdmin(ctx);
-        if (!admin || !admin.branch_id) throw new Error("Acceso denegado: requiere ADMIN asignado a una sede.");
+        if (!admin || !admin.branch_id) throw new Error("Requiere ADMIN asignado a una sede.");
 
         const link = await ctx.db
             .query("client_branches")
@@ -118,10 +118,85 @@ export const setClientPaymentActive = mutation({
             .filter((q) => q.eq(q.field("active"), true))
             .first();
 
-        if (!link) throw new Error("El cliente no pertenece a la sede del ADMIN.");
+        if (!link) throw new Error("El cliente no pertenece a su sede.");
 
         await ctx.db.patch(clientId, { is_payment_active: data.is_payment_active, updated_at: Date.now() });
         return clientId;
+    },
+});
+
+/**
+ * Mutation para actualizar únicamente el estado de pago de un cliente
+ * 
+ * Características:
+ * - Solo actualiza el campo is_payment_active
+ * - Retorna el estado actualizado completo
+ * - Valida permisos según el rol del usuario
+ * 
+ * Permisos:
+ * - SUPER_ADMIN: Acceso total
+ * - ADMIN: Solo clientes de su sede
+ * 
+ * @returns Objeto con el estado de pago actualizado
+ */
+export const updateClientPaymentStatus = mutation({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(setClientPaymentActiveSchema, args.payload, "updateClientPaymentStatus");
+        const clientId = data.client_id as Id<"clients">;
+
+        // Verificar que el cliente existe y está activo
+        const client = await ctx.db.get(clientId);
+        if (!client || !client.active) {
+            throw new Error("Cliente no encontrado o inactivo.");
+        }
+
+        // Verificar si es SUPER_ADMIN
+        if (await isSuperAdmin(ctx)) {
+            await ctx.db.patch(clientId, {
+                is_payment_active: data.is_payment_active,
+                updated_at: Date.now()
+            });
+
+            const updatedClient = await ctx.db.get(clientId);
+            return {
+                client_id: updatedClient!._id,
+                is_payment_active: updatedClient!.is_payment_active,
+                status: updatedClient!.status,
+                updated_at: updatedClient!.updated_at,
+            };
+        }
+
+        // Si es ADMIN, verificar que el cliente pertenezca a su sede
+        const admin = await getCurrentActiveAdmin(ctx);
+        if (!admin || !admin.branch_id) {
+            throw new Error("Acceso denegado: requiere ADMIN asignado a una sede.");
+        }
+
+        const link = await ctx.db
+            .query("client_branches")
+            .withIndex("by_client", (q) => q.eq("client_id", clientId))
+            .filter((q) => q.eq(q.field("branch_id"), admin.branch_id as Id<"branches">))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!link) {
+            throw new Error("Acceso denegado: el cliente no pertenece a la sede del ADMIN.");
+        }
+
+        // Actualizar el estado de pago
+        await ctx.db.patch(clientId, {
+            is_payment_active: data.is_payment_active,
+            updated_at: Date.now()
+        });
+
+        const updatedClient = await ctx.db.get(clientId);
+        return {
+            client_id: updatedClient!._id,
+            is_payment_active: updatedClient!.is_payment_active,
+            status: updatedClient!.status,
+            updated_at: updatedClient!.updated_at,
+        };
     },
 });
 
