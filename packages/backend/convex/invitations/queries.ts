@@ -7,6 +7,7 @@ import {
     listInvitationsByInviterSchema,
     getInvitationByIdSchema,
     validateWithZod,
+    MAX_INVITATIONS_PER_MONTH,
 } from "./validations";
 import { INVITATION_ERRORS } from "./errors";
 
@@ -122,5 +123,53 @@ export const getInvitationById = query({
         }
 
         return invitation;
+    },
+});
+
+// Obtener el conteo de invitaciones del mes actual para un cliente
+export const getMonthlyInvitationCount = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        await requireClientRole(ctx);
+
+        const data = validateWithZod(
+            listInvitationsByInviterSchema,
+            args.payload,
+            "getMonthlyInvitationCount"
+        );
+
+        const user = await mustGetCurrentUser(ctx);
+        const client = await ctx.db.get(data.inviter_client_id as Id<"clients">);
+        if (!client) throw new Error(INVITATION_ERRORS.CLIENT_NOT_FOUND);
+        if (client.user_id !== user._id) {
+            throw new Error(INVITATION_ERRORS.CLIENT_NOT_BELONGS_TO_USER);
+        }
+
+        // Calcular el inicio del mes actual (hace 30 días)
+        const now = Date.now();
+        const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+        // Obtener todas las invitaciones del último mes
+        const recentInvitations = await ctx.db
+            .query("invitations")
+            .filter((q: any) =>
+                q.and(
+                    q.eq(q.field("inviter_client_id"), data.inviter_client_id as Id<"clients">),
+                    q.gte(q.field("created_at"), oneMonthAgo),
+                    q.eq(q.field("active"), true)
+                )
+            )
+            .collect();
+
+        // Contar solo las que están PENDING o REDEEMED (las CANCELED y EXPIRED no cuentan)
+        const countedInvitations = recentInvitations.filter(
+            (inv) => inv.status === "PENDING" || inv.status === "REDEEMED"
+        );
+
+        return {
+            used: countedInvitations.length,
+            max: MAX_INVITATIONS_PER_MONTH,
+            remaining: MAX_INVITATIONS_PER_MONTH - countedInvitations.length,
+        };
     },
 });

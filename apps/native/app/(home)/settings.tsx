@@ -122,9 +122,9 @@ export default function SettingsPage() {
                         }}
                     >
                         <View className="flex-row items-center">
-                            <Ionicons name="flower-outline" size={20} color="#1f2937" />
+                            <Ionicons name="people-outline" size={20} color="#1f2937" />
                             <Text className="text-gray-900 ml-3 font-medium">
-                                Invita a un amigo
+                                Invitar amigo
                             </Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

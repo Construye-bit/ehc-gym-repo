@@ -199,7 +199,7 @@ export default function RootLayout() {
 								<Stack.Screen name="(chat)" options={{ headerShown: false }} />
 								<Stack.Screen name="(invite-friend)"
 									options={{
-										title: 'Invita a un amigo',
+										title: 'Invitar amigo',
 										headerShown: true,
 										headerStyle: {
 											backgroundColor: '#f9fafb', // bg-gray-50
