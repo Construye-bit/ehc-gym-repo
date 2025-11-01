@@ -68,6 +68,7 @@ import type * as health_metrics_mutuations from "../health_metrics/mutuations.js
 import type * as health_metrics_queries from "../health_metrics/queries.js";
 import type * as health_metrics_validations from "../health_metrics/validations.js";
 import type * as http from "../http.js";
+import type * as invitations_errors from "../invitations/errors.js";
 import type * as invitations_index from "../invitations/index.js";
 import type * as invitations_mutations from "../invitations/mutations.js";
 import type * as invitations_queries from "../invitations/queries.js";
@@ -185,6 +186,7 @@ declare const fullApi: ApiFromModules<{
   "health_metrics/queries": typeof health_metrics_queries;
   "health_metrics/validations": typeof health_metrics_validations;
   http: typeof http;
+  "invitations/errors": typeof invitations_errors;
   "invitations/index": typeof invitations_index;
   "invitations/mutations": typeof invitations_mutations;
   "invitations/queries": typeof invitations_queries;
