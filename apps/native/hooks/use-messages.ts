@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useConvexAuth } from 'convex/react';
 import { useState, useCallback, useEffect } from 'react';
 import api from '@/api';
 import type { Id } from '@/api';
@@ -7,19 +7,20 @@ import type { MessagesResponse, OptimisticMessage, SendMessageResult } from '@/t
 const DEFAULT_LIMIT = 50;
 
 export function useMessages(conversationId: Id<'conversations'> | null) {
+  const { isAuthenticated } = useConvexAuth();
   const [limit] = useState(DEFAULT_LIMIT);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
 
-  // Obtener mensajes de la conversación
+  // Obtener mensajes de la conversación solo si está autenticado
   const data = useQuery(
     api.chat.messages.queries.get,
-    conversationId ? { conversationId, limit } : 'skip'
+    (conversationId && isAuthenticated) ? { conversationId, limit } : 'skip'
   ) as MessagesResponse | undefined;
 
   const sendMutation = useMutation(api.chat.messages.mutations.send);
   const markAsReadMutation = useMutation(api.chat.messages.mutations.markAsRead);
 
-  const isLoading = data === undefined && conversationId !== null;
+  const isLoading = data === undefined && conversationId !== null && isAuthenticated;
   const messages = data?.messages || [];
   const hasMore = data?.nextCursor !== null;
 
@@ -56,10 +57,10 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
         setOptimisticMessages((prev) => prev.filter((m) => m._id !== tempId));
       } catch (error) {
         console.error('Error sending message:', error);
-        
+
         // Formatear mensaje de error amigable
         let errorMessage = 'Error al enviar';
-        
+
         if (error instanceof Error) {
           // Detectar error de mensajes agotados
           if (error.message.includes('agotado') || error.message.includes('gratuitos')) {
@@ -71,16 +72,16 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
             errorMessage = error.message;
           }
         }
-        
+
         // Marcar como error y permitir reintento
         setOptimisticMessages((prev) =>
           prev.map((m) =>
             m._id === tempId
               ? {
-                  ...m,
-                  status: 'ERROR' as const,
-                  error: errorMessage,
-                }
+                ...m,
+                status: 'ERROR' as const,
+                error: errorMessage,
+              }
               : m
           )
         );
@@ -110,10 +111,10 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
         setOptimisticMessages((prev) => prev.filter((m) => m._id !== tempId));
       } catch (error) {
         console.error('Error retrying message:', error);
-        
+
         // Formatear mensaje de error amigable
         let errorMessage = 'Error al enviar';
-        
+
         if (error instanceof Error) {
           // Detectar error de mensajes agotados
           if (error.message.includes('agotado') || error.message.includes('gratuitos')) {
@@ -124,16 +125,16 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
             errorMessage = error.message;
           }
         }
-        
+
         // Volver a marcar como error
         setOptimisticMessages((prev) =>
           prev.map((m) =>
             m._id === tempId
               ? {
-                  ...m,
-                  status: 'ERROR' as const,
-                  error: errorMessage,
-                }
+                ...m,
+                status: 'ERROR' as const,
+                error: errorMessage,
+              }
               : m
           )
         );
@@ -160,7 +161,7 @@ export function useMessages(conversationId: Id<'conversations'> | null) {
       const hasUnreadFromOther = messages.some(
         (msg) => !msg.is_mine && (!msg.read_at || msg.status === 'SENT')
       );
-      
+
       if (hasUnreadFromOther) {
         markAsRead();
       }
