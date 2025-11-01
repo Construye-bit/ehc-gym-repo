@@ -70,6 +70,7 @@ import type * as emergency_contact_index from "../emergency_contact/index.js";
 import type * as emergency_contact_mutations from "../emergency_contact/mutations.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as invitations_errors from "../invitations/errors.js";
 import type * as invitations_index from "../invitations/index.js";
 import type * as invitations_mutations from "../invitations/mutations.js";
 import type * as invitations_queries from "../invitations/queries.js";
@@ -178,6 +179,7 @@ declare const fullApi: ApiFromModules<{
   "emergency_contact/mutations": typeof emergency_contact_mutations;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  "invitations/errors": typeof invitations_errors;
   "invitations/index": typeof invitations_index;
   "invitations/mutations": typeof invitations_mutations;
   "invitations/queries": typeof invitations_queries;
