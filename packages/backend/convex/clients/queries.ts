@@ -343,3 +343,108 @@ export const getAdminByPersonId = internalQuery({
             .first();
     },
 });
+
+/**
+ * Query para obtener el estado de pago de un cliente
+ * Retorna información básica del cliente y su estado de pago
+ * 
+ * Permisos:
+ * - SUPER_ADMIN: Acceso total
+ * - ADMIN: Solo clientes de su sede
+ * - CLIENT: Solo su propia información
+ */
+export const getClientPaymentStatus = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(getClientSchema, args.payload, "getClientPaymentStatus");
+        const clientId = data.client_id as Id<"clients">;
+
+        const client = await ctx.db.get(clientId);
+        if (!client || !client.active) {
+            throw new Error("Cliente no encontrado o inactivo.");
+        }
+
+        // Obtener usuario actual
+        const currentUser = await mustGetCurrentUser(ctx);
+
+        // Verificar si es SUPER_ADMIN
+        if (await isSuperAdmin(ctx)) {
+            return {
+                client_id: client._id,
+                is_payment_active: client.is_payment_active,
+                status: client.status,
+                join_date: client.join_date,
+                end_date: client.end_date,
+            };
+        }
+
+        // Verificar si el usuario actual es el propio cliente
+        if (client.user_id && client.user_id === currentUser._id) {
+            return {
+                client_id: client._id,
+                is_payment_active: client.is_payment_active,
+                status: client.status,
+                join_date: client.join_date,
+                end_date: client.end_date,
+            };
+        }
+
+        // Si es ADMIN, verificar que el cliente pertenezca a su sede
+        const admin = await getCurrentActiveAdmin(ctx);
+        if (!admin || !admin.branch_id) {
+            throw new Error("Acceso denegado: no tiene permisos para consultar este cliente.");
+        }
+
+        const link = await ctx.db
+            .query("client_branches")
+            .withIndex("by_client", (q) => q.eq("client_id", clientId))
+            .filter((q) => q.eq(q.field("branch_id"), admin.branch_id as Id<"branches">))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!link) {
+            throw new Error("Acceso denegado: el cliente no pertenece a la sede del ADMIN.");
+        }
+
+        return {
+            client_id: client._id,
+            is_payment_active: client.is_payment_active,
+            status: client.status,
+            join_date: client.join_date,
+            end_date: client.end_date,
+        };
+    },
+});
+
+/**
+ * Query para obtener el cliente del usuario autenticado actual
+ * Retorna el registro de cliente completo incluyendo el estado de pago
+ * 
+ * Permisos:
+ * - Solo el usuario autenticado puede obtener su propio cliente
+ */
+export const getMyClientProfile = query({
+    args: {},
+    handler: async (ctx) => {
+        const currentUser = await mustGetCurrentUser(ctx);
+
+        // Buscar el cliente asociado al usuario actual
+        const client = await ctx.db
+            .query("clients")
+            .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!client) {
+            return null;
+        }
+
+        return {
+            client_id: client._id,
+            is_payment_active: client.is_payment_active,
+            status: client.status,
+            join_date: client.join_date,
+            end_date: client.end_date,
+        };
+    },
+});

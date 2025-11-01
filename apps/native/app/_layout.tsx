@@ -197,7 +197,19 @@ export default function RootLayout() {
 								<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 								<Stack.Screen name="(blog)" options={{ headerShown: false }} />
 								<Stack.Screen name="(chat)" options={{ headerShown: false }} />
-								<Stack.Screen name="(invite-friend)" />
+								<Stack.Screen name="(invite-friend)"
+									options={{
+										title: 'Invita a un amigo',
+										headerShown: true,
+										headerStyle: {
+											backgroundColor: '#f9fafb', // bg-gray-50
+										},
+										headerTintColor: '#111827', // text-gray-900
+										headerTitleStyle: {
+											fontWeight: '600',
+										},
+									}}
+								/>
 								<Stack.Screen name="(profile)" options={{ headerShown: false }} />
 							</Stack>
 						</AuthGuard>

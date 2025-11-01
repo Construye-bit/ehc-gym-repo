@@ -118,6 +118,21 @@ export default function SettingsPage() {
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
                         onPress={() => {
+                            router.push('/(invite-friend)')
+                        }}
+                    >
+                        <View className="flex-row items-center">
+                            <Ionicons name="flower-outline" size={20} color="#1f2937" />
+                            <Text className="text-gray-900 ml-3 font-medium">
+                                Invita a un amigo
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
+                        onPress={() => {
                             router.push('/(home)/update-password');
                         }}
                     >
