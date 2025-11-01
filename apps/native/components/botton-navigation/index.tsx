@@ -19,23 +19,18 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
     const pathname = usePathname();
     const segments = useSegments();
 
-    // Debug: ver qué pathname y segments recibimos
-    console.log('Current pathname:', pathname);
-    console.log('Current segments:', segments);
-
     const isActiveRoute = (route: string) => {
         // Manejar el caso cuando el route es '#'
         if (route === '#') return false;
 
         // Convertir segments a string para comparación
         const segmentsStr = segments ? String(segments) : '';
-        
+
         // IMPORTANTE: Verificar rutas específicas PRIMERO antes de home
-        
+
         // Para chat
         if (route === '/(chat)' || route.includes('/(chat)')) {
             const isChatRoute = segmentsStr.includes('(chat)');
-            console.log('Checking chat route:', { route, segments, segmentsStr, isChatRoute });
             return isChatRoute;
         }
 
@@ -51,11 +46,11 @@ export function BottomNavigation({ tabs }: BottomNavigationProps) {
 
         // Para la ruta home - DEBE IR AL FINAL
         if (route === '/(home)' || route === '/(home)/index') {
-            return segmentsStr.includes('(home)') && 
-                   !segmentsStr.includes('(chat)') && 
-                   !segmentsStr.includes('(blog)') &&
-                   !pathname?.includes('settings') &&
-                   !pathname?.includes('trainer-catalog');
+            return segmentsStr.includes('(home)') &&
+                !segmentsStr.includes('(chat)') &&
+                !segmentsStr.includes('(blog)') &&
+                !pathname?.includes('settings') &&
+                !pathname?.includes('trainer-catalog');
         }
 
         return pathname?.includes(route);

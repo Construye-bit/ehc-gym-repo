@@ -92,6 +92,7 @@ export const inviteFriend = mutation({
             invitee_name: data.invitee_name,
             invitee_email: data.invitee_email,
             invitee_phone: data.invitee_phone,
+            invitee_document_number: data.invitee_document_number,
             preferred_branch_id: data.preferred_branch_id
                 ? (data.preferred_branch_id as Id<"branches">)
                 : undefined,

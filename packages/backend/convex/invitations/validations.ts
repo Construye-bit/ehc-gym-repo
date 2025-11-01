@@ -24,6 +24,10 @@ export const inviteFriendSchema = z.object({
             "El número de teléfono no es válido (10-15 dígitos)"
         )
         .optional(),
+    invitee_document_number: z.string()
+        .min(1, "El número de documento es requerido")
+        .max(20, "El número de documento no puede exceder 20 caracteres")
+        .regex(/^[0-9]+$/, "El número de documento solo puede contener números"),
     preferred_branch_id: z.string().min(1, "preferred_branch_id no puede estar vacío").optional(),
 })
     .refine(
