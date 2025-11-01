@@ -3,9 +3,11 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { BottomNavigation } from "@/components/botton-navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useUnreadCount } from "@/hooks/use-unread-count";
 
 export default function ChatRoutesLayout() {
     const { isClient } = useAuth();
+    const { unreadCount } = useUnreadCount();
 
     // Memorizar las tabs para evitar re-renderizados innecesarios
     const navigationTabs = useMemo(() => [
@@ -34,7 +36,7 @@ export default function ChatRoutesLayout() {
             icon: 'settings-outline' as const,
             route: '/(home)/settings',
         },
-    ], [isClient]);
+    ], [isClient, unreadCount]);
 
     return (
         <View className="flex-1">
