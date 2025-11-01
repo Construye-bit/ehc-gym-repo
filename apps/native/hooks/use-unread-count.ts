@@ -1,5 +1,5 @@
 import { useQuery } from 'convex/react';
-import { useAuth } from '@clerk/clerk-expo';
+import { useConvexAuth } from 'convex/react';
 import api from '@/api';
 
 /**
@@ -7,15 +7,15 @@ import api from '@/api';
  * Suma los unread_count de todas las conversaciones del usuario
  */
 export function useUnreadCount() {
-  const { isSignedIn } = useAuth();
-  
-  // Solo hacer la query si el usuario está autenticado
+  const { isAuthenticated } = useConvexAuth();
+
+  // Solo hacer la query si el usuario está autenticado en Convex
   const data = useQuery(
     api.chat.conversations.queries.listMine,
-    isSignedIn ? { limit: 50 } : 'skip'
+    isAuthenticated ? { limit: 50 } : 'skip'
   );
 
-  const isLoading = data === undefined && isSignedIn;
+  const isLoading = data === undefined && isAuthenticated;
   const conversations = data?.conversations || [];
 
   // Sumar todos los mensajes sin leer

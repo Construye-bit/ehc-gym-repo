@@ -1,4 +1,4 @@
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProvider, ConvexReactClient, useConvexAuth } from "convex/react";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
@@ -42,6 +42,7 @@ const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
 	const { isSignedIn } = useClerkAuth();
+	const { isAuthenticated } = useConvexAuth();
 	const { isAdmin, isSuperAdmin, isClient, isTrainer, isLoading } = useAuthRoles();
 	const router = useRouter();
 	const pathname = usePathname();
@@ -62,7 +63,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 		const inAuthGroup = segments[0] === '(auth)';
 		const inOnBoarding = pathname === '/on-boarding' || segments[0] === 'on-boarding';
 
-		// Si no está autenticado y no está en rutas públicas
+		// Si está en onboarding y está autenticado, redirigir a home
+		if (inOnBoarding && isSignedIn && isAuthenticated && !hasRedirected.current) {
+			hasRedirected.current = true;
+			// Verificar si es admin o super admin
+			if (isAdmin || isSuperAdmin) {
+				router.replace("/(home)/admin-redirect");
+			} else {
+				router.replace("/(home)");
+			}
+			return;
+		}
+
+		// Si no está autenticado (tanto en Clerk como en Convex) y no está en rutas públicas
 		if (!isSignedIn && !inAuthGroup && !inOnBoarding) {
 			if (!hasRedirected.current) {
 				hasRedirected.current = true;
@@ -71,8 +84,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 			return;
 		}
 
-		// Si está autenticado
-		if (isSignedIn && !hasRedirected.current) {
+		// Si está autenticado en Clerk pero no en Convex, esperar
+		if (isSignedIn && !isAuthenticated && !inAuthGroup && !inOnBoarding) {
+			// Mostrar loading mientras Convex sincroniza
+			return;
+		}
+
+		// Si está completamente autenticado (Clerk + Convex) y no en onboarding
+		if (isSignedIn && isAuthenticated && !inOnBoarding && !hasRedirected.current) {
 			// Redirección para admins/super admins a admin-redirect
 			if (isAdmin || isSuperAdmin) {
 				const isOnAdminRedirect = pathname?.includes('admin-redirect') ||
@@ -102,10 +121,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 				}
 			}
 		}
-	}, [isSignedIn, isAdmin, isSuperAdmin, isClient, isTrainer, isLoading, router, pathname, segments]);
+	}, [isSignedIn, isAuthenticated, isAdmin, isSuperAdmin, isClient, isTrainer, isLoading, router, pathname, segments]);
 
-	// Mostrar loading mientras se cargan los roles
-	if (isLoading && isSignedIn) {
+	// Mostrar loading mientras se cargan los roles o mientras Convex sincroniza
+	if ((isLoading && isSignedIn) || (isSignedIn && !isAuthenticated)) {
 		return (
 			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
 				<ActivityIndicator size="large" color="#EBB303" />

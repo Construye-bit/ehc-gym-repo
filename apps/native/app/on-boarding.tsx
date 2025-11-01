@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@clerk/clerk-expo';
 
 // Function to get dynamic screen dimensions
 const getScreenDimensions = () => {
@@ -30,7 +29,6 @@ const getScreenDimensions = () => {
 
 export default function OnBoardingScreen() {
     const router = useRouter();
-    const { isSignedIn, isLoaded } = useAuth();
     const [screenDimensions, setScreenDimensions] = useState(getScreenDimensions());
 
     // Update dimensions when orientation changes
@@ -45,15 +43,9 @@ export default function OnBoardingScreen() {
     }, []);
 
     const onGetStarted = () => {
-        // Early return if not loaded
-        if (!isLoaded) return;
-
-        // Check if user is authenticated
-        if (isSignedIn) {
-            router.replace('/(home)');
-        } else {
-            router.replace('/(auth)/sign-in');
-        }
+        // Siempre navegar a sign-in
+        // El AuthGuard se encargará de redirigir a home si ya está autenticado
+        router.replace('/(auth)/sign-in');
     };
 
     const { isLandscape, isTablet } = screenDimensions;
@@ -99,12 +91,11 @@ export default function OnBoardingScreen() {
                 {/* Main button */}
                 <Button
                     onPress={onGetStarted}
-                    disabled={!isLoaded}
                     className="w-full mt-1 mb-1"
                     accessibilityLabel="Start now with exercise"
                     accessibilityHint="Navigate to sign in screen or main page"
                 >
-                    {isLoaded ? 'EMPIEZA AHORA' : 'CARGANDO...'}
+                    EMPIEZA AHORA
                 </Button>
             </View>
         </SafeAreaView>

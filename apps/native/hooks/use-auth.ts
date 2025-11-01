@@ -1,5 +1,5 @@
 import { useAuth as useClerkAuth } from '@clerk/clerk-expo';
-import { useQuery } from 'convex/react';
+import { useQuery, useConvexAuth } from 'convex/react';
 import api from '@/api';
 
 export type Role = "CLIENT" | "TRAINER" | "ADMIN" | "SUPER_ADMIN";
@@ -27,14 +27,18 @@ export function useAuth() {
     const clerkAuth = useClerkAuth();
     const { isSignedIn, isLoaded: isClerkLoaded, userId: clerkUserId } = clerkAuth;
 
+    // Obtener información de autenticación de Convex
+    const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+
     // Obtener información completa del usuario desde Convex
+    // Solo hacer la query si tanto Clerk como Convex están autenticados
     const userWithRoles = useQuery(
         api.role_assignments.queries.getCurrentUserWithRoles,
-        isSignedIn ? {} : "skip"
+        (isSignedIn && isConvexAuthenticated) ? {} : "skip"
     );
 
-    const isLoading = !isClerkLoaded || (isSignedIn && userWithRoles === undefined);
-    const isAuthenticated = isSignedIn && !!userWithRoles?.user;
+    const isLoading = !isClerkLoaded || (isSignedIn && !isConvexAuthenticated) || (isSignedIn && isConvexAuthenticated && userWithRoles === undefined);
+    const isAuthenticated = isSignedIn && isConvexAuthenticated && !!userWithRoles?.user;
 
     // Extraer datos del usuario
     const person = userWithRoles?.person ?? null;
