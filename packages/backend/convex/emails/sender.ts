@@ -1,4 +1,3 @@
-// convex/emails/sender.ts
 import { components } from "../_generated/api";
 import { Resend } from "@convex-dev/resend";
 import { internalMutation } from "../_generated/server";
@@ -7,17 +6,6 @@ import { getWelcomeTrainerEmailTemplate, getWelcomeAdminEmailTemplate, getWelcom
 
 export const resend: Resend = new Resend(components.resend, {
     testMode: false,
-});
-
-export const sendTestEmail = internalMutation({
-    handler: async (ctx) => {
-        await resend.sendEmail(ctx, {
-            from: "Me <onboarding@resend.dev>",
-            to: "diegofernandoaguirretenjo@gmail.com",
-            subject: "Hi there",
-            html: "This is a test email",
-        });
-    },
 });
 
 export const sendWelcomeAdminEmail = internalMutation({
@@ -37,7 +25,7 @@ export const sendWelcomeAdminEmail = internalMutation({
             );
 
             await resend.sendEmail(ctx, {
-                from: process.env.FROM_EMAIL || 'EHC Gym <onboarding@resend.dev>',
+                from: 'EHC Gym <noreply@elcokiin.my>',
                 to: email,
                 subject: emailTemplate.subject,
                 html: emailTemplate.html,
@@ -83,7 +71,7 @@ export const sendWelcomeTrainerEmail = internalMutation({
             );
 
             await resend.sendEmail(ctx, {
-                from: process.env.FROM_EMAIL || 'EHC Gym <noreply@resend.dev>',
+                from: 'EHC Gym <noreply@resend.dev>',
                 to: email,
                 subject: emailTemplate.subject,
                 html: emailTemplate.html,
@@ -128,7 +116,7 @@ export const sendWelcomeClientEmail = internalMutation({
             );
 
             await resend.sendEmail(ctx, {
-                from: process.env.FROM_EMAIL || 'EHC Gym <onboarding@resend.dev>',
+                from: 'EHC Gym <noreply@elcokiin.my>',
                 to: email,
                 subject: emailTemplate.subject,
                 html: emailTemplate.html,
@@ -176,7 +164,7 @@ export const sendInviteFriendEmail = internalMutation({
             );
 
             await resend.sendEmail(ctx, {
-                from: process.env.FROM_EMAIL || 'EHC Gym <invitations@resend.dev>',
+                from: 'EHC Gym <invitations@resend.dev>',
                 to: email,
                 subject: emailTemplate.subject,
                 html: emailTemplate.html,
