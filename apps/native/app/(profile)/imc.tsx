@@ -1,36 +1,72 @@
-import { View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text, Button } from '@/components/ui';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import api from '@/api';
 
 export default function IMCPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
     
-    // Datos quemados para visualización
-    const [metrics, setMetrics] = useState({
-        weight: '75',
-        height: '175',
-        bodyFat: '18',
-        notes: 'Medición realizada en ayunas',
-    });
-
+    // ==========================================
+    // 1. QUERIES - Obtener última métrica de salud
+    // ==========================================
+    // Query: profiles/client/queries:getMyClientProfile
+    // Retorna: { person, client, preferences, latestHealth }
+    const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
+    
+    // ==========================================
+    // 2. MUTATIONS - Para guardar nuevas métricas
+    // ==========================================
+    // Mutation: profiles/client/mutations:addHealthMetric
+    // Args: {
+    //   payload: {
+    //     measured_at: timestamp,
+    //     weight_kg: number,
+    //     height_cm: number,
+    //     bmi: number,
+    //     body_fat_pct: number|null,
+    //     notes: string|null
+    //   }
+    // }
+    const addHealthMetric = useMutation(api.profiles.client.mutations.addHealthMetric);
+    
+    // ==========================================
+    // 3. ESTADOS LOCALES EDITABLES
+    // ==========================================
+    const [weight, setWeight] = useState('');
+    const [height, setHeight] = useState('');
+    const [bodyFat, setBodyFat] = useState('');
+    const [notes, setNotes] = useState('');
     const [bmi, setBmi] = useState<number | null>(null);
     const [bmiCategory, setBmiCategory] = useState<string>('');
     const [bmiColor, setBmiColor] = useState<string>('');
+    const [loading, setLoading] = useState(false);
 
-    // Calcular IMC automáticamente
+    // ==========================================
+    // 4. EFECTO - Inicializar altura desde última métrica
+    // ==========================================
+    // La altura normalmente no cambia, así que la pre-llenamos
+    useEffect(() => {
+        if (profileData?.latestHealth?.height_cm) {
+            setHeight(profileData.latestHealth.height_cm.toString());
+        }
+    }, [profileData]);
+
+    // ==========================================
+    // 5. EFECTO - Calcular IMC automáticamente
+    // ==========================================
     useEffect(() => {
         calculateBMI();
-    }, [metrics.weight, metrics.height]);
+    }, [weight, height]);
 
     const calculateBMI = () => {
-        const weight = parseFloat(metrics.weight);
-        const heightInMeters = parseFloat(metrics.height) / 100;
+        const weightNum = parseFloat(weight);
+        const heightInMeters = parseFloat(height) / 100;
 
-        if (weight > 0 && heightInMeters > 0) {
-            const calculatedBMI = weight / (heightInMeters * heightInMeters);
+        if (weightNum > 0 && heightInMeters > 0) {
+            const calculatedBMI = weightNum / (heightInMeters * heightInMeters);
             setBmi(calculatedBMI);
             determineBMICategory(calculatedBMI);
         } else {
@@ -55,8 +91,33 @@ export default function IMCPage() {
         }
     };
 
-    // Handlers para futuras implementaciones
+    // ==========================================
+    // 6. HANDLERS
+    // ==========================================
+    const handleMetricChange = (field: 'weight' | 'height' | 'bodyFat', value: string) => {
+        // Solo permitir números y un punto decimal
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+        
+        switch (field) {
+            case 'weight':
+                setWeight(sanitizedValue);
+                break;
+            case 'height':
+                setHeight(sanitizedValue);
+                break;
+            case 'bodyFat':
+                setBodyFat(sanitizedValue);
+                break;
+        }
+    };
+
     const handleSave = async () => {
+        // Validaciones
+        if (!weight || !height) {
+            Alert.alert('Error', 'Por favor ingresa peso y altura');
+            return;
+        }
+
         if (!bmi) {
             Alert.alert('Error', 'Por favor ingresa valores válidos de peso y altura');
             return;
@@ -64,29 +125,45 @@ export default function IMCPage() {
 
         setLoading(true);
         try {
-            // TODO: Implementar llamada a la API
-            const dataToSave = {
-                weight_kg: parseFloat(metrics.weight),
-                height_cm: parseFloat(metrics.height),
-                bmi: bmi,
-                body_fat_pct: metrics.bodyFat ? parseFloat(metrics.bodyFat) : null,
-                notes: metrics.notes,
-                measured_at: Date.now(),
-            };
-            
-            console.log('Guardar métricas de salud:', dataToSave);
-            
-            // Simulación de guardado
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // ==========================================
+            // MUTATION - Guardar métrica de salud
+            // ==========================================
+            // Path: profiles/client/mutations:addHealthMetric
+            // Body: {
+            //   path: "...",
+            //   args: {
+            //     payload: {
+            //       measured_at: timestamp,
+            //       weight_kg,
+            //       height_cm,
+            //       bmi,
+            //       body_fat_pct,
+            //       notes
+            //     }
+            //   }
+            // }
+            await addHealthMetric({
+                payload: {
+                    measured_at: Date.now(),
+                    weight_kg: parseFloat(weight),
+                    height_cm: parseFloat(height),
+                    bmi: bmi,
+                    body_fat_pct: bodyFat ? parseFloat(bodyFat) : null,
+                    notes: notes.trim() || null,
+                }
+            });
             
             Alert.alert(
                 'Éxito',
                 'Métricas de salud guardadas correctamente',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
-        } catch (error) {
-            Alert.alert('Error', 'No se pudieron guardar las métricas');
+        } catch (error: any) {
             console.error('Error al guardar:', error);
+            Alert.alert(
+                'Error', 
+                error?.message || 'No se pudieron guardar las métricas'
+            );
         } finally {
             setLoading(false);
         }
@@ -96,17 +173,27 @@ export default function IMCPage() {
         router.back();
     };
 
-    const handleMetricChange = (field: string, value: string) => {
-        // Solo permitir números y un punto decimal
-        const sanitizedValue = value.replace(/[^0-9.]/g, '');
-        setMetrics(prev => ({ ...prev, [field]: sanitizedValue }));
-    };
-
     const handleViewHistory = () => {
-        // TODO: Implementar navegación al historial
-        console.log('Ver historial de mediciones');
+        // TODO: Navegar a una página de historial de métricas
+        // Query necesaria: profiles/client/queries:listHealthMetrics
+        // Implementar paginación con cursor
+        console.log('Navegar a historial de mediciones');
         Alert.alert('Próximamente', 'Esta función estará disponible pronto');
     };
+
+    // ==========================================
+    // 7. ESTADOS DE CARGA
+    // ==========================================
+    // Opcional: mostrar loading mientras carga el perfil
+    // En este caso, permitimos que el formulario se muestre aunque no haya datos previos
+    if (profileData === undefined) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-4 text-gray-600">Cargando datos...</Text>
+            </View>
+        );
+    }
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -165,7 +252,7 @@ export default function IMCPage() {
                         </Text>
                         <View className="relative">
                             <TextInput
-                                value={metrics.weight}
+                                value={weight}
                                 onChangeText={(value) => handleMetricChange('weight', value)}
                                 placeholder="75.0"
                                 keyboardType="decimal-pad"
@@ -185,7 +272,7 @@ export default function IMCPage() {
                         </Text>
                         <View className="relative">
                             <TextInput
-                                value={metrics.height}
+                                value={height}
                                 onChangeText={(value) => handleMetricChange('height', value)}
                                 placeholder="175.0"
                                 keyboardType="decimal-pad"
@@ -205,7 +292,7 @@ export default function IMCPage() {
                         </Text>
                         <View className="relative">
                             <TextInput
-                                value={metrics.bodyFat}
+                                value={bodyFat}
                                 onChangeText={(value) => handleMetricChange('bodyFat', value)}
                                 placeholder="18.0"
                                 keyboardType="decimal-pad"
@@ -224,8 +311,8 @@ export default function IMCPage() {
                             Notas
                         </Text>
                         <TextInput
-                            value={metrics.notes}
-                            onChangeText={(value) => setMetrics(prev => ({ ...prev, notes: value }))}
+                            value={notes}
+                            onChangeText={setNotes}
                             placeholder="Agrega notas sobre esta medición..."
                             multiline
                             numberOfLines={3}

@@ -1,45 +1,69 @@
-import { View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text, Button } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import  api from '@/api';
 
 type DocumentType = 'CC' | 'TI' | 'CE' | 'PASSPORT';
 
 export default function PersonalInfoPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
     
-    // Datos quemados para visualización
-    const [personalData, setPersonalData] = useState({
-        // Campos de solo lectura (críticos)
-        name: 'Juan',
-        lastName: 'Pérez',
-        bornDate: '1990-05-15',
-        documentType: 'CC' as DocumentType,
-        documentNumber: '1234567890',
-        email: 'juan.perez@example.com',
-        
-        // Campos editables (no críticos)
-        phone: '+57 300 123 4567',
-        
-        // Información adicional del cliente
-        status: 'ACTIVE',
-        isPaymentActive: true,
-        joinDate: '2024-01-15',
-    });
-
-    const [originalPhone, setOriginalPhone] = useState(personalData.phone);
-
-    // Emergency Contact (editable)
+    // ==========================================
+    // 1. QUERIES - Obtener datos del perfil
+    // ==========================================
+    // Query: profiles/client/queries:getMyClientProfile
+    // Retorna: { person, client, preferences, latestHealth }
+    const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
+    
+    // ==========================================
+    // 2. MUTATIONS - Para actualizar teléfono
+    // ==========================================
+    // NOTA: Actualmente el README no tiene mutation específica para actualizar
+    // phone del cliente. Solo TRAINER tiene updateMyPhone.
+    // Esto debería agregarse al backend o manejarse via otra mutation.
+    // Por ahora dejo preparado el espacio:
+    const updateClientPhone = useMutation(api.profiles.client.mutations.updateMyPhone); // TODO: Verificar si existe
+    
+    // ==========================================
+    // 3. ESTADOS LOCALES EDITABLES
+    // ==========================================
+    const [phone, setPhone] = useState('');
     const [emergencyContact, setEmergencyContact] = useState({
-        name: 'María Pérez',
-        phone: '+57 310 987 6543',
-        relationship: 'Madre',
+        name: '',
+        phone: '',
+        relationship: '',
     });
+    const [originalPhone, setOriginalPhone] = useState('');
+    const [originalEmergencyContact, setOriginalEmergencyContact] = useState({
+        name: '',
+        phone: '',
+        relationship: '',
+    });
+    const [loading, setLoading] = useState(false);
 
-    const [originalEmergencyContact] = useState({ ...emergencyContact });
+    // ==========================================
+    // 4. EFECTO - Inicializar datos cuando lleguen
+    // ==========================================
+    useEffect(() => {
+        if (profileData?.person) {
+            // Inicializar teléfono
+            const initialPhone = profileData.person.phone || '';
+            setPhone(initialPhone);
+            setOriginalPhone(initialPhone);
+            
+            // TODO: El backend no tiene emergency_contact en el schema actual
+            // Cuando se agregue, inicializar aquí:
+            // setEmergencyContact(profileData.client.emergency_contact || {...});
+            // setOriginalEmergencyContact(profileData.client.emergency_contact || {...});
+        }
+    }, [profileData]);
 
+    // ==========================================
+    // 5. LABELS Y HELPERS
+    // ==========================================
     const documentTypeLabels: Record<DocumentType, string> = {
         CC: 'Cédula de Ciudadanía',
         TI: 'Tarjeta de Identidad',
@@ -52,8 +76,8 @@ export default function PersonalInfoPage() {
         INACTIVE: { label: 'Inactivo', color: 'bg-gray-100 text-gray-700', icon: 'close-circle' },
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
+    const formatDate = (timestamp: number) => {
+        const date = new Date(timestamp);
         return date.toLocaleDateString('es-CO', { 
             year: 'numeric', 
             month: 'long', 
@@ -61,9 +85,11 @@ export default function PersonalInfoPage() {
         });
     };
 
-    // Handlers para futuras implementaciones
+    // ==========================================
+    // 6. HANDLERS
+    // ==========================================
     const handleSave = async () => {
-        const phoneChanged = personalData.phone !== originalPhone;
+        const phoneChanged = phone !== originalPhone;
         const emergencyChanged = 
             emergencyContact.name !== originalEmergencyContact.name ||
             emergencyContact.phone !== originalEmergencyContact.phone ||
@@ -75,45 +101,54 @@ export default function PersonalInfoPage() {
         }
 
         // Validaciones
-        if (!personalData.phone || personalData.phone.trim() === '') {
+        if (!phone || phone.trim() === '') {
             Alert.alert('Error', 'El teléfono no puede estar vacío');
             return;
         }
 
-        if (!emergencyContact.name || emergencyContact.name.trim() === '') {
-            Alert.alert('Error', 'El nombre del contacto de emergencia no puede estar vacío');
-            return;
-        }
-
-        if (!emergencyContact.phone || emergencyContact.phone.trim() === '') {
-            Alert.alert('Error', 'El teléfono del contacto de emergencia no puede estar vacío');
+        if (emergencyContact.name && (!emergencyContact.phone || !emergencyContact.relationship)) {
+            Alert.alert('Error', 'Completa todos los campos del contacto de emergencia');
             return;
         }
 
         setLoading(true);
         try {
-            // TODO: Implementar llamada a la API
-            const dataToSave = {
-                phone: personalData.phone,
-                emergency_contact: emergencyContact,
-                updated_at: Date.now(),
-            };
+            // ==========================================
+            // MUTATION - Actualizar teléfono del cliente
+            // ==========================================
+            // TODO: Verificar que exista esta mutation en el backend
+            // Path esperado: profiles/client/mutations:updateMyPhone
+            // Args: { payload: { phone: string } }
             
-            console.log('Actualizar información personal del cliente:', dataToSave);
+            if (phoneChanged) {
+                await updateClientPhone({
+                    payload: {
+                        phone: phone.trim(),
+                    }
+                });
+            }
+
+            // TODO: Si se agrega emergency_contact al backend, actualizar aquí
+            // await updateEmergencyContact({
+            //     payload: {
+            //         emergency_contact: emergencyContact
+            //     }
+            // });
             
-            // Simulación de guardado
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            setOriginalPhone(personalData.phone);
+            setOriginalPhone(phone);
+            setOriginalEmergencyContact(emergencyContact);
             
             Alert.alert(
                 'Éxito',
                 'Información personal actualizada correctamente',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo actualizar la información');
+        } catch (error: any) {
             console.error('Error al guardar:', error);
+            Alert.alert(
+                'Error', 
+                error?.message || 'No se pudo actualizar la información'
+            );
         } finally {
             setLoading(false);
         }
@@ -123,19 +158,48 @@ export default function PersonalInfoPage() {
         router.back();
     };
 
-    const handlePhoneChange = (value: string) => {
-        setPersonalData(prev => ({ ...prev, phone: value }));
-    };
-
-    const handleEmergencyContactChange = (field: string, value: string) => {
-        setEmergencyContact(prev => ({ ...prev, [field]: value }));
-    };
-
     const hasChanges = 
-        personalData.phone !== originalPhone ||
+        phone !== originalPhone ||
         emergencyContact.name !== originalEmergencyContact.name ||
         emergencyContact.phone !== originalEmergencyContact.phone ||
         emergencyContact.relationship !== originalEmergencyContact.relationship;
+
+    // ==========================================
+    // 7. ESTADOS DE CARGA Y ERROR
+    // ==========================================
+    if (profileData === undefined) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-4 text-gray-600">Cargando perfil...</Text>
+            </View>
+        );
+    }
+
+    if (!profileData || !profileData.person) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center p-6">
+                <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+                <Text className="mt-4 text-gray-900 font-semibold text-lg">
+                    No se pudo cargar el perfil
+                </Text>
+                <Text className="mt-2 text-gray-600 text-center">
+                    Intenta nuevamente o contacta con soporte
+                </Text>
+                <Button
+                    onPress={() => router.back()}
+                    className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
+                >
+                    <Text className="text-white font-semibold">Volver</Text>
+                </Button>
+            </View>
+        );
+    }
+
+    // ==========================================
+    // 8. EXTRAER DATOS DEL PERFIL
+    // ==========================================
+    const { person, client } = profileData;
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -151,35 +215,39 @@ export default function PersonalInfoPage() {
                 </View>
 
                 {/* Status Badges */}
-                <View className="flex-row gap-2 mb-6">
-                    <View className={`px-4 py-2 rounded-full flex-row items-center ${statusLabels[personalData.status as keyof typeof statusLabels].color}`}>
-                        <Ionicons 
-                            name={statusLabels[personalData.status as keyof typeof statusLabels].icon as any} 
-                            size={16} 
-                            color={personalData.status === 'ACTIVE' ? '#15803d' : '#374151'}
-                        />
-                        <Text className="font-semibold ml-1">
-                            {statusLabels[personalData.status as keyof typeof statusLabels].label}
-                        </Text>
-                    </View>
-                    
-                    <View className={`px-4 py-2 rounded-full flex-row items-center ${
-                        personalData.isPaymentActive 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-red-100 text-red-700'
-                    }`}>
-                        <Ionicons 
-                            name={personalData.isPaymentActive ? 'card' : 'card-outline'} 
-                            size={16} 
-                            color={personalData.isPaymentActive ? '#1d4ed8' : '#dc2626'}
-                        />
-                        <Text className={`font-semibold ml-1 ${
-                            personalData.isPaymentActive ? 'text-blue-700' : 'text-red-700'
+                {client && (
+                    <View className="flex-row gap-2 mb-6">
+                        <View className={`px-4 py-2 rounded-full flex-row items-center ${
+                            statusLabels[client.status as keyof typeof statusLabels]?.color || 'bg-gray-100'
                         }`}>
-                            {personalData.isPaymentActive ? 'Pago al Día' : 'Pago Pendiente'}
-                        </Text>
+                            <Ionicons 
+                                name={statusLabels[client.status as keyof typeof statusLabels]?.icon as any || 'help-circle'} 
+                                size={16} 
+                                color={client.status === 'ACTIVE' ? '#15803d' : '#374151'}
+                            />
+                            <Text className="font-semibold ml-1">
+                                {statusLabels[client.status as keyof typeof statusLabels]?.label || 'Desconocido'}
+                            </Text>
+                        </View>
+                        
+                        <View className={`px-4 py-2 rounded-full flex-row items-center ${
+                            client.is_payment_active 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'bg-red-100 text-red-700'
+                        }`}>
+                            <Ionicons 
+                                name={client.is_payment_active ? 'card' : 'card-outline'} 
+                                size={16} 
+                                color={client.is_payment_active ? '#1d4ed8' : '#dc2626'}
+                            />
+                            <Text className={`font-semibold ml-1 ${
+                                client.is_payment_active ? 'text-blue-700' : 'text-red-700'
+                            }`}>
+                                {client.is_payment_active ? 'Pago al Día' : 'Pago Pendiente'}
+                            </Text>
+                        </View>
                     </View>
-                </View>
+                )}
 
                 {/* Read-Only Section - Personal Data */}
                 <View className="mb-6">
@@ -194,7 +262,7 @@ export default function PersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {personalData.name} {personalData.lastName}
+                                {person.name} {person.last_name}
                             </Text>
                         </View>
                     </View>
@@ -206,7 +274,7 @@ export default function PersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {documentTypeLabels[personalData.documentType]} - {personalData.documentNumber}
+                                {documentTypeLabels[person.document_type]} - {person.document_number}
                             </Text>
                         </View>
                     </View>
@@ -218,34 +286,28 @@ export default function PersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {formatDate(personalData.bornDate)}
+                                {person.born_date}
                             </Text>
                         </View>
                     </View>
 
-                    {/* Email */}
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Correo Electrónico
-                        </Text>
-                        <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                            <Text className="text-gray-600">
-                                {personalData.email}
-                            </Text>
-                        </View>
-                    </View>
-
+                    {/* Email - Desde el user */}
+                    {/* NOTA: El README no incluye user.email en getMyClientProfile */}
+                    {/* TODO: Agregar user al response o usar otro método */}
+                    
                     {/* Join Date */}
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Miembro Desde
-                        </Text>
-                        <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                            <Text className="text-gray-600">
-                                {formatDate(personalData.joinDate)}
+                    {client && (
+                        <View className="mb-4">
+                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                                Miembro Desde
                             </Text>
+                            <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
+                                <Text className="text-gray-600">
+                                    {formatDate(client.join_date)}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
                 </View>
 
                 {/* Editable Section - Contact Info */}
@@ -260,8 +322,8 @@ export default function PersonalInfoPage() {
                         </Text>
                         <View className="relative">
                             <TextInput
-                                value={personalData.phone}
-                                onChangeText={handlePhoneChange}
+                                value={phone}
+                                onChangeText={setPhone}
                                 placeholder="+57 300 123 4567"
                                 keyboardType="phone-pad"
                                 className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-blue-300 pr-12"
@@ -275,6 +337,7 @@ export default function PersonalInfoPage() {
                 </View>
 
                 {/* Editable Section - Emergency Contact */}
+                {/* TODO: Agregar emergency_contact al schema del backend */}
                 <View className="mb-6">
                     <View className="flex-row items-center mb-3">
                         <Ionicons name="alert-circle-outline" size={20} color="#dc2626" />
@@ -283,28 +346,26 @@ export default function PersonalInfoPage() {
                         </Text>
                     </View>
 
-                    {/* Emergency Contact Name */}
                     <View className="mb-4">
                         <Text className="text-sm font-medium text-gray-700 mb-2">
                             Nombre Completo
                         </Text>
                         <TextInput
                             value={emergencyContact.name}
-                            onChangeText={(value) => handleEmergencyContactChange('name', value)}
+                            onChangeText={(value) => setEmergencyContact(prev => ({ ...prev, name: value }))}
                             placeholder="Nombre del contacto de emergencia"
                             className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-blue-300"
                             placeholderTextColor="#9ca3af"
                         />
                     </View>
 
-                    {/* Emergency Contact Phone */}
                     <View className="mb-4">
                         <Text className="text-sm font-medium text-gray-700 mb-2">
                             Teléfono
                         </Text>
                         <TextInput
                             value={emergencyContact.phone}
-                            onChangeText={(value) => handleEmergencyContactChange('phone', value)}
+                            onChangeText={(value) => setEmergencyContact(prev => ({ ...prev, phone: value }))}
                             placeholder="+57 310 987 6543"
                             keyboardType="phone-pad"
                             className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-blue-300"
@@ -312,14 +373,13 @@ export default function PersonalInfoPage() {
                         />
                     </View>
 
-                    {/* Emergency Contact Relationship */}
                     <View className="mb-4">
                         <Text className="text-sm font-medium text-gray-700 mb-2">
                             Parentesco
                         </Text>
                         <TextInput
                             value={emergencyContact.relationship}
-                            onChangeText={(value) => handleEmergencyContactChange('relationship', value)}
+                            onChangeText={(value) => setEmergencyContact(prev => ({ ...prev, relationship: value }))}
                             placeholder="Ej: Madre, Padre, Hermano/a, Esposo/a"
                             className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-blue-300"
                             placeholderTextColor="#9ca3af"

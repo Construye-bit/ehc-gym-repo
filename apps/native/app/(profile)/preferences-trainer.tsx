@@ -1,8 +1,10 @@
-import { View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text, Button } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import api from '@/api';
 
 type DaySchedule = { start: string; end: string } | null;
 
@@ -43,29 +45,60 @@ const DAYS_OF_WEEK = [
 
 export default function TrainerWorkProfilePage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
     
-    // Datos quemados para visualización
-    const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([
-        'Yoga',
-        'Pilates',
-        'Funcional',
-    ]);
-
+    // ==========================================
+    // 1. QUERIES - Obtener datos del perfil
+    // ==========================================
+    // Query: profiles/trainer/queries:getMyTrainerProfile
+    // Retorna: { trainer, person }
+    const profileData = useQuery(api.profiles.trainer.queries.getMyTrainerProfile);
+    
+    // ==========================================
+    // 2. MUTATIONS - Para actualizar especialidades y horario
+    // ==========================================
+    // Mutation: profiles/trainer/mutations:updateTrainerSpecialties
+    // Args: { payload: { specialties: string[] } }
+    const updateSpecialties = useMutation(api.profiles.trainer.mutations.updateTrainerSpecialties);
+    
+    // Mutation: profiles/trainer/mutations:updateTrainerSchedule
+    // Args: { payload: { work_schedule: WeekSchedule } }
+    const updateSchedule = useMutation(api.profiles.trainer.mutations.updateTrainerSchedule);
+    
+    // ==========================================
+    // 3. ESTADOS LOCALES EDITABLES
+    // ==========================================
+    const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
     const [workSchedule, setWorkSchedule] = useState<WeekSchedule>({
-        monday: { start: '06:00', end: '14:00' },
-        tuesday: { start: '06:00', end: '14:00' },
-        wednesday: { start: '06:00', end: '14:00' },
-        thursday: { start: '06:00', end: '14:00' },
-        friday: { start: '06:00', end: '14:00' },
-        saturday: { start: '08:00', end: '12:00' },
+        monday: null,
+        tuesday: null,
+        wednesday: null,
+        thursday: null,
+        friday: null,
+        saturday: null,
         sunday: null,
     });
-
     const [newSpecialty, setNewSpecialty] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-    // Handlers para especialidades
+    // ==========================================
+    // 4. EFECTO - Inicializar datos cuando lleguen
+    // ==========================================
+    useEffect(() => {
+        if (profileData?.trainer) {
+            // Inicializar especialidades
+            setSelectedSpecialties(profileData.trainer.specialties || []);
+            
+            // Inicializar horario
+            if (profileData.trainer.work_schedule) {
+                setWorkSchedule(profileData.trainer.work_schedule as WeekSchedule);
+            }
+        }
+    }, [profileData]);
+
+    // ==========================================
+    // 5. HANDLERS PARA ESPECIALIDADES
+    // ==========================================
     const toggleSpecialty = (specialty: string) => {
         if (selectedSpecialties.includes(specialty)) {
             setSelectedSpecialties(prev => prev.filter(s => s !== specialty));
@@ -95,7 +128,9 @@ export default function TrainerWorkProfilePage() {
         setSelectedSpecialties(prev => prev.filter(s => s !== specialty));
     };
 
-    // Handlers para horario
+    // ==========================================
+    // 6. HANDLERS PARA HORARIO
+    // ==========================================
     const toggleDayActive = (day: keyof WeekSchedule) => {
         setWorkSchedule(prev => ({
             ...prev,
@@ -112,11 +147,15 @@ export default function TrainerWorkProfilePage() {
 
     const openTimePicker = (day: keyof WeekSchedule, field: 'start' | 'end') => {
         // TODO: Implementar selector de hora nativo
+        // Para Android: TimePickerAndroid
+        // Para iOS: DatePickerIOS con mode="time"
         console.log(`Abrir selector de hora para ${day} - ${field}`);
         Alert.alert('Selector de Hora', 'Esta funcionalidad estará disponible pronto');
     };
 
-    // Handler para guardar
+    // ==========================================
+    // 7. HANDLER PARA GUARDAR
+    // ==========================================
     const handleSave = async () => {
         if (selectedSpecialties.length === 0) {
             Alert.alert('Error', 'Debes seleccionar al menos una especialidad');
@@ -125,26 +164,39 @@ export default function TrainerWorkProfilePage() {
 
         setLoading(true);
         try {
-            // TODO: Implementar llamada a la API
-            const dataToSave = {
-                specialties: selectedSpecialties,
-                work_schedule: workSchedule,
-                updated_at: Date.now(),
-            };
-            
-            console.log('Guardar perfil laboral del entrenador:', dataToSave);
-            
-            // Simulación de guardado
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // ==========================================
+            // MUTATION 1 - Actualizar especialidades
+            // ==========================================
+            // Path: profiles/trainer/mutations:updateTrainerSpecialties
+            // Body: { path: "...", args: { payload: { specialties: [...] } } }
+            await updateSpecialties({
+                payload: {
+                    specialties: selectedSpecialties,
+                }
+            });
+
+            // ==========================================
+            // MUTATION 2 - Actualizar horario
+            // ==========================================
+            // Path: profiles/trainer/mutations:updateTrainerSchedule
+            // Body: { path: "...", args: { payload: { work_schedule: {...} } } }
+            await updateSchedule({
+                payload: {
+                    work_schedule: workSchedule,
+                }
+            });
             
             Alert.alert(
                 'Éxito',
                 'Perfil laboral actualizado correctamente',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo actualizar el perfil laboral');
+        } catch (error: any) {
             console.error('Error al guardar:', error);
+            Alert.alert(
+                'Error', 
+                error?.message || 'No se pudo actualizar el perfil laboral'
+            );
         } finally {
             setLoading(false);
         }
@@ -153,6 +205,38 @@ export default function TrainerWorkProfilePage() {
     const handleCancel = () => {
         router.back();
     };
+
+    // ==========================================
+    // 8. ESTADOS DE CARGA Y ERROR
+    // ==========================================
+    if (profileData === undefined) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-4 text-gray-600">Cargando perfil...</Text>
+            </View>
+        );
+    }
+
+    if (!profileData || !profileData.trainer) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center p-6">
+                <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+                <Text className="mt-4 text-gray-900 font-semibold text-lg">
+                    No se pudo cargar el perfil
+                </Text>
+                <Text className="mt-2 text-gray-600 text-center">
+                    Intenta nuevamente o contacta con soporte
+                </Text>
+                <Button
+                    onPress={() => router.back()}
+                    className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
+                >
+                    <Text className="text-white font-semibold">Volver</Text>
+                </Button>
+            </View>
+        );
+    }
 
     return (
         <ScrollView className="flex-1 bg-white">

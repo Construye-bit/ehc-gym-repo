@@ -1,25 +1,74 @@
-import { View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text, Button } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import api from '@/api';
 
 type RoutineType = 'FUERZA' | 'CARDIO' | 'MIXTO' | 'MOVILIDAD';
 type Goal = 'BAJAR_PESO' | 'TONIFICAR' | 'GANAR_MASA' | 'RESISTENCIA';
 
 export default function PreferencesPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
     
-    // Datos quemados para visualización
-    const [preferences, setPreferences] = useState({
-        routineType: 'MIXTO' as RoutineType,
-        goal: 'TONIFICAR' as Goal,
-        preferredTimeStart: '06:00',
-        preferredTimeEnd: '08:00',
-        notes: 'Prefiero entrenamientos de alta intensidad en las mañanas',
-    });
+    // ==========================================
+    // 1. QUERIES - Obtener preferencias actuales
+    // ==========================================
+    // Query: profiles/client/queries:getMyClientProfile
+    // Retorna: { person, client, preferences, latestHealth }
+    const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
+    
+    // ==========================================
+    // 2. MUTATIONS - Para actualizar preferencias
+    // ==========================================
+    // Mutation: profiles/client/mutations:upsertClientPreferences
+    // Args: { payload: { preferred_time_range, routine_type, goal, notes } }
+    const upsertPreferences = useMutation(api.profiles.client.mutations.upsertClientPreferences);
+    
+    // ==========================================
+    // 3. ESTADOS LOCALES EDITABLES
+    // ==========================================
+    const [routineType, setRoutineType] = useState<RoutineType>('MIXTO');
+    const [goal, setGoal] = useState<Goal>('TONIFICAR');
+    const [preferredTimeStart, setPreferredTimeStart] = useState('06:00');
+    const [preferredTimeEnd, setPreferredTimeEnd] = useState('08:00');
+    const [notes, setNotes] = useState('');
+    const [loading, setLoading] = useState(false);
 
+    // ==========================================
+    // 4. EFECTO - Inicializar datos cuando lleguen
+    // ==========================================
+    useEffect(() => {
+        if (profileData?.preferences) {
+            const prefs = profileData.preferences;
+            
+            // Inicializar tipo de rutina
+            if (prefs.routine_type) {
+                setRoutineType(prefs.routine_type as RoutineType);
+            }
+            
+            // Inicializar objetivo
+            if (prefs.goal) {
+                setGoal(prefs.goal as Goal);
+            }
+            
+            // Inicializar rango de tiempo preferido
+            if (prefs.preferred_time_range) {
+                setPreferredTimeStart(prefs.preferred_time_range.start || '06:00');
+                setPreferredTimeEnd(prefs.preferred_time_range.end || '08:00');
+            }
+            
+            // Inicializar notas
+            if (prefs.notes) {
+                setNotes(prefs.notes);
+            }
+        }
+    }, [profileData]);
+
+    // ==========================================
+    // 5. OPCIONES Y CONFIGURACIÓN
+    // ==========================================
     const routineTypes: { value: RoutineType; label: string; icon: string }[] = [
         { value: 'FUERZA', label: 'Fuerza', icon: 'barbell-outline' },
         { value: 'CARDIO', label: 'Cardio', icon: 'heart-outline' },
@@ -34,24 +83,50 @@ export default function PreferencesPage() {
         { value: 'RESISTENCIA', label: 'Resistencia', icon: 'infinite-outline' },
     ];
 
-    // Handlers para futuras implementaciones
+    // ==========================================
+    // 6. HANDLERS
+    // ==========================================
     const handleSave = async () => {
         setLoading(true);
         try {
-            // TODO: Implementar llamada a la API
-            console.log('Guardar preferencias:', preferences);
-            
-            // Simulación de guardado
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // ==========================================
+            // MUTATION - Actualizar preferencias
+            // ==========================================
+            // Path: profiles/client/mutations:upsertClientPreferences
+            // Body: {
+            //   path: "...",
+            //   args: {
+            //     payload: {
+            //       preferred_time_range: { start, end },
+            //       routine_type,
+            //       goal,
+            //       notes
+            //     }
+            //   }
+            // }
+            await upsertPreferences({
+                payload: {
+                    preferred_time_range: {
+                        start: preferredTimeStart,
+                        end: preferredTimeEnd,
+                    },
+                    routine_type: routineType,
+                    goal: goal,
+                    notes: notes.trim() || null,
+                }
+            });
             
             Alert.alert(
                 'Éxito',
                 'Preferencias actualizadas correctamente',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
-        } catch (error) {
-            Alert.alert('Error', 'No se pudieron actualizar las preferencias');
+        } catch (error: any) {
             console.error('Error al guardar:', error);
+            Alert.alert(
+                'Error', 
+                error?.message || 'No se pudieron actualizar las preferencias'
+            );
         } finally {
             setLoading(false);
         }
@@ -61,21 +136,28 @@ export default function PreferencesPage() {
         router.back();
     };
 
-    const handleRoutineTypeChange = (type: RoutineType) => {
-        setPreferences(prev => ({ ...prev, routineType: type }));
+    const openTimePicker = (field: 'start' | 'end') => {
+        // TODO: Implementar selector de hora nativo
+        // Para Android: TimePickerAndroid
+        // Para iOS: DatePickerIOS con mode="time"
+        console.log(`Abrir selector de hora para ${field}`);
+        Alert.alert('Selector de Hora', 'Esta funcionalidad estará disponible pronto');
     };
 
-    const handleGoalChange = (goal: Goal) => {
-        setPreferences(prev => ({ ...prev, goal: goal }));
-    };
+    // ==========================================
+    // 7. ESTADOS DE CARGA Y ERROR
+    // ==========================================
+    if (profileData === undefined) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-4 text-gray-600">Cargando preferencias...</Text>
+            </View>
+        );
+    }
 
-    const handleTimeChange = (field: 'preferredTimeStart' | 'preferredTimeEnd', value: string) => {
-        setPreferences(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleNotesChange = (notes: string) => {
-        setPreferences(prev => ({ ...prev, notes }));
-    };
+    // Nota: preferences puede ser null si el cliente aún no ha configurado sus preferencias
+    // En ese caso, mostrar el formulario vacío con valores por defecto
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -99,9 +181,9 @@ export default function PreferencesPage() {
                         {routineTypes.map((type) => (
                             <TouchableOpacity
                                 key={type.value}
-                                onPress={() => handleRoutineTypeChange(type.value)}
+                                onPress={() => setRoutineType(type.value)}
                                 className={`flex-1 min-w-[45%] p-4 rounded-lg border-2 ${
-                                    preferences.routineType === type.value
+                                    routineType === type.value
                                         ? 'bg-blue-50 border-blue-500'
                                         : 'bg-gray-50 border-gray-200'
                                 }`}
@@ -110,10 +192,10 @@ export default function PreferencesPage() {
                                     <Ionicons
                                         name={type.icon as any}
                                         size={28}
-                                        color={preferences.routineType === type.value ? '#2563eb' : '#4b5563'}
+                                        color={routineType === type.value ? '#2563eb' : '#4b5563'}
                                     />
                                     <Text className={`text-center font-medium mt-2 ${
-                                        preferences.routineType === type.value
+                                        routineType === type.value
                                             ? 'text-blue-700'
                                             : 'text-gray-700'
                                     }`}>
@@ -131,28 +213,28 @@ export default function PreferencesPage() {
                         Objetivo Principal
                     </Text>
                     <View className="flex-row flex-wrap gap-3">
-                        {goals.map((goal) => (
+                        {goals.map((g) => (
                             <TouchableOpacity
-                                key={goal.value}
-                                onPress={() => handleGoalChange(goal.value)}
+                                key={g.value}
+                                onPress={() => setGoal(g.value)}
                                 className={`flex-1 min-w-[45%] p-4 rounded-lg border-2 ${
-                                    preferences.goal === goal.value
+                                    goal === g.value
                                         ? 'bg-green-50 border-green-500'
                                         : 'bg-gray-50 border-gray-200'
                                 }`}
                             >
                                 <View className="items-center">
                                     <Ionicons
-                                        name={goal.icon as any}
+                                        name={g.icon as any}
                                         size={28}
-                                        color={preferences.goal === goal.value ? '#16a34a' : '#4b5563'}
+                                        color={goal === g.value ? '#16a34a' : '#4b5563'}
                                     />
                                     <Text className={`text-center font-medium mt-2 ${
-                                        preferences.goal === goal.value
+                                        goal === g.value
                                             ? 'text-green-700'
                                             : 'text-gray-700'
                                     }`}>
-                                        {goal.label}
+                                        {g.label}
                                     </Text>
                                 </View>
                             </TouchableOpacity>
@@ -172,13 +254,10 @@ export default function PreferencesPage() {
                             </Text>
                             <TouchableOpacity
                                 className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-row items-center justify-between"
-                                onPress={() => {
-                                    // TODO: Implementar selector de hora
-                                    console.log('Abrir selector de hora inicial');
-                                }}
+                                onPress={() => openTimePicker('start')}
                             >
                                 <Text className="text-gray-900">
-                                    {preferences.preferredTimeStart}
+                                    {preferredTimeStart}
                                 </Text>
                                 <Ionicons name="time-outline" size={20} color="#9ca3af" />
                             </TouchableOpacity>
@@ -190,13 +269,10 @@ export default function PreferencesPage() {
                             </Text>
                             <TouchableOpacity
                                 className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-row items-center justify-between"
-                                onPress={() => {
-                                    // TODO: Implementar selector de hora
-                                    console.log('Abrir selector de hora final');
-                                }}
+                                onPress={() => openTimePicker('end')}
                             >
                                 <Text className="text-gray-900">
-                                    {preferences.preferredTimeEnd}
+                                    {preferredTimeEnd}
                                 </Text>
                                 <Ionicons name="time-outline" size={20} color="#9ca3af" />
                             </TouchableOpacity>
@@ -210,8 +286,8 @@ export default function PreferencesPage() {
                         Notas Adicionales
                     </Text>
                     <TextInput
-                        value={preferences.notes}
-                        onChangeText={handleNotesChange}
+                        value={notes}
+                        onChangeText={setNotes}
                         placeholder="Agrega cualquier información adicional sobre tus preferencias..."
                         multiline
                         numberOfLines={4}

@@ -1,32 +1,51 @@
-import { View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text, Button } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import api from '@/api';
 
 type DocumentType = 'CC' | 'TI' | 'CE' | 'PASSPORT';
 
 export default function TrainerPersonalInfoPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
     
-    // Datos quemados para visualización (solo lectura excepto teléfono)
-    const [personalData, setPersonalData] = useState({
-        name: 'Carlos',
-        lastName: 'Rodríguez',
-        bornDate: '1988-03-20',
-        documentType: 'CC' as DocumentType,
-        documentNumber: '1234567890',
-        phone: '+57 310 456 7890',
-        email: 'carlos.rodriguez@gym.com',
-        employeeCode: 'TRN-2024-001',
-        hireDate: '2024-01-15',
-        branch: 'Sede Norte',
-        status: 'ACTIVE',
-    });
+    // ==========================================
+    // 1. QUERIES - Obtener datos del perfil
+    // ==========================================
+    // Query: profiles/trainer/queries:getMyTrainerProfile
+    // Retorna: { trainer, person }
+    const profileData = useQuery(api.profiles.trainer.queries.getMyTrainerProfile);
+    
+    // ==========================================
+    // 2. MUTATIONS - Para actualizar teléfono
+    // ==========================================
+    // Mutation: profiles/trainer/mutations:updateMyPhone
+    // Args: { payload: { phone: string } }
+    const updatePhone = useMutation(api.profiles.trainer.mutations.updateMyPhone);
+    
+    // ==========================================
+    // 3. ESTADOS LOCALES EDITABLES
+    // ==========================================
+    const [phone, setPhone] = useState('');
+    const [originalPhone, setOriginalPhone] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const [originalPhone, setOriginalPhone] = useState(personalData.phone);
+    // ==========================================
+    // 4. EFECTO - Inicializar datos cuando lleguen
+    // ==========================================
+    useEffect(() => {
+        if (profileData?.person?.phone) {
+            const initialPhone = profileData.person.phone;
+            setPhone(initialPhone);
+            setOriginalPhone(initialPhone);
+        }
+    }, [profileData]);
 
+    // ==========================================
+    // 5. LABELS Y HELPERS
+    // ==========================================
     const documentTypeLabels: Record<DocumentType, string> = {
         CC: 'Cédula de Ciudadanía',
         TI: 'Tarjeta de Identidad',
@@ -40,41 +59,57 @@ export default function TrainerPersonalInfoPage() {
         ON_VACATION: { label: 'En Vacaciones', color: 'bg-blue-100 text-blue-700' },
     };
 
-    // Handlers para futuras implementaciones
+    const formatDate = (dateString: string) => {
+        // dateString viene como "YYYY-MM-DD"
+        const [year, month, day] = dateString.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return date.toLocaleDateString('es-CO', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    };
+
+    // ==========================================
+    // 6. HANDLERS
+    // ==========================================
     const handleSave = async () => {
-        if (personalData.phone === originalPhone) {
+        if (phone === originalPhone) {
             Alert.alert('Información', 'No hay cambios para guardar');
             return;
         }
 
-        if (!personalData.phone || personalData.phone.trim() === '') {
+        if (!phone || phone.trim() === '') {
             Alert.alert('Error', 'El teléfono no puede estar vacío');
             return;
         }
 
         setLoading(true);
         try {
-            // TODO: Implementar llamada a la API para actualizar solo el teléfono
-            const dataToSave = {
-                phone: personalData.phone,
-                updated_at: Date.now(),
-            };
+            // ==========================================
+            // MUTATION - Actualizar teléfono
+            // ==========================================
+            // Path: profiles/trainer/mutations:updateMyPhone
+            // Body: { path: "...", args: { payload: { phone: "..." } } }
+            await updatePhone({
+                payload: {
+                    phone: phone.trim(),
+                }
+            });
             
-            console.log('Actualizar teléfono del entrenador:', dataToSave);
-            
-            // Simulación de guardado
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            setOriginalPhone(personalData.phone);
+            setOriginalPhone(phone);
             
             Alert.alert(
                 'Éxito',
                 'Teléfono actualizado correctamente',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo actualizar el teléfono');
+        } catch (error: any) {
             console.error('Error al guardar:', error);
+            Alert.alert(
+                'Error', 
+                error?.message || 'No se pudo actualizar el teléfono'
+            );
         } finally {
             setLoading(false);
         }
@@ -84,20 +119,44 @@ export default function TrainerPersonalInfoPage() {
         router.back();
     };
 
-    const handlePhoneChange = (value: string) => {
-        setPersonalData(prev => ({ ...prev, phone: value }));
-    };
+    const hasChanges = phone !== originalPhone;
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-CO', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-    };
+    // ==========================================
+    // 7. ESTADOS DE CARGA Y ERROR
+    // ==========================================
+    if (profileData === undefined) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className="mt-4 text-gray-600">Cargando perfil...</Text>
+            </View>
+        );
+    }
 
-    const hasChanges = personalData.phone !== originalPhone;
+    if (!profileData || !profileData.person || !profileData.trainer) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center p-6">
+                <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+                <Text className="mt-4 text-gray-900 font-semibold text-lg">
+                    No se pudo cargar el perfil
+                </Text>
+                <Text className="mt-2 text-gray-600 text-center">
+                    Intenta nuevamente o contacta con soporte
+                </Text>
+                <Button
+                    onPress={() => router.back()}
+                    className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
+                >
+                    <Text className="text-white font-semibold">Volver</Text>
+                </Button>
+            </View>
+        );
+    }
+
+    // ==========================================
+    // 8. EXTRAER DATOS DEL PERFIL
+    // ==========================================
+    const { person, trainer } = profileData;
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -114,9 +173,11 @@ export default function TrainerPersonalInfoPage() {
 
                 {/* Status Badge */}
                 <View className="mb-6">
-                    <View className={`self-start px-4 py-2 rounded-full ${statusLabels[personalData.status as keyof typeof statusLabels].color}`}>
+                    <View className={`self-start px-4 py-2 rounded-full ${
+                        statusLabels[trainer.status as keyof typeof statusLabels]?.color || 'bg-gray-100'
+                    }`}>
                         <Text className="font-semibold">
-                            {statusLabels[personalData.status as keyof typeof statusLabels].label}
+                            {statusLabels[trainer.status as keyof typeof statusLabels]?.label || 'Desconocido'}
                         </Text>
                     </View>
                 </View>
@@ -130,7 +191,7 @@ export default function TrainerPersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {personalData.employeeCode}
+                                {trainer.employee_code}
                             </Text>
                         </View>
                     </View>
@@ -142,7 +203,7 @@ export default function TrainerPersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {personalData.name} {personalData.lastName}
+                                {person.name} {person.last_name}
                             </Text>
                         </View>
                     </View>
@@ -154,7 +215,7 @@ export default function TrainerPersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {documentTypeLabels[personalData.documentType]} - {personalData.documentNumber}
+                                {documentTypeLabels[person.document_type]} - {person.document_number}
                             </Text>
                         </View>
                     </View>
@@ -166,43 +227,44 @@ export default function TrainerPersonalInfoPage() {
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {formatDate(personalData.bornDate)}
+                                {formatDate(person.born_date)}
                             </Text>
                         </View>
                     </View>
 
                     {/* Email */}
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Correo Electrónico
-                        </Text>
-                        <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                            <Text className="text-gray-600">
-                                {personalData.email}
-                            </Text>
-                        </View>
-                    </View>
+                    {/* NOTA: El email no está en person ni trainer según el README */}
+                    {/* TODO: Agregar user.email si está disponible */}
 
                     {/* Branch */}
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-gray-700 mb-2">
-                            Sede Asignada
-                        </Text>
-                        <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
-                            <Text className="text-gray-600">
-                                {personalData.branch}
+                    {/* NOTA: branch_id es un Id, necesitamos resolver el nombre */}
+                    {/* TODO: Agregar query para obtener nombre de la sucursal */}
+                    {trainer.branch_id && (
+                        <View className="mb-4">
+                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                                Sede Asignada
                             </Text>
+                            <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
+                                <Text className="text-gray-600">
+                                    {/* TODO: Resolver branch_id a nombre */}
+                                    ID: {trainer.branch_id}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
 
-                    {/* Hire Date */}
+                    {/* Created At (como fecha de contratación) */}
                     <View className="mb-4">
                         <Text className="text-sm font-medium text-gray-700 mb-2">
                             Fecha de Contratación
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {formatDate(personalData.hireDate)}
+                                {new Date(trainer.created_at).toLocaleDateString('es-CO', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}
                             </Text>
                         </View>
                     </View>
@@ -220,8 +282,8 @@ export default function TrainerPersonalInfoPage() {
                         </Text>
                         <View className="relative">
                             <TextInput
-                                value={personalData.phone}
-                                onChangeText={handlePhoneChange}
+                                value={phone}
+                                onChangeText={setPhone}
                                 placeholder="+57 310 456 7890"
                                 keyboardType="phone-pad"
                                 className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-blue-300 pr-12"
