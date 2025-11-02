@@ -164,7 +164,7 @@ export const sendInviteFriendEmail = internalMutation({
             );
 
             await resend.sendEmail(ctx, {
-                from: 'EHC Gym <invitations@resend.dev>',
+                from: 'EHC Gym <noreply@elcokiin.my>',
                 to: email,
                 subject: emailTemplate.subject,
                 html: emailTemplate.html,

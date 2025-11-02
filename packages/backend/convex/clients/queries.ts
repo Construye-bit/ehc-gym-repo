@@ -345,8 +345,7 @@ export const getAdminByPersonId = internalQuery({
 });
 
 /**
- * Query para obtener el cliente del usuario autenticado actual
- * Retorna el registro de cliente completo incluyendo el estado de pago
+ * Obtiene el perfil del cliente autenticado actualmente
  * 
  * Permisos:
  * - Solo el usuario autenticado puede obtener su propio cliente
@@ -373,6 +372,34 @@ export const getMyClientProfile = query({
             status: client.status,
             join_date: client.join_date,
             end_date: client.end_date,
+        };
+    },
+});
+
+/**
+ * Obtiene información básica de un cliente por su ID
+ * Usado para mostrar información del invitador en invitaciones
+ */
+export const getClientById = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(getClientSchema, args.payload, "getClientById");
+        const clientId = data.client_id as Id<"clients">;
+
+        const client = await ctx.db.get(clientId);
+        if (!client) {
+            throw new Error("Cliente no encontrado");
+        }
+
+        const person = client.person_id ? await ctx.db.get(client.person_id) : null;
+
+        return {
+            _id: client._id,
+            person_name: person
+                ? `${person.name} ${person.last_name}`.trim()
+                : "Cliente",
+            is_payment_active: client.is_payment_active,
+            status: client.status,
         };
     },
 });

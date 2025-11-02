@@ -23,6 +23,7 @@ import { Route as SuperAdminSedesIndexRouteImport } from './routes/super-admin/s
 import { Route as SuperAdminAdministratorsIndexRouteImport } from './routes/super-admin/administrators/index'
 import { Route as AdminTrainersIndexRouteImport } from './routes/admin/trainers/index'
 import { Route as AdminSedesIndexRouteImport } from './routes/admin/sedes/index'
+import { Route as AdminInvitationsIndexRouteImport } from './routes/admin/invitations/index'
 import { Route as AdminClientsIndexRouteImport } from './routes/admin/clients/index'
 import { Route as SuperAdminTrainersNewRouteImport } from './routes/super-admin/trainers/new'
 import { Route as SuperAdminTrainersEditRouteImport } from './routes/super-admin/trainers/edit'
@@ -104,6 +105,11 @@ const AdminSedesIndexRoute = AdminSedesIndexRouteImport.update({
   path: '/sedes/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminInvitationsIndexRoute = AdminInvitationsIndexRouteImport.update({
+  id: '/invitations/',
+  path: '/invitations/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminClientsIndexRoute = AdminClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
   '/admin/clients': typeof AdminClientsIndexRoute
+  '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
   '/admin/trainers': typeof AdminTrainersIndexRoute
   '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
   '/admin/clients': typeof AdminClientsIndexRoute
+  '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/admin/sedes': typeof AdminSedesIndexRoute
   '/admin/trainers': typeof AdminTrainersIndexRoute
   '/super-admin/administrators': typeof SuperAdminAdministratorsIndexRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/super-admin/trainers/edit': typeof SuperAdminTrainersEditRoute
   '/super-admin/trainers/new': typeof SuperAdminTrainersNewRoute
   '/admin/clients/': typeof AdminClientsIndexRoute
+  '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/sedes/': typeof AdminSedesIndexRoute
   '/admin/trainers/': typeof AdminTrainersIndexRoute
   '/super-admin/administrators/': typeof SuperAdminAdministratorsIndexRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
     | '/admin/clients'
+    | '/admin/invitations'
     | '/admin/sedes'
     | '/admin/trainers'
     | '/super-admin/administrators'
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
     | '/admin/clients'
+    | '/admin/invitations'
     | '/admin/sedes'
     | '/admin/trainers'
     | '/super-admin/administrators'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/super-admin/trainers/edit'
     | '/super-admin/trainers/new'
     | '/admin/clients/'
+    | '/admin/invitations/'
     | '/admin/sedes/'
     | '/admin/trainers/'
     | '/super-admin/administrators/'
@@ -414,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSedesIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/invitations/': {
+      id: '/admin/invitations/'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AdminInvitationsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/clients/': {
       id: '/admin/clients/'
       path: '/clients'
@@ -485,6 +504,7 @@ interface AdminRouteRouteChildren {
   AdminTrainersEditRoute: typeof AdminTrainersEditRoute
   AdminTrainersNewRoute: typeof AdminTrainersNewRoute
   AdminClientsIndexRoute: typeof AdminClientsIndexRoute
+  AdminInvitationsIndexRoute: typeof AdminInvitationsIndexRoute
   AdminSedesIndexRoute: typeof AdminSedesIndexRoute
   AdminTrainersIndexRoute: typeof AdminTrainersIndexRoute
 }
@@ -494,6 +514,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminTrainersEditRoute: AdminTrainersEditRoute,
   AdminTrainersNewRoute: AdminTrainersNewRoute,
   AdminClientsIndexRoute: AdminClientsIndexRoute,
+  AdminInvitationsIndexRoute: AdminInvitationsIndexRoute,
   AdminSedesIndexRoute: AdminSedesIndexRoute,
   AdminTrainersIndexRoute: AdminTrainersIndexRoute,
 }

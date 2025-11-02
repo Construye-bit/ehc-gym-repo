@@ -22,8 +22,21 @@ async function requireClientRole(ctx: any): Promise<void> {
     if (!isClient) throw new Error(INVITATION_ERRORS.ACCESS_DENIED_CLIENT);
 }
 
-// helper: es ADMIN asignado a branch?
+// helper: verificar si es SUPER_ADMIN
+async function isSuperAdmin(ctx: any): Promise<boolean> {
+    const user = await mustGetCurrentUser(ctx);
+    const roles = await ctx.db
+        .query("role_assignments")
+        .withIndex("by_user_active", (q: any) => q.eq("user_id", user._id).eq("active", true))
+        .collect();
+    return roles.some((r: any) => r.role === "SUPER_ADMIN");
+}
+
+// helper: es ADMIN asignado a branch o SUPER_ADMIN?
 async function requireAdminOfBranch(ctx: any, branchId: Id<"branches">): Promise<void> {
+    // Si es super admin, tiene acceso a todas las branches
+    if (await isSuperAdmin(ctx)) return;
+
     const user = await mustGetCurrentUser(ctx);
     const admin = await ctx.db
         .query("admins")
@@ -77,6 +90,25 @@ export const listInvitationsByBranch = query({
         const map = new Map<string, any>();
         [...directed, ...byClients].forEach((inv) => map.set(inv._id as unknown as string, inv));
         return Array.from(map.values());
+    },
+});
+
+// Listar TODAS las invitaciones (solo para SUPER_ADMIN)
+export const listAllInvitations = query({
+    args: {},
+    handler: async (ctx) => {
+        // Verificar que sea super admin
+        if (!(await isSuperAdmin(ctx))) {
+            throw new Error(INVITATION_ERRORS.ACCESS_DENIED_ADMIN_BRANCH);
+        }
+
+        // Obtener todas las invitaciones activas
+        const invitations = await ctx.db
+            .query("invitations")
+            .filter((q) => q.eq(q.field("active"), true))
+            .collect();
+
+        return invitations;
     },
 });
 

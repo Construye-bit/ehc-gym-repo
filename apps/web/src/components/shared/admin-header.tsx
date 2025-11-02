@@ -26,6 +26,7 @@ const NAV_LINKS: Record<AdminType, NavLink[]> = {
         { to: "/admin/sedes", label: "Sedes", pathPrefix: "/admin/sedes" },
         { to: "/admin/clients", label: "Clientes", pathPrefix: "/admin/clients" },
         { to: "/admin/trainers", label: "Entrenadores", pathPrefix: "/admin/trainers" },
+        { to: "/admin/invitations", label: "Invitaciones", pathPrefix: "/admin/invitations" },
     ],
     "super-admin": [
         { to: "/super-admin/sedes", label: "Sedes", pathPrefix: "/super-admin/sedes" },
