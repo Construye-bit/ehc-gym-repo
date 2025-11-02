@@ -72,3 +72,17 @@ export function validateWithZod<T>(schema: z.ZodSchema<T>, data: unknown, contex
         throw new Error(`Error de validación en ${context}: ${String(error)}`);
     }
 }
+export const phoneSchema = z
+    .string()
+    .min(1, "El teléfono es requerido")
+    .refine(
+        (val) => /^[0-9\s\-\+\(\)]{10,15}$/.test(val),
+        "El número de teléfono no es válido (10-15 dígitos)"
+    );
+    
+export const updateMyPhoneSchema = z.object({
+    client_id: z.string().min(1),
+    phone: phoneSchema,
+});
+
+

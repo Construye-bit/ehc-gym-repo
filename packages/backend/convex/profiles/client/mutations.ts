@@ -5,8 +5,10 @@ import {
     upsertClientPreferencesSchema,
     addHealthMetricSchema,
     addProgressSchema,
+    updateMyPhoneSchema,
     validateWithZod,
 } from "./validations";
+
 import {
     getCurrentUser,
     requireClientOwnershipOrAdmin,
@@ -132,5 +134,32 @@ export const addProgress = mutation({
             updated_at: now,
         });
         return id;
+    },
+});
+// Actualizar phone en persons (propio trainer o ADMIN/SA)
+export const updateMyPhone = mutation({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(
+            updateMyPhoneSchema,
+            args.payload,
+            "updateMyPhone"
+        );
+        const client_id = data.client_id as Id<"clients">;
+
+        await requireClientOwnershipOrAdmin(ctx, client_id);
+
+        const trainer = await ctx.db.get(client_id);
+        if (!trainer) throw new Error("Entrenador no encontrado.");
+
+        const person = await ctx.db.get(trainer.person_id as Id<"persons">);
+        if (!person) throw new Error("Persona no encontrada para el entrenador.");
+
+        const now = Date.now();
+        await ctx.db.patch(person._id, {
+            phone: data.phone,
+            updated_at: now,
+        });
+        return person._id;
     },
 });

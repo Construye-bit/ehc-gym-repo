@@ -5,17 +5,18 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import api from '@/api';
+import { push } from 'expo-router/build/global-state/routing';
 
 export default function IMCPage() {
     const router = useRouter();
-    
+
     // ==========================================
     // 1. QUERIES - Obtener última métrica de salud
     // ==========================================
     // Query: profiles/client/queries:getMyClientProfile
     // Retorna: { person, client, preferences, latestHealth }
     const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
-    
+
     // ==========================================
     // 2. MUTATIONS - Para guardar nuevas métricas
     // ==========================================
@@ -31,7 +32,7 @@ export default function IMCPage() {
     //   }
     // }
     const addHealthMetric = useMutation(api.profiles.client.mutations.addHealthMetric);
-    
+
     // ==========================================
     // 3. ESTADOS LOCALES EDITABLES
     // ==========================================
@@ -97,7 +98,7 @@ export default function IMCPage() {
     const handleMetricChange = (field: 'weight' | 'height' | 'bodyFat', value: string) => {
         // Solo permitir números y un punto decimal
         const sanitizedValue = value.replace(/[^0-9.]/g, '');
-        
+
         switch (field) {
             case 'weight':
                 setWeight(sanitizedValue);
@@ -152,7 +153,7 @@ export default function IMCPage() {
                     notes: notes.trim() || null,
                 }
             });
-            
+
             Alert.alert(
                 'Éxito',
                 'Métricas de salud guardadas correctamente',
@@ -161,7 +162,7 @@ export default function IMCPage() {
         } catch (error: any) {
             console.error('Error al guardar:', error);
             Alert.alert(
-                'Error', 
+                'Error',
                 error?.message || 'No se pudieron guardar las métricas'
             );
         } finally {
@@ -174,11 +175,7 @@ export default function IMCPage() {
     };
 
     const handleViewHistory = () => {
-        // TODO: Navegar a una página de historial de métricas
-        // Query necesaria: profiles/client/queries:listHealthMetrics
-        // Implementar paginación con cursor
-        console.log('Navegar a historial de mediciones');
-        Alert.alert('Próximamente', 'Esta función estará disponible pronto');
+        push('/(profile)/metrics-page');
     };
 
     // ==========================================
@@ -328,7 +325,7 @@ export default function IMCPage() {
                     <Ionicons name="information-circle-outline" size={24} color="#4b5563" className="mr-3" />
                     <View className="flex-1 ml-3">
                         <Text className="text-sm text-gray-700 leading-5">
-                            El IMC es una medida útil, pero no considera la composición corporal. 
+                            El IMC es una medida útil, pero no considera la composición corporal.
                             Consulta con un profesional de la salud para una evaluación completa.
                         </Text>
                     </View>
@@ -359,7 +356,7 @@ export default function IMCPage() {
                             {loading ? 'Guardando...' : 'Guardar Medición'}
                         </Text>
                     </Button>
-                    
+
                     <TouchableOpacity
                         onPress={handleCancel}
                         disabled={loading}
