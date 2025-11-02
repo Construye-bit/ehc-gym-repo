@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
+import { resend } from "./emails/sender"
 
 function ensureEnvironmentVariable(name: string): string {
     const value = process.env[name];
@@ -78,5 +79,13 @@ async function validateRequest(
 
     return evt as unknown as WebhookEvent;
 }
+
+http.route({
+    path: "/resend-webhook",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+        return await resend.handleResendEventWebhook(ctx, req);
+    }),
+});
 
 export default http;

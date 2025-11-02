@@ -2,6 +2,7 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { mustGetCurrentUser } from "../users";
+import { internal } from "../_generated/api";
 import {
     inviteFriendSchema,
     cancelInvitationSchema,
@@ -104,13 +105,31 @@ export const inviteFriend = mutation({
             updated_at: now,
         });
 
-        // Stub de envío
-        console.log("[inviteFriend] Enviar invitación:", {
-            toEmail: data.invitee_email,
-            toPhone: data.invitee_phone,
-            token,
-            preferred_branch_id: data.preferred_branch_id,
-        });
+        // Obtener el nombre del invitador para el email
+        const inviterPerson = await ctx.db.get(inviterClient.person_id);
+        const inviterName: string = inviterPerson
+            ? `${inviterPerson.name} ${inviterPerson.last_name}`.trim()
+            : 'Un miembro de EHC Gym';
+
+        // Enviar email de invitación solo si hay email
+        if (data.invitee_email) {
+            console.log("[inviteFriend] Programando envío de email de invitación...");
+            try {
+                await ctx.scheduler.runAfter(0, internal.emails.sender.sendInviteFriendEmail, {
+                    inviteeName: data.invitee_name,
+                    inviterName,
+                    email: data.invitee_email,
+                    token,
+                    expiresAt,
+                });
+                console.log("[inviteFriend] Email de invitación programado exitosamente");
+            } catch (emailError) {
+                console.error("[inviteFriend] Error programando envío de email:", emailError);
+                // No fallar la creación de la invitación por error de email
+            }
+        } else {
+            console.log("[inviteFriend] No se envió email porque no se proporcionó email del invitado");
+        }
 
         return { invitationId, token, expires_at: expiresAt };
     },

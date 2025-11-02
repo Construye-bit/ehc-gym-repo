@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.14.0",
+    "@convex-dev/resend": "^0.1.13",
     "convex": "^1.25.4",
     "resend": "^6.1.0",
     "svix": "^1.76.1",
