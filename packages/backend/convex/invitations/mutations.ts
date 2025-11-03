@@ -35,6 +35,23 @@ async function requireAdminRole(ctx: any): Promise<void> {
     if (!isAdmin) throw new Error(INVITATION_ERRORS.ACCESS_DENIED_ADMIN);
 }
 
+// Verifica que el usuario tenga rol CLIENT o ADMIN activo.
+async function requireClientOrAdminRole(ctx: any): Promise<{ isClient: boolean; isAdmin: boolean }> {
+    const user = await mustGetCurrentUser(ctx);
+    const roles = await ctx.db
+        .query("role_assignments")
+        .withIndex("by_user_active", (q: any) => q.eq("user_id", user._id).eq("active", true))
+        .collect();
+    const isClient = roles.some((r: any) => r.role === "CLIENT");
+    const isAdmin = roles.some((r: any) => r.role === "ADMIN" || r.role === "SUPER_ADMIN");
+
+    if (!isClient && !isAdmin) {
+        throw new Error("Acceso denegado: se requiere rol de cliente o administrador.");
+    }
+
+    return { isClient, isAdmin };
+}
+
 // Garantiza token único.
 async function generateUniqueToken(ctx: any): Promise<string> {
     for (let i = 0; i < 5; i++) {
@@ -138,7 +155,7 @@ export const inviteFriend = mutation({
 export const cancelInvitation = mutation({
     args: { payload: v.any() },
     handler: async (ctx, args) => {
-        await requireClientRole(ctx);
+        const { isClient, isAdmin } = await requireClientOrAdminRole(ctx);
 
         const data = validateWithZod(cancelInvitationSchema, args.payload, "cancelInvitation");
         const invitationId = data.invitation_id as Id<"invitations">;
@@ -147,14 +164,17 @@ export const cancelInvitation = mutation({
         const inv = await ctx.db.get(invitationId);
         if (!inv || inv.active !== true) throw new Error(INVITATION_ERRORS.INVITATION_NOT_FOUND);
 
-        // Solo el cliente invitador puede cancelarla
-        const inviterClient = await ctx.db.get(inv.inviter_client_id);
-        if (!inviterClient || inviterClient.user_id !== user._id) {
-            throw new Error(INVITATION_ERRORS.INVITATION_CANCEL_UNAUTHORIZED);
+        // Si es cliente, solo puede cancelar sus propias invitaciones
+        if (isClient && !isAdmin) {
+            const inviterClient = await ctx.db.get(inv.inviter_client_id);
+            if (!inviterClient || inviterClient.user_id !== user._id) {
+                throw new Error(INVITATION_ERRORS.INVITATION_CANCEL_UNAUTHORIZED);
+            }
         }
+        // Si es admin, puede cancelar cualquier invitación (no necesita validación adicional)
 
-        if (inv.status !== "PENDING") {
-            throw new Error(INVITATION_ERRORS.INVITATION_CANCEL_NOT_PENDING);
+        if (inv.status !== "PENDING" && inv.status !== "REDEEMED") {
+            throw new Error("Solo se pueden cancelar invitaciones en estado PENDING o REDEEMED");
         }
 
         await ctx.db.patch(invitationId, { status: "CANCELED", active: false, updated_at: Date.now() });

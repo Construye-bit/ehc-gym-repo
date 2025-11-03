@@ -21,13 +21,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
 import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
 import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
+import { AppHeader } from "@/components/shared";
 import { AppColors } from "@/constants/Colors";
 
 export default function Home() {
     const { isLoading, isClient, isTrainer, person, roles } = useAuth();
     const router = useRouter();
     const [newTodoText, setNewTodoText] = useState("");
-    
+
     // Estado para filtros del catálogo de entrenadores
     const [trainerFilters, setTrainerFilters] = useState({
         specialties: [] as string[], // Cambiado a array
@@ -40,7 +41,7 @@ export default function Home() {
     const toggleTodoMutation = useMutation(api.todos.toggle);
     const deleteTodoMutation = useMutation(api.todos.deleteTodo);
     const createOrGetConversationMutation = useMutation(api.chat.conversations.mutations.createOrGet);
-    
+
     // Hook para el catálogo de entrenadores (solo para clientes)
     const { trainers, isLoading: isLoadingTrainers, hasMore, loadMore } = useTrainerCatalog(
         isClient ? trainerFilters : { specialties: [], branchId: undefined, availableNow: false }
@@ -100,31 +101,8 @@ export default function Home() {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-                
-                {/* Header Fijo */}
-                <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                    <View className="flex-row justify-between items-center mb-4">
-                        <View className="flex-1">
-                            <Text className="text-white text-2xl font-bold">
-                                ¡Hola, {person?.name || "Cliente"}! 👋
-                            </Text>
-                            <Text className="text-white opacity-80 text-sm mt-1">
-                                Bienvenido a tu espacio de entrenamiento
-                            </Text>
-                        </View>
-                        <View className="flex-row items-center gap-2">
-                            <View className="bg-white/20 px-3 py-1 rounded-full">
-                                <Text className="text-white text-xs font-semibold">CLIENTE</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => router.push('/(home)/settings')}
-                                className="bg-white/20 p-2 rounded-full"
-                            >
-                                <Ionicons name="settings-outline" size={20} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+
+                <AppHeader userType="CLIENT" />
 
                 {/* Lista con scroll */}
                 <FlatList
@@ -137,8 +115,8 @@ export default function Home() {
                                 <View className="bg-white rounded-t-2xl shadow-sm border border-gray-100">
                                     <View className="px-5 pt-5 pb-3">
                                         <View className="flex-row items-center mb-3">
-                                            <View 
-                                                className="w-10 h-10 rounded-full items-center justify-center mr-3" 
+                                            <View
+                                                className="w-10 h-10 rounded-full items-center justify-center mr-3"
                                                 style={{ backgroundColor: '#FFF4E6' }}
                                             >
                                                 <Ionicons name="people" size={20} color={AppColors.primary.yellow} />
@@ -156,7 +134,7 @@ export default function Home() {
                                         onSpecialtiesChange={(specialties) =>
                                             setTrainerFilters({ ...trainerFilters, specialties })
                                         }
-                                        onBranchChange={(branchId) => 
+                                        onBranchChange={(branchId) =>
                                             setTrainerFilters({ ...trainerFilters, branchId })
                                         }
                                         onAvailableNowChange={(availableNow) =>
@@ -242,60 +220,20 @@ export default function Home() {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+
+                <AppHeader userType="TRAINER" />
+
                 <ScrollView className="flex-1 bg-gray-50">
-                    {/* Header */}
-                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                        <View className="flex-row justify-between items-center mb-4">
-                            <View className="flex-1">
-                                <Text className="text-white text-2xl font-bold">
-                                    ¡Hola, {person?.name || "Entrenador"}! 💪
-                                </Text>
-                                <Text className="text-white opacity-80 text-sm mt-1">
-                                    Panel de entrenador
-                                </Text>
-                            </View>
-                            <View className="flex-row items-center gap-2">
-                                <View className="bg-white/20 px-3 py-1 rounded-full">
-                                    <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => router.push('/(home)/settings')}
-                                    className="bg-white/20 p-2 rounded-full"
-                                >
-                                    <Ionicons name="settings-outline" size={20} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-
                     <View className="px-5 py-6">
-                        {/* Stats Cards */}
-                        <View className="flex-row mb-6 gap-3">
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="people" size={20} color="AppColors.primary.yellow" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Clientes</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
-                            </View>
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="calendar" size={20} color="AppColors.primary.yellow" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Sesiones</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
-                            </View>
-                        </View>
-
-                        {/* Consejos Section */}
+                        {/* Posts Management Card */}
                         <TouchableOpacity
-                            onPress={() => router.push('/(blog)/trainer-feed')}
                             className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
+                            onPress={() => router.push('/(blog)/trainer-feed')}
                         >
-                            <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-row items-center justify-between">
                                 <View className="flex-row items-center flex-1">
                                     <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF4E6' }}>
-                                        <Ionicons name="newspaper" size={20} color="AppColors.primary.yellow" />
+                                        <Ionicons name="newspaper" size={20} color={AppColors.primary.yellow} />
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-gray-900 text-xl font-bold">Consejos</Text>

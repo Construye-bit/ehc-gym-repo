@@ -20,6 +20,7 @@ import { CreatePostModal, CreatePostData } from '@/components/feed/CreatePostMod
 import { FeedTab } from '@/types/feed.types';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/hooks/use-auth';
+import { AppHeader } from '@/components/shared';
 import api from '@/api';
 import type { Id } from '@/api';
 
@@ -184,28 +185,8 @@ export default function TrainerFeedScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50">
         <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-        
-        {/* Header */}
-        <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-          <View className="flex-row justify-between items-center mb-4">
-            <View className="flex-1">
-              <Text className="text-white text-2xl font-bold">
-                ¡Hola, {person?.name || "Entrenador"}! 💪
-              </Text>
-              <Text className="text-white opacity-80 text-sm mt-1">
-                Panel de entrenador
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <View className="bg-white/20 px-3 py-1 rounded-full">
-                <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
-              </View>
-              <TouchableOpacity onPress={() => router.push('/(home)/settings')}>
-                <Ionicons name="settings-outline" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+
+        <AppHeader userType="TRAINER" />
 
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={AppColors.primary.yellow} />
@@ -243,28 +224,8 @@ export default function TrainerFeedScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-      
-      {/* Header */}
-      <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-        <View className="flex-row justify-between items-center mb-4">
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              ¡Hola, {person?.name || "Entrenador"}! 💪
-            </Text>
-            <Text className="text-white opacity-80 text-sm mt-1">
-              Panel de entrenador
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <View className="bg-white/20 px-3 py-1 rounded-full">
-              <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/(home)/settings')}>
-              <Ionicons name="settings-outline" size={20} color="white" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+
+      <AppHeader userType="TRAINER" />
 
       <View style={styles.container}>
         {/* Pestañas */}
