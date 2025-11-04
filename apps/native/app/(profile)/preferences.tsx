@@ -112,7 +112,7 @@ export default function PreferencesPage() {
                     },
                     routine_type: routineType,
                     goal: goal,
-                    notes: notes.trim() || null,
+                    notes: notes.trim() || undefined,
                 }
             });
             

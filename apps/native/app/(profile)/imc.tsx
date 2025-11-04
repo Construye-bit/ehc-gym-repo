@@ -149,8 +149,8 @@ export default function IMCPage() {
                     weight_kg: parseFloat(weight),
                     height_cm: parseFloat(height),
                     bmi: bmi,
-                    body_fat_pct: bodyFat ? parseFloat(bodyFat) : null,
-                    notes: notes.trim() || null,
+                    body_fat_pct: bodyFat ? parseFloat(bodyFat) : undefined,
+                    notes: notes.trim() || undefined    ,
                 }
             });
 

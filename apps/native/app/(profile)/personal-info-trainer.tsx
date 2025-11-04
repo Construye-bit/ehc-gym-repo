@@ -23,7 +23,7 @@ export default function TrainerPersonalInfoPage() {
     // ==========================================
     // Mutation: profiles/trainer/mutations:updateMyPhone
     // Args: { payload: { phone: string } }
-    const updatePhone = useMutation(api.profiles.trainer.mutations.updateMyPhone);
+    const updatePhone = useMutation(api.profiles.trainer.mutations.updateMyPhoneTrainer);
     
     // ==========================================
     // 3. ESTADOS LOCALES EDITABLES
