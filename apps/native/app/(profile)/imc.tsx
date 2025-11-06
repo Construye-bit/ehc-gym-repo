@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import api from '@/api';
-import { push } from 'expo-router/build/global-state/routing';
 
 export default function IMCPage() {
     const router = useRouter();
@@ -13,24 +12,11 @@ export default function IMCPage() {
     // ==========================================
     // 1. QUERIES - Obtener última métrica de salud
     // ==========================================
-    // Query: profiles/client/queries:getMyClientProfile
-    // Retorna: { person, client, preferences, latestHealth }
     const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
 
     // ==========================================
     // 2. MUTATIONS - Para guardar nuevas métricas
     // ==========================================
-    // Mutation: profiles/client/mutations:addHealthMetric
-    // Args: {
-    //   payload: {
-    //     measured_at: timestamp,
-    //     weight_kg: number,
-    //     height_cm: number,
-    //     bmi: number,
-    //     body_fat_pct: number|null,
-    //     notes: string|null
-    //   }
-    // }
     const addHealthMetric = useMutation(api.profiles.client.mutations.addHealthMetric);
 
     // ==========================================
@@ -48,7 +34,6 @@ export default function IMCPage() {
     // ==========================================
     // 4. EFECTO - Inicializar altura desde última métrica
     // ==========================================
-    // La altura normalmente no cambia, así que la pre-llenamos
     useEffect(() => {
         if (profileData?.latestHealth?.height_cm) {
             setHeight(profileData.latestHealth.height_cm.toString());
@@ -96,7 +81,6 @@ export default function IMCPage() {
     // 6. HANDLERS
     // ==========================================
     const handleMetricChange = (field: 'weight' | 'height' | 'bodyFat', value: string) => {
-        // Solo permitir números y un punto decimal
         const sanitizedValue = value.replace(/[^0-9.]/g, '');
 
         switch (field) {
@@ -113,7 +97,6 @@ export default function IMCPage() {
     };
 
     const handleSave = async () => {
-        // Validaciones
         if (!weight || !height) {
             Alert.alert('Error', 'Por favor ingresa peso y altura');
             return;
@@ -126,23 +109,6 @@ export default function IMCPage() {
 
         setLoading(true);
         try {
-            // ==========================================
-            // MUTATION - Guardar métrica de salud
-            // ==========================================
-            // Path: profiles/client/mutations:addHealthMetric
-            // Body: {
-            //   path: "...",
-            //   args: {
-            //     payload: {
-            //       measured_at: timestamp,
-            //       weight_kg,
-            //       height_cm,
-            //       bmi,
-            //       body_fat_pct,
-            //       notes
-            //     }
-            //   }
-            // }
             await addHealthMetric({
                 payload: {
                     measured_at: Date.now(),
@@ -150,7 +116,7 @@ export default function IMCPage() {
                     height_cm: parseFloat(height),
                     bmi: bmi,
                     body_fat_pct: bodyFat ? parseFloat(bodyFat) : undefined,
-                    notes: notes.trim() || undefined    ,
+                    notes: notes.trim() || undefined,
                 }
             });
 
@@ -175,14 +141,12 @@ export default function IMCPage() {
     };
 
     const handleViewHistory = () => {
-        push('/(profile)/metrics-page');
+        router.push('/(profile)/metrics-page');
     };
 
     // ==========================================
     // 7. ESTADOS DE CARGA
     // ==========================================
-    // Opcional: mostrar loading mientras carga el perfil
-    // En este caso, permitimos que el formulario se muestre aunque no haya datos previos
     if (profileData === undefined) {
         return (
             <View className="flex-1 bg-white items-center justify-center">
@@ -322,7 +286,7 @@ export default function IMCPage() {
 
                 {/* Info Card */}
                 <View className="bg-gray-50 rounded-lg p-4 mb-6 flex-row">
-                    <Ionicons name="information-circle-outline" size={24} color="#4b5563" className="mr-3" />
+                    <Ionicons name="information-circle-outline" size={24} color="#6b7280" />
                     <View className="flex-1 ml-3">
                         <Text className="text-sm text-gray-700 leading-5">
                             El IMC es una medida útil, pero no considera la composición corporal.
@@ -337,7 +301,7 @@ export default function IMCPage() {
                     className="bg-gray-50 rounded-lg p-4 mb-6 flex-row items-center justify-between border border-gray-200"
                 >
                     <View className="flex-row items-center">
-                        <Ionicons name="bar-chart-outline" size={20} color="#1f2937" />
+                        <Ionicons name="time-outline" size={24} color="#3b82f6" />
                         <Text className="text-gray-900 ml-3 font-medium">
                             Ver Historial de Mediciones
                         </Text>
@@ -353,7 +317,7 @@ export default function IMCPage() {
                         className="bg-blue-600 rounded-lg p-4"
                     >
                         <Text className="text-white text-center font-semibold text-base">
-                            {loading ? 'Guardando...' : 'Guardar Medición'}
+                            {loading ? 'Guardando...' : 'Guardar Métricas'}
                         </Text>
                     </Button>
 

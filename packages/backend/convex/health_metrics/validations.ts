@@ -1,48 +1,35 @@
+// convex/health_metrics/validations.ts
 import { v } from "convex/values";
 
-// Validador para agregar métrica de salud
-export const addHealthMetricValidator = {
-  payload: v.object({
-    measured_at: v.number(),
-    weight_kg: v.optional(v.number()),
-    height_cm: v.optional(v.number()),
-    bmi: v.optional(v.number()),
-    body_fat_pct: v.optional(v.number()),
-    notes: v.optional(v.string()),
-  }),
+/**
+ * Argumentos para crear una nueva métrica de salud.
+ * No pedimos el 'bmi' porque se calcula en el backend.
+ */
+export const createHealthMetricArgs = {
+  client_id: v.id("clients"),
+  measured_at: v.number(), // Timestamp de cuándo se tomó la medida
+  weight_kg: v.optional(v.number()),
+  height_cm: v.optional(v.number()),
+  body_fat_pct: v.optional(v.number()),
+  notes: v.optional(v.string()),
 };
 
-// Validador para listar métricas de salud
-export const listHealthMetricsValidator = {
-  payload: v.optional(
-    v.object({
-      from: v.optional(v.number()), // timestamp desde
-      to: v.optional(v.number()), // timestamp hasta
-      cursor: v.optional(v.number()), // timestamp para paginación
-      limit: v.optional(v.number()), // límite de resultados
-    })
-  ),
+/**
+ * Argumentos para actualizar una métrica de salud existente.
+ * El ID es obligatorio, el resto es opcional.
+ */
+export const updateHealthMetricArgs = {
+  metric_id: v.id("client_health_metrics"),
+  measured_at: v.optional(v.number()),
+  weight_kg: v.optional(v.number()),
+  height_cm: v.optional(v.number()),
+  body_fat_pct: v.optional(v.number()),
+  notes: v.optional(v.string()),
 };
 
-// Validador para eliminar métrica
-export const deleteHealthMetricValidator = {
-  payload: v.object({
-    metric_id: v.id("client_health_metrics"),
-  }),
-};
-
-// Validador para actualizar teléfono
-export const updateMyPhoneValidator = {
-  payload: v.object({
-    phone: v.string(),
-  }),
-};
-
-// Validador para actualizar contacto de emergencia
-export const updateEmergencyContactValidator = {
-  payload: v.object({
-    name: v.string(),
-    phone: v.string(),
-    relationship: v.string(),
-  }),
+/**
+ * Argumentos para eliminar una métrica de salud.
+ */
+export const deleteHealthMetricArgs = {
+  metric_id: v.id("client_health_metrics"),
 };

@@ -15,15 +15,11 @@ export default function PreferencesPage() {
     // ==========================================
     // 1. QUERIES - Obtener preferencias actuales
     // ==========================================
-    // Query: profiles/client/queries:getMyClientProfile
-    // Retorna: { person, client, preferences, latestHealth }
     const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
     
     // ==========================================
     // 2. MUTATIONS - Para actualizar preferencias
     // ==========================================
-    // Mutation: profiles/client/mutations:upsertClientPreferences
-    // Args: { payload: { preferred_time_range, routine_type, goal, notes } }
     const upsertPreferences = useMutation(api.profiles.client.mutations.upsertClientPreferences);
     
     // ==========================================
@@ -36,6 +32,14 @@ export default function PreferencesPage() {
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const [originalPrefs, setOriginalPrefs] = useState({
+        routineType,
+        goal,
+        preferredTimeStart,
+        preferredTimeEnd,
+        notes,
+    });
+
     // ==========================================
     // 4. EFECTO - Inicializar datos cuando lleguen
     // ==========================================
@@ -43,26 +47,21 @@ export default function PreferencesPage() {
         if (profileData?.preferences) {
             const prefs = profileData.preferences;
             
-            // Inicializar tipo de rutina
-            if (prefs.routine_type) {
-                setRoutineType(prefs.routine_type as RoutineType);
-            }
+            const initialValues = {
+                routineType: (prefs.routine_type as RoutineType) || 'MIXTO',
+                goal: (prefs.goal as Goal) || 'TONIFICAR',
+                preferredTimeStart: prefs.preferred_time_range?.start || '06:00',
+                preferredTimeEnd: prefs.preferred_time_range?.end || '08:00',
+                notes: prefs.notes || '',
+            };
             
-            // Inicializar objetivo
-            if (prefs.goal) {
-                setGoal(prefs.goal as Goal);
-            }
+            setRoutineType(initialValues.routineType);
+            setGoal(initialValues.goal);
+            setPreferredTimeStart(initialValues.preferredTimeStart);
+            setPreferredTimeEnd(initialValues.preferredTimeEnd);
+            setNotes(initialValues.notes);
             
-            // Inicializar rango de tiempo preferido
-            if (prefs.preferred_time_range) {
-                setPreferredTimeStart(prefs.preferred_time_range.start || '06:00');
-                setPreferredTimeEnd(prefs.preferred_time_range.end || '08:00');
-            }
-            
-            // Inicializar notas
-            if (prefs.notes) {
-                setNotes(prefs.notes);
-            }
+            setOriginalPrefs(initialValues);
         }
     }, [profileData]);
 
@@ -84,42 +83,51 @@ export default function PreferencesPage() {
     ];
 
     // ==========================================
-    // 6. HANDLERS
+    // 6. HANDLERS Y HELPERS
     // ==========================================
+    const hasChanges = () => {
+        if (routineType !== originalPrefs.routineType) return true;
+        if (goal !== originalPrefs.goal) return true;
+        if (preferredTimeStart.trim() !== originalPrefs.preferredTimeStart) return true;
+        if (preferredTimeEnd.trim() !== originalPrefs.preferredTimeEnd) return true;
+        if (notes.trim() !== originalPrefs.notes) return true;
+        return false;
+    };
+
     const handleSave = async () => {
+        if (!hasChanges()) {
+            Alert.alert("Información", "No hay cambios para guardar.");
+            return;
+        }
+
         setLoading(true);
         try {
-            // ==========================================
-            // MUTATION - Actualizar preferencias
-            // ==========================================
-            // Path: profiles/client/mutations:upsertClientPreferences
-            // Body: {
-            //   path: "...",
-            //   args: {
-            //     payload: {
-            //       preferred_time_range: { start, end },
-            //       routine_type,
-            //       goal,
-            //       notes
-            //     }
-            //   }
-            // }
+            const payload = {
+                preferred_time_range: {
+                    start: preferredTimeStart.trim(),
+                    end: preferredTimeEnd.trim(),
+                },
+                routine_type: routineType,
+                goal: goal,
+                notes: notes.trim() || undefined,
+            };
+
             await upsertPreferences({
-                payload: {
-                    preferred_time_range: {
-                        start: preferredTimeStart,
-                        end: preferredTimeEnd,
-                    },
-                    routine_type: routineType,
-                    goal: goal,
-                    notes: notes.trim() || undefined,
-                }
+                payload: payload
+            });
+
+            setOriginalPrefs({
+                routineType: payload.routine_type,
+                goal: payload.goal,
+                preferredTimeStart: payload.preferred_time_range.start,
+                preferredTimeEnd: payload.preferred_time_range.end,
+                notes: payload.notes || '',
             });
             
             Alert.alert(
                 'Éxito',
                 'Preferencias actualizadas correctamente',
-                [{ text: 'OK', onPress: () => router.back() }]
+                [{ text: 'OK' }]
             );
         } catch (error: any) {
             console.error('Error al guardar:', error);
@@ -136,14 +144,6 @@ export default function PreferencesPage() {
         router.back();
     };
 
-    const openTimePicker = (field: 'start' | 'end') => {
-        // TODO: Implementar selector de hora nativo
-        // Para Android: TimePickerAndroid
-        // Para iOS: DatePickerIOS con mode="time"
-        console.log(`Abrir selector de hora para ${field}`);
-        Alert.alert('Selector de Hora', 'Esta funcionalidad estará disponible pronto');
-    };
-
     // ==========================================
     // 7. ESTADOS DE CARGA Y ERROR
     // ==========================================
@@ -155,9 +155,6 @@ export default function PreferencesPage() {
             </View>
         );
     }
-
-    // Nota: preferences puede ser null si el cliente aún no ha configurado sus preferencias
-    // En ese caso, mostrar el formulario vacío con valores por defecto
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -252,30 +249,40 @@ export default function PreferencesPage() {
                             <Text className="text-sm font-medium text-gray-700 mb-2">
                                 Desde
                             </Text>
-                            <TouchableOpacity
-                                className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-row items-center justify-between"
-                                onPress={() => openTimePicker('start')}
-                            >
-                                <Text className="text-gray-900">
-                                    {preferredTimeStart}
-                                </Text>
-                                <Ionicons name="time-outline" size={20} color="#9ca3af" />
-                            </TouchableOpacity>
+                            <View className="relative">
+                                <TextInput
+                                    value={preferredTimeStart}
+                                    onChangeText={setPreferredTimeStart}
+                                    placeholder="06:00"
+                                    maxLength={5}
+                                    keyboardType="numeric"
+                                    className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-gray-200 pr-12"
+                                    placeholderTextColor="#9ca3af"
+                                />
+                                <View className="absolute right-4 top-4">
+                                    <Ionicons name="time-outline" size={20} color="#9ca3af" />
+                                </View>
+                            </View>
                         </View>
 
                         <View className="flex-1">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
                                 Hasta
                             </Text>
-                            <TouchableOpacity
-                                className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-row items-center justify-between"
-                                onPress={() => openTimePicker('end')}
-                            >
-                                <Text className="text-gray-900">
-                                    {preferredTimeEnd}
-                                </Text>
-                                <Ionicons name="time-outline" size={20} color="#9ca3af" />
-                            </TouchableOpacity>
+                            <View className="relative">
+                                <TextInput
+                                    value={preferredTimeEnd}
+                                    onChangeText={setPreferredTimeEnd}
+                                    placeholder="08:00"
+                                    maxLength={5}
+                                    keyboardType="numeric"
+                                    className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-gray-200 pr-12"
+                                    placeholderTextColor="#9ca3af"
+                                />
+                                <View className="absolute right-4 top-4">
+                                    <Ionicons name="time-outline" size={20} color="#9ca3af" />
+                                </View>
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -290,7 +297,6 @@ export default function PreferencesPage() {
                         onChangeText={setNotes}
                         placeholder="Agrega cualquier información adicional sobre tus preferencias..."
                         multiline
-                        numberOfLines={4}
                         textAlignVertical="top"
                         className="bg-gray-50 rounded-lg p-4 text-gray-900 border border-gray-200 min-h-[100px]"
                         placeholderTextColor="#9ca3af"
@@ -301,11 +307,11 @@ export default function PreferencesPage() {
                 <View className="gap-3 mb-8">
                     <Button
                         onPress={handleSave}
-                        disabled={loading}
+                        disabled={loading || !hasChanges()}
                         className="bg-blue-600 rounded-lg p-4"
                     >
                         <Text className="text-white text-center font-semibold text-base">
-                            {loading ? 'Guardando...' : 'Guardar Preferencias'}
+                            {loading ? 'Guardando...' : 'Guardar Cambios'}
                         </Text>
                     </Button>
                     
@@ -315,7 +321,7 @@ export default function PreferencesPage() {
                         className="bg-gray-100 rounded-lg p-4"
                     >
                         <Text className="text-gray-700 text-center font-semibold text-base">
-                            Cancelar
+                            Volver
                         </Text>
                     </TouchableOpacity>
                 </View>

@@ -14,16 +14,12 @@ export default function TrainerPersonalInfoPage() {
     // ==========================================
     // 1. QUERIES - Obtener datos del perfil
     // ==========================================
-    // Query: profiles/trainer/queries:getMyTrainerProfile
-    // Retorna: { trainer, person }
     const profileData = useQuery(api.profiles.trainer.queries.getMyTrainerProfile);
     
     // ==========================================
     // 2. MUTATIONS - Para actualizar teléfono
     // ==========================================
-    // Mutation: profiles/trainer/mutations:updateMyPhone
-    // Args: { payload: { phone: string } }
-    const updatePhone = useMutation(api.profiles.trainer.mutations.updateMyPhoneTrainer);
+    const updatePhone = useMutation(api.profiles.trainer.mutations.updateMyPhone);
     
     // ==========================================
     // 3. ESTADOS LOCALES EDITABLES
@@ -36,8 +32,8 @@ export default function TrainerPersonalInfoPage() {
     // 4. EFECTO - Inicializar datos cuando lleguen
     // ==========================================
     useEffect(() => {
-        if (profileData?.person?.phone) {
-            const initialPhone = profileData.person.phone;
+        if (profileData?.person) {
+            const initialPhone = profileData.person.phone || '';
             setPhone(initialPhone);
             setOriginalPhone(initialPhone);
         }
@@ -60,9 +56,17 @@ export default function TrainerPersonalInfoPage() {
     };
 
     const formatDate = (dateString: string) => {
-        // dateString viene como "YYYY-MM-DD"
         const [year, month, day] = dateString.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const date = new Date(Number(year), Number(month) - 1, Number(day));
+        return date.toLocaleDateString('es-CO', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    };
+
+    const formatTimestamp = (timestamp: number) => {
+        const date = new Date(timestamp);
         return date.toLocaleDateString('es-CO', { 
             year: 'numeric', 
             month: 'long', 
@@ -74,35 +78,32 @@ export default function TrainerPersonalInfoPage() {
     // 6. HANDLERS
     // ==========================================
     const handleSave = async () => {
-        if (phone === originalPhone) {
+        const cleanPhone = phone.trim();
+
+        if (cleanPhone === originalPhone) {
             Alert.alert('Información', 'No hay cambios para guardar');
             return;
         }
 
-        if (!phone || phone.trim() === '') {
+        if (!cleanPhone) {
             Alert.alert('Error', 'El teléfono no puede estar vacío');
             return;
         }
 
         setLoading(true);
         try {
-            // ==========================================
-            // MUTATION - Actualizar teléfono
-            // ==========================================
-            // Path: profiles/trainer/mutations:updateMyPhone
-            // Body: { path: "...", args: { payload: { phone: "..." } } }
             await updatePhone({
                 payload: {
-                    phone: phone.trim(),
+                    phone: cleanPhone,
                 }
             });
             
-            setOriginalPhone(phone);
+            setOriginalPhone(cleanPhone);
             
             Alert.alert(
                 'Éxito',
                 'Teléfono actualizado correctamente',
-                [{ text: 'OK', onPress: () => router.back() }]
+                [{ text: 'OK' }]
             );
         } catch (error: any) {
             console.error('Error al guardar:', error);
@@ -119,7 +120,7 @@ export default function TrainerPersonalInfoPage() {
         router.back();
     };
 
-    const hasChanges = phone !== originalPhone;
+    const hasChanges = phone.trim() !== originalPhone;
 
     // ==========================================
     // 7. ESTADOS DE CARGA Y ERROR
@@ -156,7 +157,7 @@ export default function TrainerPersonalInfoPage() {
     // ==========================================
     // 8. EXTRAER DATOS DEL PERFIL
     // ==========================================
-    const { person, trainer } = profileData;
+    const { user, person, trainer, branch } = profileData;
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -233,38 +234,39 @@ export default function TrainerPersonalInfoPage() {
                     </View>
 
                     {/* Email */}
-                    {/* NOTA: El email no está en person ni trainer según el README */}
-                    {/* TODO: Agregar user.email si está disponible */}
-
-                    {/* Branch */}
-                    {/* NOTA: branch_id es un Id, necesitamos resolver el nombre */}
-                    {/* TODO: Agregar query para obtener nombre de la sucursal */}
-                    {trainer.branch_id && (
+                    {user && (
                         <View className="mb-4">
                             <Text className="text-sm font-medium text-gray-700 mb-2">
-                                Sede Asignada
+                                Email
                             </Text>
                             <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                                 <Text className="text-gray-600">
-                                    {/* TODO: Resolver branch_id a nombre */}
-                                    ID: {trainer.branch_id}
+                                    {user.email}
                                 </Text>
                             </View>
                         </View>
                     )}
 
-                    {/* Created At (como fecha de contratación) */}
+                    {/* Branch */}
+                    <View className="mb-4">
+                        <Text className="text-sm font-medium text-gray-700 mb-2">
+                            Sede Asignada
+                        </Text>
+                        <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
+                            <Text className="text-gray-600">
+                                {branch ? branch.name : (trainer.branch_id ? "Cargando..." : "Sin Asignar")}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Created At */}
                     <View className="mb-4">
                         <Text className="text-sm font-medium text-gray-700 mb-2">
                             Fecha de Contratación
                         </Text>
                         <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
                             <Text className="text-gray-600">
-                                {new Date(trainer.created_at).toLocaleDateString('es-CO', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
+                                {formatTimestamp(trainer.created_at)}
                             </Text>
                         </View>
                     </View>

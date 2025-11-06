@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
-import  api from '@/api';
+import api from '@/api';
 
 type DocumentType = 'CC' | 'TI' | 'CE' | 'PASSPORT';
 
@@ -14,18 +14,12 @@ export default function PersonalInfoPage() {
     // ==========================================
     // 1. QUERIES - Obtener datos del perfil
     // ==========================================
-    // Query: profiles/client/queries:getMyClientProfile
-    // Retorna: { person, client, preferences, latestHealth }
     const profileData = useQuery(api.profiles.client.queries.getMyClientProfile);
     
     // ==========================================
-    // 2. MUTATIONS - Para actualizar teléfono
+    // 2. MUTATIONS - Para actualizar perfil
     // ==========================================
-    // NOTA: Actualmente el README no tiene mutation específica para actualizar
-    // phone del cliente. Solo TRAINER tiene updateMyPhone.
-    // Esto debería agregarse al backend o manejarse via otra mutation.
-    // Por ahora dejo preparado el espacio:
-    const updateClientPhone = useMutation(api.profiles.client.mutations.updateMyPhone); // TODO: Verificar si existe
+    const updateMyProfile = useMutation(api.profiles.client.mutations.updateMyProfile);
     
     // ==========================================
     // 3. ESTADOS LOCALES EDITABLES
@@ -48,16 +42,20 @@ export default function PersonalInfoPage() {
     // 4. EFECTO - Inicializar datos cuando lleguen
     // ==========================================
     useEffect(() => {
-        if (profileData?.person) {
+        if (profileData) {
             // Inicializar teléfono
-            const initialPhone = profileData.person.phone || '';
+            const initialPhone = profileData.person?.phone || '';
             setPhone(initialPhone);
             setOriginalPhone(initialPhone);
             
-            // TODO: El backend no tiene emergency_contact en el schema actual
-            // Cuando se agregue, inicializar aquí:
-            // setEmergencyContact(profileData.client.emergency_contact || {...});
-            // setOriginalEmergencyContact(profileData.client.emergency_contact || {...});
+            // Inicializar contacto de emergencia
+            const initialEmergency = {
+                name: profileData.emergencyContact?.name || '',
+                phone: profileData.emergencyContact?.phone || '',
+                relationship: profileData.emergencyContact?.relationship || '',
+            };
+            setEmergencyContact(initialEmergency);
+            setOriginalEmergencyContact(initialEmergency);
         }
     }, [profileData]);
 
@@ -89,11 +87,19 @@ export default function PersonalInfoPage() {
     // 6. HANDLERS
     // ==========================================
     const handleSave = async () => {
-        const phoneChanged = phone !== originalPhone;
+        // Limpiamos datos antes de comparar
+        const cleanPhone = phone.trim();
+        const cleanEmergencyContact = {
+            name: emergencyContact.name.trim(),
+            phone: emergencyContact.phone.trim(),
+            relationship: emergencyContact.relationship.trim(),
+        };
+
+        const phoneChanged = cleanPhone !== originalPhone;
         const emergencyChanged = 
-            emergencyContact.name !== originalEmergencyContact.name ||
-            emergencyContact.phone !== originalEmergencyContact.phone ||
-            emergencyContact.relationship !== originalEmergencyContact.relationship;
+            cleanEmergencyContact.name !== originalEmergencyContact.name ||
+            cleanEmergencyContact.phone !== originalEmergencyContact.phone ||
+            cleanEmergencyContact.relationship !== originalEmergencyContact.relationship;
 
         if (!phoneChanged && !emergencyChanged) {
             Alert.alert('Información', 'No hay cambios para guardar');
@@ -101,47 +107,45 @@ export default function PersonalInfoPage() {
         }
 
         // Validaciones
-        if (!phone || phone.trim() === '') {
+        if (phoneChanged && !cleanPhone) {
             Alert.alert('Error', 'El teléfono no puede estar vacío');
             return;
         }
 
-        if (emergencyContact.name && (!emergencyContact.phone || !emergencyContact.relationship)) {
-            Alert.alert('Error', 'Completa todos los campos del contacto de emergencia');
-            return;
+        // Validación de contacto de emergencia
+        if (emergencyChanged) {
+            const { name, phone, relationship } = cleanEmergencyContact;
+            const allEmpty = !name && !phone && !relationship;
+            const allFull = name && phone && relationship;
+
+            if (!allEmpty && !allFull) {
+                Alert.alert('Error', 'Completa todos los campos del contacto de emergencia o déjalos todos vacíos para eliminarlo.');
+                return;
+            }
         }
 
         setLoading(true);
         try {
-            // ==========================================
-            // MUTATION - Actualizar teléfono del cliente
-            // ==========================================
-            // TODO: Verificar que exista esta mutation en el backend
-            // Path esperado: profiles/client/mutations:updateMyPhone
-            // Args: { payload: { phone: string } }
-            
+            type Payload = Parameters<typeof updateMyProfile>[0]["payload"];
+            const payload: Payload = {};
+
             if (phoneChanged) {
-                await updateClientPhone({
-                    payload: {
-                        phone: phone.trim(),
-                    }
-                });
+                payload.phone = cleanPhone;
             }
 
-            // TODO: Si se agrega emergency_contact al backend, actualizar aquí
-            // await updateEmergencyContact({
-            //     payload: {
-            //         emergency_contact: emergencyContact
-            //     }
-            // });
+            if (emergencyChanged) {
+                payload.emergencyContact = cleanEmergencyContact;
+            }
             
-            setOriginalPhone(phone);
-            setOriginalEmergencyContact(emergencyContact);
+            await updateMyProfile({ payload });
+            
+            setOriginalPhone(cleanPhone);
+            setOriginalEmergencyContact(cleanEmergencyContact);
             
             Alert.alert(
                 'Éxito',
                 'Información personal actualizada correctamente',
-                [{ text: 'OK', onPress: () => router.back() }]
+                [{ text: 'OK' }]
             );
         } catch (error: any) {
             console.error('Error al guardar:', error);
@@ -159,10 +163,10 @@ export default function PersonalInfoPage() {
     };
 
     const hasChanges = 
-        phone !== originalPhone ||
-        emergencyContact.name !== originalEmergencyContact.name ||
-        emergencyContact.phone !== originalEmergencyContact.phone ||
-        emergencyContact.relationship !== originalEmergencyContact.relationship;
+        phone.trim() !== originalPhone ||
+        emergencyContact.name.trim() !== originalEmergencyContact.name ||
+        emergencyContact.phone.trim() !== originalEmergencyContact.phone ||
+        emergencyContact.relationship.trim() !== originalEmergencyContact.relationship;
 
     // ==========================================
     // 7. ESTADOS DE CARGA Y ERROR
@@ -176,7 +180,7 @@ export default function PersonalInfoPage() {
         );
     }
 
-    if (!profileData || !profileData.person) {
+    if (!profileData || !profileData.person || !profileData.client) {
         return (
             <View className="flex-1 bg-white items-center justify-center p-6">
                 <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
@@ -199,7 +203,7 @@ export default function PersonalInfoPage() {
     // ==========================================
     // 8. EXTRAER DATOS DEL PERFIL
     // ==========================================
-    const { person, client } = profileData;
+    const { user, person, client } = profileData;
 
     return (
         <ScrollView className="flex-1 bg-white">
@@ -291,9 +295,19 @@ export default function PersonalInfoPage() {
                         </View>
                     </View>
 
-                    {/* Email - Desde el user */}
-                    {/* NOTA: El README no incluye user.email en getMyClientProfile */}
-                    {/* TODO: Agregar user al response o usar otro método */}
+                    {/* Email */}
+                    {user && (
+                        <View className="mb-4">
+                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                                Email de Contacto
+                            </Text>
+                            <View className="bg-gray-100 rounded-lg p-4 border border-gray-200">
+                                <Text className="text-gray-600">
+                                    {user.email}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
                     
                     {/* Join Date */}
                     {client && (
@@ -337,7 +351,6 @@ export default function PersonalInfoPage() {
                 </View>
 
                 {/* Editable Section - Emergency Contact */}
-                {/* TODO: Agregar emergency_contact al schema del backend */}
                 <View className="mb-6">
                     <View className="flex-row items-center mb-3">
                         <Ionicons name="alert-circle-outline" size={20} color="#dc2626" />
@@ -401,7 +414,7 @@ export default function PersonalInfoPage() {
                 <View className="gap-3 mb-8">
                     <Button
                         onPress={handleSave}
-                        disabled={loading || !hasChanges}
+                        disabled={!hasChanges || loading}
                         className={`rounded-lg p-4 ${hasChanges ? 'bg-blue-600' : 'bg-gray-300'}`}
                     >
                         <Text className={`text-center font-semibold text-base ${hasChanges ? 'text-white' : 'text-gray-500'}`}>

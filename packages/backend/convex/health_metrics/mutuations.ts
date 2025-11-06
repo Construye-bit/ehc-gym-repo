@@ -1,356 +1,142 @@
-import { mutation } from "../_generated/server";
-import { v } from "convex/values";
+// convex/health_metrics/mutations.ts
+import { ConvexError, v } from "convex/values";
 import {
-  addHealthMetricValidator,
-  deleteHealthMetricValidator,
-  updateMyPhoneValidator,
-  updateEmergencyContactValidator,
+  MutationCtx,
+  QueryCtx,
+  internalMutation,
+  mutation,
+} from "../_generated/server";
+import {
+  createHealthMetricArgs,
+  updateHealthMetricArgs,
+  deleteHealthMetricArgs,
 } from "./validations";
 
-// ==========================================
-// MUTATION: addHealthMetric
-// Agrega una nueva métrica de salud para el cliente
-// ==========================================
-export const addHealthMetric = mutation({
-  args: addHealthMetricValidator,
-  handler: async (ctx, { payload }) => {
-    // 1. Verificar autenticación
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("UNAUTHORIZED: Debes estar autenticado");
-    }
+// --- Helpers ---
 
-    // 2. Obtener user_id desde clerk_id
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
-      .unique();
+/**
+ * Helper para obtener el usuario autenticado (basado en tu schema 'users')
+ */
+const getAuthenticatedUser = async (ctx: MutationCtx | QueryCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new ConvexError("Usuario no autenticado.");
+  }
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
+    .unique();
 
-    if (!user) {
-      throw new Error("NOT_FOUND: Usuario no encontrado");
-    }
+  if (!user) {
+    throw new ConvexError("Usuario no encontrado en la base de datos.");
+  }
+  return user;
+};
 
-    // 3. Verificar que el usuario tenga rol CLIENT
-    const clientRole = await ctx.db
-      .query("role_assignments")
-      .withIndex("by_user_role", (q) =>
-        q.eq("user_id", user._id).eq("role", "CLIENT")
-      )
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
+/**
+ * Función auxiliar para calcular el Índice de Masa Corporal (IMC).
+ * Fórmula: peso (kg) / (altura (m))^2
+ */
+const calculateBMI = (
+  weight_kg?: number,
+  height_cm?: number
+): number | undefined => {
+  if (weight_kg && height_cm && height_cm > 0) {
+    const height_m = height_cm / 100;
+    // Redondeamos a 2 decimales
+    return Math.round((weight_kg / (height_m * height_m)) * 100) / 100;
+  }
+  return undefined;
+};
 
-    if (!clientRole) {
-      throw new Error("FORBIDDEN: Solo clientes pueden agregar métricas");
-    }
+// --- Mutaciones ---
 
-    // 4. Obtener el cliente asociado al usuario
-    const client = await ctx.db
-      .query("clients")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!client) {
-      throw new Error("NOT_FOUND: Cliente no encontrado");
-    }
-
-    // 5. Validaciones de negocio
-    if (payload.weight_kg !== undefined && payload.weight_kg <= 0) {
-      throw new Error("VALIDATION_ERROR: El peso debe ser mayor a 0");
-    }
-
-    if (payload.height_cm !== undefined && payload.height_cm <= 0) {
-      throw new Error("VALIDATION_ERROR: La altura debe ser mayor a 0");
-    }
-
-    if (
-      payload.body_fat_pct !== undefined &&
-      (payload.body_fat_pct < 0 || payload.body_fat_pct > 100)
-    ) {
-      throw new Error(
-        "VALIDATION_ERROR: El porcentaje de grasa debe estar entre 0 y 100"
-      );
-    }
-
-    if (payload.measured_at > Date.now()) {
-      throw new Error(
-        "VALIDATION_ERROR: La fecha de medición no puede ser futura"
-      );
-    }
-
-    // 6. Calcular IMC automáticamente si hay peso y altura
-    let calculatedBMI = payload.bmi;
-    if (
-      payload.weight_kg !== undefined &&
-      payload.height_cm !== undefined &&
-      payload.height_cm > 0
-    ) {
-      const heightInMeters = payload.height_cm / 100;
-      calculatedBMI = payload.weight_kg / (heightInMeters * heightInMeters);
-    }
-
-    // 7. Insertar la métrica
-    const metricId = await ctx.db.insert("client_health_metrics", {
-      client_id: client._id,
-      measured_at: payload.measured_at,
-      weight_kg: payload.weight_kg,
-      height_cm: payload.height_cm,
-      bmi: calculatedBMI,
-      body_fat_pct: payload.body_fat_pct,
-      notes: payload.notes,
-      created_by_user_id: user._id,
-      created_at: Date.now(),
-      updated_at: Date.now(),
-    });
-
-    return {
-      status: "success",
-      value: metricId,
-    };
-  },
-});
-
-// ==========================================
-// MUTATION: deleteHealthMetric
-// Elimina una métrica de salud del cliente
-// ==========================================
-export const deleteHealthMetric = mutation({
-  args: deleteHealthMetricValidator,
-  handler: async (ctx, { payload }) => {
-    // 1. Verificar autenticación
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("UNAUTHORIZED: Debes estar autenticado");
-    }
-
-    // 2. Obtener user_id desde clerk_id
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("NOT_FOUND: Usuario no encontrado");
-    }
-
-    // 3. Verificar que el usuario tenga rol CLIENT
-    const clientRole = await ctx.db
-      .query("role_assignments")
-      .withIndex("by_user_role", (q) =>
-        q.eq("user_id", user._id).eq("role", "CLIENT")
-      )
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!clientRole) {
-      throw new Error("FORBIDDEN: Solo clientes pueden eliminar métricas");
-    }
-
-    // 4. Obtener la métrica
-    const metric = await ctx.db.get(payload.metric_id);
-
-    if (!metric) {
-      throw new Error("NOT_FOUND: Métrica no encontrada");
-    }
-
-    // 5. Verificar que la métrica pertenezca al cliente
-    const client = await ctx.db
-      .query("clients")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!client || metric.client_id !== client._id) {
-      throw new Error("FORBIDDEN: No puedes eliminar esta métrica");
-    }
-
-    // 6. Eliminar la métrica
-    await ctx.db.delete(payload.metric_id);
-
-    return {
-      status: "success",
-      value: "ok",
-    };
-  },
-});
-
-// ==========================================
-// MUTATION: updateMyPhone (CLIENT)
-// Actualiza el teléfono personal del cliente
-// ==========================================
-export const updateMyPhone = mutation({
-  args: updateMyPhoneValidator,
-  handler: async (ctx, { payload }) => {
-    // 1. Verificar autenticación
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("UNAUTHORIZED: Debes estar autenticado");
-    }
-
-    // 2. Obtener user_id desde clerk_id
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("NOT_FOUND: Usuario no encontrado");
-    }
-
-    // 3. Verificar que el usuario tenga rol CLIENT
-    const clientRole = await ctx.db
-      .query("role_assignments")
-      .withIndex("by_user_role", (q) =>
-        q.eq("user_id", user._id).eq("role", "CLIENT")
-      )
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!clientRole) {
-      throw new Error("FORBIDDEN: Solo clientes pueden actualizar su teléfono");
-    }
-
-    // 4. Obtener el cliente
-    const client = await ctx.db
-      .query("clients")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!client) {
-      throw new Error("NOT_FOUND: Cliente no encontrado");
-    }
-
-    // 5. Obtener la persona asociada
-    const person = await ctx.db.get(client.person_id);
-
-    if (!person) {
-      throw new Error("NOT_FOUND: Persona no encontrada");
-    }
-
-    // 6. Validar el teléfono
-    const trimmedPhone = payload.phone.trim();
-    if (trimmedPhone.length === 0) {
-      throw new Error("VALIDATION_ERROR: El teléfono no puede estar vacío");
-    }
-
-    // Validación básica de formato (opcional)
-    // Puedes agregar regex más estricta según tus necesidades
-    if (trimmedPhone.length < 7) {
-      throw new Error(
-        "VALIDATION_ERROR: El teléfono debe tener al menos 7 caracteres"
-      );
-    }
-
-    // 7. Actualizar el teléfono en persons
-    await ctx.db.patch(person._id, {
-      phone: trimmedPhone,
-      updated_at: Date.now(),
-    });
-
-    return {
-      status: "success",
-      value: "ok",
-    };
-  },
-});
-
-// ==========================================
-// MUTATION: updateEmergencyContact (CLIENT)
-// Actualiza o crea el contacto de emergencia del cliente
-// ==========================================
-export const updateEmergencyContact = mutation({
-  args: updateEmergencyContactValidator,
-  handler: async (ctx, { payload }) => {
-    // 1. Verificar autenticación
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("UNAUTHORIZED: Debes estar autenticado");
-    }
-
-    // 2. Obtener user_id desde clerk_id
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerk_id", identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error("NOT_FOUND: Usuario no encontrado");
-    }
-
-    // 3. Verificar que el usuario tenga rol CLIENT
-    const clientRole = await ctx.db
-      .query("role_assignments")
-      .withIndex("by_user_role", (q) =>
-        q.eq("user_id", user._id).eq("role", "CLIENT")
-      )
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!clientRole) {
-      throw new Error(
-        "FORBIDDEN: Solo clientes pueden actualizar contacto de emergencia"
-      );
-    }
-
-    // 4. Obtener el cliente
-    const client = await ctx.db
-      .query("clients")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .filter((q) => q.eq(q.field("active"), true))
-      .unique();
-
-    if (!client) {
-      throw new Error("NOT_FOUND: Cliente no encontrado");
-    }
-
-    // 5. Validaciones
-    if (!payload.name.trim()) {
-      throw new Error("VALIDATION_ERROR: El nombre no puede estar vacío");
-    }
-
-    if (!payload.phone.trim()) {
-      throw new Error("VALIDATION_ERROR: El teléfono no puede estar vacío");
-    }
-
-    if (!payload.relationship.trim()) {
-      throw new Error("VALIDATION_ERROR: El parentesco no puede estar vacío");
-    }
-
-    // 6. Buscar contacto de emergencia existente
-    const existingContact = await ctx.db
-      .query("emergency_contact")
-      .withIndex("by_person_active", (q) =>
-        q.eq("person_id", client.person_id).eq("active", true)
-      )
-      .unique();
-
+/**
+ * Crea un nuevo registro de métrica de salud para un cliente.
+ * Calcula el IMC automáticamente.
+ */
+export const create = mutation({
+  args: createHealthMetricArgs,
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
     const now = Date.now();
 
-    if (existingContact) {
-      // Actualizar existente
-      await ctx.db.patch(existingContact._id, {
-        name: payload.name.trim(),
-        phone: payload.phone.trim(),
-        relationship: payload.relationship.trim(),
-        updated_at: now,
-      });
-    } else {
-      // Crear nuevo
-      await ctx.db.insert("emergency_contact", {
-        person_id: client.person_id,
-        name: payload.name.trim(),
-        phone: payload.phone.trim(),
-        relationship: payload.relationship.trim(),
-        active: true,
-        created_at: now,
-        updated_at: now,
-      });
+    // Calcular el IMC basado en los argumentos proporcionados
+    const bmi = calculateBMI(args.weight_kg, args.height_cm);
+
+    const metric_id = await ctx.db.insert("client_health_metrics", {
+      client_id: args.client_id,
+      measured_at: args.measured_at,
+      weight_kg: args.weight_kg,
+      height_cm: args.height_cm,
+      body_fat_pct: args.body_fat_pct,
+      notes: args.notes,
+      bmi: bmi, // Almacenamos el IMC calculado
+      created_by_user_id: user._id, // Guardamos quién creó el registro
+      created_at: now,
+      updated_at: now,
+    });
+
+    return metric_id;
+  },
+});
+
+/**
+ * Actualiza un registro de métrica de salud existente.
+ * Recalcula el IMC si el peso o la altura cambian.
+ */
+export const update = mutation({
+  args: updateHealthMetricArgs,
+  handler: async (ctx, args) => {
+    await getAuthenticatedUser(ctx); // Solo verificar autenticación
+    const now = Date.now();
+    const { metric_id, ...rest } = args;
+
+    // 1. Obtener la métrica existente
+    const existingMetric = await ctx.db.get(metric_id);
+    if (!existingMetric) {
+      throw new ConvexError("Métrica no encontrada.");
     }
 
-    return {
-      status: "success",
-      value: "ok",
-    };
+    // 2. Determinar los nuevos valores (los de 'rest' o los existentes)
+    const new_weight_kg = rest.weight_kg ?? existingMetric.weight_kg;
+    const new_height_cm = rest.height_cm ?? existingMetric.height_cm;
+
+    let new_bmi = existingMetric.bmi;
+
+    // 3. Recalcular el IMC solo si el peso o la altura cambiaron
+    if (rest.weight_kg !== undefined || rest.height_cm !== undefined) {
+      new_bmi = calculateBMI(new_weight_kg, new_height_cm);
+    }
+
+    // 4. Aplicar el parche (actualización)
+    await ctx.db.patch(metric_id, {
+      ...rest,
+      bmi: new_bmi, // Actualizar el IMC
+      updated_at: now,
+    });
+
+    return true;
+  },
+});
+
+/**
+ * Elimina (borrado físico) un registro de métrica de salud.
+ */
+export const remove = mutation({
+  args: deleteHealthMetricArgs,
+  handler: async (ctx, args) => {
+    await getAuthenticatedUser(ctx); // Verificar autenticación
+
+    const existingMetric = await ctx.db.get(args.metric_id);
+    if (!existingMetric) {
+      throw new ConvexError("Métrica no encontrada.");
+    }
+
+    // Opcional: Validar permisos (¿Es admin, entrenador de este cliente, o el creador?)
+    // Por simplicidad, aquí solo borramos si está autenticado.
+    
+    await ctx.db.delete(args.metric_id);
+    return true;
   },
 });

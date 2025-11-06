@@ -1,27 +1,29 @@
 import { query } from "../../_generated/server";
-import { v } from "convex/values";
-import { getCurrentUser } from "../common/utils";
+import { getAuthenticatedTrainerData } from "../common/utils";
 
-// Perfil del trainer autenticado (DTO simple)
+/**
+ * (Trainer) Obtiene el perfil del entrenador autenticado.
+ * Path: profiles/trainer/queries:getMyTrainerProfile
+ *
+ * CORREGIDO: Ahora devuelve user, person, trainer y la sucursal (branch).
+ */
 export const getMyTrainerProfile = query({
-    args: {},
-    handler: async (ctx) => {
-        const user = await getCurrentUser(ctx);
+  args: {}, // Sin payload
+  handler: async (ctx) => {
+    // getAuthenticatedTrainerData ya nos da { user, trainer, person }
+    const { user, trainer, person } = await getAuthenticatedTrainerData(ctx);
 
-        const trainer = await ctx.db
-            .query("trainers")
-            .withIndex("by_user", (q) => q.eq("user_id", user._id))
-            .first();
-        if (!trainer) return null;
+    // Buscamos la sucursal (branch) si existe
+    const branch = trainer.branch_id
+      ? await ctx.db.get(trainer.branch_id)
+      : null;
 
-        const person = await ctx.db
-            .query("persons")
-            .withIndex("by_user", (q) => q.eq("user_id", user._id))
-            .first();
-
-        return {
-            person: person ?? null,
-            trainer,
-        };
-    },
+    // Retorna el DTO extendido
+    return {
+      user,
+      trainer,
+      person,
+      branch: branch || null, // Devolvemos la sucursal completa o null
+    };
+  },
 });

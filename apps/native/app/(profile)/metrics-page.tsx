@@ -5,21 +5,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import api from '@/api';
-import type { Id } from '../../../../packages/backend/convex/_generated/dataModel';
+import type { Doc, Id } from '@/api';
 
-type HealthMetric = {
-    _id: Id<"client_health_metrics">;
-    client_id: Id<"clients">;
-    measured_at: number;
-    weight_kg?: number;
-    height_cm?: number;
-    bmi?: number;
-    body_fat_pct?: number;
-    notes?: string;
-    created_by_user_id: Id<"users">;
-    created_at: number;
-    updated_at: number;
-};
+type HealthMetric = Doc<"client_health_metrics">;
 
 type BMICategory = {
     label: string;
@@ -33,112 +21,87 @@ export default function HealthMetricsHistoryPage() {
     // ==========================================
     // 1. ESTADOS PARA PAGINACIÓN
     // ==========================================
-    const [cursor, setCursor] = useState<number>(0); // timestamp para paginación
-    const [allMetrics, setAllMetrics] = useState<HealthMetric[]>([]); // todas las métricas cargadas
-    const [hasMore, setHasMore] = useState(true); // indica si hay más páginas
+    const [cursor, setCursor] = useState<string | null>(null);
+    const [allMetrics, setAllMetrics] = useState<HealthMetric[]>([]);
+    const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // CORRECCIÓN PARA 'InvalidCursor':
+    // Estado para deshabilitar queries durante la mutación
+    const [isMutating, setIsMutating] = useState(false);
 
     // ==========================================
     // 2. QUERIES Y MUTATIONS
     // ==========================================
-    // Query: profiles/client/queries:listHealthMetrics
-    // Args: { payload: { from?, to?, cursor?, limit? } }
-    // Retorna: { status: "success", value: { items: HealthMetric[], nextCursor: number|null } }
     const metricsData = useQuery(
-        api.health_metrics.queries.listHealthMetrics,
-        {
+        api.profiles.client.queries.listHealthMetrics,
+        // Usar 'skip' de Convex para deshabilitar la query mientras isMutating sea true
+        isMutating ? 'skip' : {
             payload: {
                 cursor: cursor,
-                limit: 10, // cargar 10 métricas por página
+                limit: 10,
             }
         }
     );
 
-    // Mutation: profiles/client/mutations:deleteHealthMetric
-    // Args: { payload: { metric_id: Id<"client_health_metrics"> } }
-    const deleteMetricMutation = useMutation(api.health_metrics.mutuations.deleteHealthMetric);
+    const deleteMetricMutation = useMutation(api.profiles.client.mutations.deleteHealthMetric);
 
     // ==========================================
     // 3. EFECTO - Actualizar lista cuando lleguen datos
     // ==========================================
     useEffect(() => {
-        if (metricsData?.value) {
-            const { items, nextCursor } = metricsData.value;
+        if (metricsData) {
+            const { items, nextCursor } = metricsData;
 
-            // Si es la primera carga (cursor === 0), reemplazar toda la lista
-            if (cursor === 0) {
+            if (cursor === null || isRefreshing) {
                 setAllMetrics(items || []);
             } else {
-                // Si es carga de más páginas, agregar al final
-                setAllMetrics(prev => [...prev, ...(items || [])]);
+                setAllMetrics(prev => {
+                    const existingIds = new Set(prev.map(m => m._id));
+                    const newItems = (items || []).filter(m => !existingIds.has(m._id));
+                    return [...prev, ...newItems];
+                });
             }
 
-            // Verificar si hay más páginas
             setHasMore(nextCursor !== null);
             setIsLoadingMore(false);
+            setIsRefreshing(false);
         }
-    }, [metricsData]);
+    }, [metricsData, cursor, isRefreshing]);
 
     // ==========================================
     // 4. HELPERS - Categorización y formato
     // ==========================================
     const getBMICategory = (bmi?: number): BMICategory => {
         if (!bmi) {
-            return {
-                label: 'N/A',
-                color: 'text-gray-700',
-                bgColor: 'bg-gray-100',
-            };
+            return { label: 'N/A', color: 'text-gray-700', bgColor: 'bg-gray-100' };
         }
-
         if (bmi < 18.5) {
-            return {
-                label: 'Bajo Peso',
-                color: 'text-yellow-700',
-                bgColor: 'bg-yellow-100',
-            };
+            return { label: 'Bajo Peso', color: 'text-yellow-700', bgColor: 'bg-yellow-100' };
         } else if (bmi >= 18.5 && bmi < 25) {
-            return {
-                label: 'Normal',
-                color: 'text-green-700',
-                bgColor: 'bg-green-100',
-            };
+            return { label: 'Normal', color: 'text-green-700', bgColor: 'bg-green-100' };
         } else if (bmi >= 25 && bmi < 30) {
-            return {
-                label: 'Sobrepeso',
-                color: 'text-orange-700',
-                bgColor: 'bg-orange-100',
-            };
+            return { label: 'Sobrepeso', color: 'text-orange-700', bgColor: 'bg-orange-100' };
         } else {
-            return {
-                label: 'Obesidad',
-                color: 'text-red-700',
-                bgColor: 'bg-red-100',
-            };
+            return { label: 'Obesidad', color: 'text-red-700', bgColor: 'bg-red-100' };
         }
     };
 
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp);
         return date.toLocaleDateString('es-CO', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
+            year: 'numeric', month: 'short', day: 'numeric',
         });
     };
 
     const formatDateTime = (timestamp: number) => {
         const date = new Date(timestamp);
         return date.toLocaleString('es-CO', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
         });
     };
 
-    // Calcular cambio respecto a la medición anterior
     const getWeightChange = (currentWeight?: number, index?: number): number | null => {
         if (!currentWeight || index === undefined || index >= allMetrics.length - 1) return null;
         const previousWeight = allMetrics[index + 1].weight_kg;
@@ -150,37 +113,34 @@ export default function HealthMetricsHistoryPage() {
     // 5. HANDLERS
     // ==========================================
     const handleLoadMore = () => {
-        if (!hasMore || isLoadingMore || !metricsData?.value?.nextCursor) return;
-
+        if (!hasMore || isLoadingMore || !metricsData?.nextCursor) return;
         setIsLoadingMore(true);
-        setCursor(metricsData.value.nextCursor);
+        setCursor(metricsData.nextCursor);
     };
 
     const handleRefresh = () => {
-        // Reiniciar paginación
-        setCursor(0);
+        setIsRefreshing(true);
+        setCursor(null);
         setAllMetrics([]);
         setHasMore(true);
     };
 
     const handleAddNew = () => {
-        // Navegar a la página de agregar métrica (IMC)
-        router.push('/(profile)/imc'); // Ajustar la ruta según tu estructura
+        router.push('/(profile)/imc');
     };
 
     const handleViewDetail = (metric: HealthMetric) => {
-        // Mostrar detalle completo de la métrica
         Alert.alert(
             `Medición del ${formatDateTime(metric.measured_at)}`,
-            `Peso: ${metric.weight_kg ? `${metric.weight_kg} kg` : 'N/A'}\n` +
+            `Peso: ${metric.weight_kg ? `${metric.weight_kg.toFixed(1)} kg` : 'N/A'}\n` +
             `Altura: ${metric.height_cm ? `${metric.height_cm} cm` : 'N/A'}\n` +
             `IMC: ${metric.bmi ? metric.bmi.toFixed(1) : 'N/A'}\n` +
-            `Grasa Corporal: ${metric.body_fat_pct ? `${metric.body_fat_pct}%` : 'N/A'}\n` +
+            `Grasa Corporal: ${metric.body_fat_pct ? `${metric.body_fat_pct.toFixed(1)}%` : 'N/A'}\n` +
             `${metric.notes ? `\nNotas: ${metric.notes}` : ''}`
         );
     };
 
-    const handleDeleteMetric = async (metricId: Id<"client_health_metrics">) => {
+    const handleDeleteMetric = (metricId: Id<"client_health_metrics">) => {
         Alert.alert(
             'Eliminar Medición',
             '¿Estás seguro de que deseas eliminar esta medición?',
@@ -190,28 +150,29 @@ export default function HealthMetricsHistoryPage() {
                     text: 'Eliminar',
                     style: 'destructive',
                     onPress: async () => {
+                        setIsMutating(true); // Deshabilitar la query
                         try {
-                            // ==========================================
-                            // MUTATION - Eliminar métrica
-                            // ==========================================
-                            // Path: profiles/client/mutations:deleteHealthMetric
-                            // Body: { payload: { metric_id: "..." } }
                             await deleteMetricMutation({
                                 payload: {
                                     metric_id: metricId,
                                 }
                             });
 
-                            // Actualizar lista local
-                            setAllMetrics(prev => prev.filter(m => m._id !== metricId));
+                            Alert.alert(
+                                'Éxito',
+                                'Medición eliminada correctamente'
+                            );
 
-                            Alert.alert('Éxito', 'Medición eliminada correctamente');
+                            handleRefresh(); // Resetear el cursor a null
+
                         } catch (error: any) {
                             console.error('Error al eliminar métrica:', error);
                             Alert.alert(
                                 'Error',
                                 error?.message || 'No se pudo eliminar la medición'
                             );
+                        } finally {
+                            setIsMutating(false); // Reactivar la query
                         }
                     }
                 }
@@ -222,7 +183,7 @@ export default function HealthMetricsHistoryPage() {
     // ==========================================
     // 6. ESTADOS DE CARGA Y ERROR
     // ==========================================
-    if (metricsData === undefined && cursor === 0) {
+    if (metricsData === undefined && cursor === null && !isRefreshing) {
         return (
             <View className="flex-1 bg-white items-center justify-center">
                 <ActivityIndicator size="large" color="#3b82f6" />
@@ -231,33 +192,20 @@ export default function HealthMetricsHistoryPage() {
         );
     }
 
-    // Manejo de errores
-    if (metricsData?.status === 'error') {
-        return (
-            <View className="flex-1 bg-white items-center justify-center p-6">
-                <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
-                <Text className="mt-4 text-gray-900 font-semibold text-lg">
-                    Error al cargar métricas
-                </Text>
-                <Text className="mt-2 text-gray-600 text-center">
-                    Intenta nuevamente o contacta con soporte
-                </Text>
-                <Button
-                    onPress={handleRefresh}
-                    className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
-                >
-                    <Text className="text-white font-semibold">Reintentar</Text>
-                </Button>
-            </View>
-        );
-    }
-
     // ==========================================
     // 7. RENDER
     // ==========================================
     return (
-
-        <ScrollView className="flex-1 bg-white">
+        <ScrollView
+            className="flex-1 bg-white"
+            refreshControl={
+                <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={handleRefresh}
+                    colors={['#3b82f6']}
+                />
+            }
+        >
             <View className="px-6 py-8">
                 {/* Header with Back Button */}
                 <View className="flex-row items-center mb-6 py-4">
@@ -269,242 +217,228 @@ export default function HealthMetricsHistoryPage() {
                     </Text>
                 </View>
 
-                {/* Content */}
-                <ScrollView
-                    className="flex-1"
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={cursor === 0 && metricsData === undefined}
-                            onRefresh={handleRefresh}
-                            colors={['#3b82f6']}
-                        />
-                    }
-                >
-                    <View className="px-6 py-4">
-                        {/* Summary Card - Última medición */}
-                        {allMetrics.length > 0 && allMetrics[0].weight_kg && allMetrics[0].bmi && (
-                            <View className="bg-blue-50 rounded-xl p-5 mb-6 border-2 border-blue-200">
-                                <Text className="text-gray-600 text-sm font-medium mb-3">
-                                    Última Medición
+                {/* Summary Card - Última medición */}
+                {allMetrics.length > 0 && allMetrics[0].weight_kg && allMetrics[0].bmi && (
+                    <View className="bg-blue-50 rounded-xl p-5 mb-6 border-2 border-blue-200">
+                        <Text className="text-gray-600 text-sm font-medium mb-3">
+                            Última Medición
+                        </Text>
+                        <View className="flex-row items-center justify-between">
+                            <View>
+                                <Text className="text-3xl font-bold text-blue-600">
+                                    {allMetrics[0].weight_kg?.toFixed(1)} kg
                                 </Text>
-                                <View className="flex-row items-center justify-between">
-                                    <View>
-                                        <Text className="text-3xl font-bold text-blue-600">
-                                            {allMetrics[0].weight_kg} kg
-                                        </Text>
-                                        <Text className="text-gray-600 text-sm mt-1">
-                                            {formatDate(allMetrics[0].measured_at)}
-                                        </Text>
-                                    </View>
-                                    <View className="items-end">
-                                        <Text className="text-2xl font-bold text-gray-900">
-                                            {allMetrics[0].bmi.toFixed(1)}
-                                        </Text>
-                                        <View className={`px-3 py-1 rounded-full mt-1 ${getBMICategory(allMetrics[0].bmi).bgColor
-                                            }`}>
-                                            <Text className={`text-xs font-semibold ${getBMICategory(allMetrics[0].bmi).color
-                                                }`}>
-                                                {getBMICategory(allMetrics[0].bmi).label}
+                                <Text className="text-gray-600 text-sm mt-1">
+                                    {formatDate(allMetrics[0].measured_at)}
+                                </Text>
+                            </View>
+                            <View className="items-end">
+                                <Text className="text-2xl font-bold text-gray-900">
+                                    {allMetrics[0].bmi.toFixed(1)}
+                                </Text>
+                                <View className={`px-3 py-1 rounded-full mt-1 ${getBMICategory(allMetrics[0].bmi).bgColor}`}>
+                                    <Text className={`text-xs font-semibold ${getBMICategory(allMetrics[0].bmi).color}`}>
+                                        {getBMICategory(allMetrics[0].bmi).label}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                {/* Empty State */}
+                {allMetrics.length === 0 && metricsData && !isRefreshing && (
+                    <View className="items-center justify-center py-12">
+                        <Ionicons name="bar-chart-outline" size={64} color="#d1d5db" />
+                        <Text className="text-gray-600 text-lg font-medium mt-4">
+                            No hay métricas registradas
+                        </Text>
+                        <Text className="text-gray-500 text-sm mt-2 text-center px-8">
+                            Comienza a registrar tus métricas de salud para ver tu progreso
+                        </Text>
+                        <Button
+                            onPress={handleAddNew}
+                            className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
+                        >
+                            <Text className="text-white font-semibold">
+                                Agregar Primera Medición
+                            </Text>
+                        </Button>
+                    </View>
+                )}
+
+                {/* Metrics List */}
+                {allMetrics.length > 0 && (
+                    <View className="mb-4">
+                        <Text className="text-lg font-semibold text-gray-900 mb-3">
+                            Historial Completo ({allMetrics.length})
+                        </Text>
+
+                        {allMetrics.map((metric, index) => {
+                            const category = getBMICategory(metric.bmi);
+                            const weightChange = getWeightChange(metric.weight_kg, index);
+
+                            return (
+                                <TouchableOpacity
+                                    key={metric._id}
+                                    onPress={() => handleViewDetail(metric)}
+                                    className="bg-gray-50 rounded-lg p-4 mb-3 border border-gray-200"
+                                >
+                                    {/* Header Row */}
+                                    <View className="flex-row items-center justify-between mb-3">
+                                        <View className="flex-row items-center">
+                                            <Ionicons
+                                                name="calendar-outline"
+                                                size={16}
+                                                color="#6b7280"
+                                            />
+                                            <Text className="text-gray-700 text-sm ml-2">
+                                                {formatDate(metric.measured_at)}
                                             </Text>
                                         </View>
+                                        {metric.bmi && (
+                                            <View className={`px-3 py-1 rounded-full ${category.bgColor}`}>
+                                                <Text className={`text-xs font-semibold ${category.color}`}>
+                                                    IMC {metric.bmi.toFixed(1)}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
-                                </View>
-                            </View>
-                        )}
 
-                        {/* Empty State */}
-                        {allMetrics.length === 0 && metricsData?.value && (
-                            <View className="items-center justify-center py-12">
-                                <Ionicons name="bar-chart-outline" size={64} color="#d1d5db" />
-                                <Text className="text-gray-600 text-lg font-medium mt-4">
-                                    No hay métricas registradas
-                                </Text>
-                                <Text className="text-gray-500 text-sm mt-2 text-center px-8">
-                                    Comienza a registrar tus métricas de salud para ver tu progreso
-                                </Text>
-                                <Button
-                                    onPress={handleAddNew}
-                                    className="mt-6 bg-blue-600 rounded-lg px-6 py-3"
-                                >
-                                    <Text className="text-white font-semibold">
-                                        Agregar Primera Medición
-                                    </Text>
-                                </Button>
-                            </View>
-                        )}
-
-                        {/* Metrics List */}
-                        {allMetrics.length > 0 && (
-                            <View className="mb-4">
-                                <Text className="text-lg font-semibold text-gray-900 mb-3">
-                                    Historial Completo ({allMetrics.length})
-                                </Text>
-
-                                {allMetrics.map((metric, index) => {
-                                    const category = getBMICategory(metric.bmi);
-                                    const weightChange = getWeightChange(metric.weight_kg, index);
-
-                                    return (
-                                        <TouchableOpacity
-                                            key={metric._id}
-                                            onPress={() => handleViewDetail(metric)}
-                                            className="bg-gray-50 rounded-lg p-4 mb-3 border border-gray-200"
-                                        >
-                                            {/* Header Row */}
-                                            <View className="flex-row items-center justify-between mb-3">
+                                    {/* Metrics Grid */}
+                                    <View className="flex-row items-center justify-between mb-2">
+                                        {/* Weight */}
+                                        {metric.weight_kg && (
+                                            <View className="flex-1">
+                                                <Text className="text-gray-500 text-xs mb-1">Peso</Text>
                                                 <View className="flex-row items-center">
-                                                    <Ionicons
-                                                        name="calendar-outline"
-                                                        size={16}
-                                                        color="#6b7280"
-                                                    />
-                                                    <Text className="text-gray-700 text-sm ml-2">
-                                                        {formatDate(metric.measured_at)}
+                                                    <Text className="text-gray-900 font-semibold text-lg">
+                                                        {metric.weight_kg.toFixed(1)} kg
                                                     </Text>
-                                                </View>
-                                                {metric.bmi && (
-                                                    <View className={`px-3 py-1 rounded-full ${category.bgColor}`}>
-                                                        <Text className={`text-xs font-semibold ${category.color}`}>
-                                                            IMC {metric.bmi.toFixed(1)}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </View>
-
-                                            {/* Metrics Grid */}
-                                            <View className="flex-row items-center justify-between mb-2">
-                                                {/* Weight */}
-                                                {metric.weight_kg && (
-                                                    <View className="flex-1">
-                                                        <Text className="text-gray-500 text-xs mb-1">Peso</Text>
-                                                        <View className="flex-row items-center">
-                                                            <Text className="text-gray-900 font-semibold text-lg">
-                                                                {metric.weight_kg} kg
+                                                    {weightChange !== null && (
+                                                        <View className={`ml-2 flex-row items-center ${
+                                                            weightChange > 0 ? 'text-red-600' : 'text-green-600'
+                                                        }`}>
+                                                            <Ionicons
+                                                                name={weightChange > 0 ? 'arrow-up' : 'arrow-down'}
+                                                                size={14}
+                                                                color={weightChange > 0 ? '#dc2626' : '#16a34a'}
+                                                            />
+                                                            <Text className={`text-xs font-medium ${
+                                                                weightChange > 0 ? 'text-red-600' : 'text-green-600'
+                                                            }`}>
+                                                                {Math.abs(weightChange).toFixed(1)} kg
                                                             </Text>
-                                                            {weightChange !== null && (
-                                                                <View className={`ml-2 flex-row items-center ${weightChange > 0 ? 'text-red-600' : 'text-green-600'
-                                                                    }`}>
-                                                                    <Ionicons
-                                                                        name={weightChange > 0 ? 'arrow-up' : 'arrow-down'}
-                                                                        size={14}
-                                                                        color={weightChange > 0 ? '#dc2626' : '#16a34a'}
-                                                                    />
-                                                                    <Text className={`text-xs font-medium ${weightChange > 0 ? 'text-red-600' : 'text-green-600'
-                                                                        }`}>
-                                                                        {Math.abs(weightChange).toFixed(1)} kg
-                                                                    </Text>
-                                                                </View>
-                                                            )}
                                                         </View>
-                                                    </View>
-                                                )}
-
-                                                {/* Height */}
-                                                {metric.height_cm && (
-                                                    <View className="flex-1">
-                                                        <Text className="text-gray-500 text-xs mb-1">Altura</Text>
-                                                        <Text className="text-gray-900 font-semibold text-lg">
-                                                            {metric.height_cm} cm
-                                                        </Text>
-                                                    </View>
-                                                )}
-
-                                                {/* Body Fat */}
-                                                {metric.body_fat_pct && (
-                                                    <View className="flex-1">
-                                                        <Text className="text-gray-500 text-xs mb-1">Grasa</Text>
-                                                        <Text className="text-gray-900 font-semibold text-lg">
-                                                            {metric.body_fat_pct}%
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </View>
-
-                                            {/* Notes */}
-                                            {metric.notes && (
-                                                <View className="mt-3 pt-3 border-t border-gray-200">
-                                                    <Text className="text-gray-600 text-sm">
-                                                        {metric.notes}
-                                                    </Text>
+                                                    )}
                                                 </View>
-                                            )}
-
-                                            {/* Action Icons */}
-                                            <View className="flex-row items-center justify-end mt-3 pt-3 border-t border-gray-200">
-                                                <TouchableOpacity
-                                                    onPress={(e) => {
-                                                        e.stopPropagation();
-                                                        handleViewDetail(metric);
-                                                    }}
-                                                    className="mr-4"
-                                                >
-                                                    <Ionicons name="eye-outline" size={20} color="#3b82f6" />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    onPress={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteMetric(metric._id);
-                                                    }}
-                                                >
-                                                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                                                </TouchableOpacity>
                                             </View>
+                                        )}
+
+                                        {/* Height */}
+                                        {metric.height_cm && (
+                                            <View className="flex-1">
+                                                <Text className="text-gray-500 text-xs mb-1">Altura</Text>
+                                                <Text className="text-gray-900 font-semibold text-lg">
+                                                    {metric.height_cm} cm
+                                                </Text>
+                                            </View>
+                                        )}
+
+                                        {/* Body Fat */}
+                                        {metric.body_fat_pct && (
+                                            <View className="flex-1">
+                                                <Text className="text-gray-500 text-xs mb-1">Grasa</Text>
+                                                <Text className="text-gray-900 font-semibold text-lg">
+                                                    {metric.body_fat_pct?.toFixed(1)}%
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    {/* Notes */}
+                                    {metric.notes && (
+                                        <View className="mt-3 pt-3 border-t border-gray-200">
+                                            <Text className="text-gray-600 text-sm">
+                                                {metric.notes}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {/* Action Icons */}
+                                    <View className="flex-row items-center justify-end mt-3 pt-3 border-t border-gray-200">
+                                        <TouchableOpacity
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                handleViewDetail(metric);
+                                            }}
+                                            className="mr-4"
+                                        >
+                                            <Ionicons name="eye-outline" size={20} color="#3b82f6" />
                                         </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        )}
-
-                        {/* Load More Button */}
-                        {hasMore && allMetrics.length > 0 && (
-                            <TouchableOpacity
-                                onPress={handleLoadMore}
-                                disabled={isLoadingMore}
-                                className="bg-gray-100 rounded-lg p-4 mb-4 flex-row items-center justify-center"
-                            >
-                                {isLoadingMore ? (
-                                    <>
-                                        <ActivityIndicator size="small" color="#3b82f6" />
-                                        <Text className="text-gray-700 ml-2 font-medium">
-                                            Cargando más...
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Ionicons name="chevron-down" size={20} color="#4b5563" />
-                                        <Text className="text-gray-700 ml-2 font-medium">
-                                            Cargar más mediciones
-                                        </Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        )}
-
-                        {/* End of List Indicator */}
-                        {!hasMore && allMetrics.length > 0 && (
-                            <View className="items-center py-6">
-                                <View className="bg-gray-100 rounded-full px-4 py-2">
-                                    <Text className="text-gray-500 text-sm">
-                                        Has visto todas las mediciones
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Info Card */}
-                        {allMetrics.length > 0 && (
-                            <View className="bg-blue-50 rounded-lg p-4 mb-6 flex-row border border-blue-200">
-                                <Ionicons name="information-circle-outline" size={24} color="#3b82f6" />
-                                <View className="flex-1 ml-3">
-                                    <Text className="text-sm text-blue-900 leading-5">
-                                        Registra tus métricas regularmente para obtener un mejor seguimiento
-                                        de tu progreso. Se recomienda hacer mediciones semanales.
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
+                                        <TouchableOpacity
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteMetric(metric._id);
+                                            }}
+                                        >
+                                            <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
-                </ScrollView>
+                )}
+
+                {/* Load More Button */}
+                {hasMore && allMetrics.length > 0 && (
+                    <TouchableOpacity
+                        onPress={handleLoadMore}
+                        disabled={isLoadingMore}
+                        className="bg-gray-100 rounded-lg p-4 mb-4 flex-row items-center justify-center"
+                    >
+                        {isLoadingMore ? (
+                            <>
+                                <ActivityIndicator size="small" color="#3b82f6" />
+                                <Text className="text-gray-700 ml-2 font-medium">
+                                    Cargando más...
+                                </Text>
+                            </>
+                        ) : (
+                            <>
+                                <Ionicons name="chevron-down" size={20} color="#4b5563" />
+                                <Text className="text-gray-700 ml-2 font-medium">
+                                    Cargar más mediciones
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
+
+                {/* End of List Indicator */}
+                {!hasMore && allMetrics.length > 0 && (
+                    <View className="items-center py-6">
+                        <View className="bg-gray-100 rounded-full px-4 py-2">
+                            <Text className="text-gray-500 text-sm">
+                                Has visto todas las mediciones
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Info Card */}
+                {allMetrics.length > 0 && (
+                    <View className="bg-blue-50 rounded-lg p-4 mb-6 flex-row border border-blue-200">
+                        <Ionicons name="information-circle-outline" size={24} color="#3b82f6" />
+                        <View className="flex-1 ml-3">
+                            <Text className="text-sm text-blue-900 leading-5">
+                                Registra tus métricas regularmente para obtener un mejor seguimiento
+                                de tu progreso. Se recomienda hacer mediciones semanales.
+                            </Text>
+                        </View>
+                    </View>
+                )}
             </View>
         </ScrollView>
     );

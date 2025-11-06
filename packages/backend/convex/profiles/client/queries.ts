@@ -1,165 +1,146 @@
-// packages/backend/convex/profiles/client/queries.ts
 import { query } from "../../_generated/server";
-import { v } from "convex/values";
-import { Id } from "../../_generated/dataModel";
+import { getAuthenticatedClientData } from "../common/utils";
 import {
-    listHealthMetricsSchema,
-    listProgressSchema,
-    listMyContractsSchema,
-    validateWithZod,
+  listHealthMetricsArgs,
+  listProgressArgs,
+  listMyContractsArgs,
 } from "./validations";
-import {
-    getCurrentUser,
-    requireClientOwnershipOrAdmin,
-    clampLimit,
-    normalizeRange,
-} from "../common/utils";
+import { Query } from "convex/server";
+import { DataModel } from "../../_generated/dataModel";
 
-// Devuelve el perfil del CLIENT autenticado (DTO agregado)
+/**
+ * (Client) Obtiene el perfil del cliente autenticado.
+ * Path: profiles/client/queries:getMyClientProfile
+ * (ACTUALIZADO: Devuelve user y emergencyContact)
+ */
 export const getMyClientProfile = query({
-    args: {},
-    handler: async (ctx) => {
-        const user = await getCurrentUser(ctx);
+  args: {}, // Sin payload
+  handler: async (ctx) => {
+    // 1. getAuthenticatedClientData nos da { user, client, person }
+    const { user, client, person } = await getAuthenticatedClientData(ctx);
 
-        // Buscar client por user_id
-        const client = await ctx.db
-            .query("clients")
-            .withIndex("by_user", (q) => q.eq("user_id", user._id))
-            .first();
+    // 2. Buscar preferencias
+    const preferences = await ctx.db
+      .query("client_preferences")
+      .withIndex("by_client", (q) => q.eq("client_id", client._id))
+      .first();
 
-        if (!client) return null;
+    // 3. Buscar última métrica de salud
+    const latestHealth = await ctx.db
+      .query("client_health_metrics")
+      .withIndex("by_client_measured", (q) => q.eq("client_id", client._id))
+      .order("desc")
+      .first();
 
-        // Person
-        const person = await ctx.db
-            .query("persons")
-            .withIndex("by_user", (q) => q.eq("user_id", user._id))
-            .first();
+    // 4. *** NUEVO: Buscar contacto de emergencia activo ***
+    const emergencyContact = await ctx.db
+      .query("emergency_contact")
+      .withIndex("by_person_active", (q) =>
+        q.eq("person_id", person._id).eq("active", true)
+      )
+      .first();
 
-        // Preferences
-        const preferences = await ctx.db
-            .query("client_preferences")
-            .withIndex("by_client", (q) => q.eq("client_id", client._id))
-            .first();
-
-        // Latest health metric
-        const latestHealth = await ctx.db
-            .query("client_health_metrics")
-            .withIndex("by_client_measured", (q) =>
-                q.eq("client_id", client._id).gte("measured_at", 0)
-            )
-            .order("desc")
-            .first();
-
-        // Active contracts
-        const activeContracts = await ctx.db
-            .query("client_trainer_contracts")
-            .withIndex("by_client_status", (q) =>
-                q.eq("client_id", client._id).eq("status", "ACTIVE")
-            )
-            .collect();
-
-        return {
-            person: person ?? null,
-            client,
-            preferences: preferences ?? null,
-            latestHealth: latestHealth ?? null,
-            activeContracts,
-        };
-    },
+    // 5. Retornar DTO completo
+    return {
+      user, // <-- Devuelto para el email
+      person,
+      client,
+      preferences: preferences || null,
+      latestHealth: latestHealth || null,
+      emergencyContact: emergencyContact || null, // <-- Devuelto para el formulario
+    };
+  },
 });
 
-// Listar métricas de salud con ventana temporal y paginación por timestamp (cursor = último measured_at)
+/* --- El resto de queries (listHealthMetrics, listProgress, listMyContracts) --- */
+/* --- permanecen idénticas a la versión corregida anterior. --- */
+
+/**
+ * (Client) Lista las métricas de salud del cliente (paginado).
+ * Path: profiles/client/queries:listHealthMetrics
+ */
 export const listHealthMetrics = query({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            listHealthMetricsSchema,
-            args.payload,
-            "listHealthMetrics"
-        );
-        const clientId = data.client_id as Id<"clients">;
-        await requireClientOwnershipOrAdmin(ctx, clientId);
-
-        const { from, to } = normalizeRange(data.from, data.to);
-        const limit = clampLimit(data.limit, 50, 200);
-
-        const q = ctx.db
-            .query("client_health_metrics")
-            .withIndex("by_client_measured", (q) =>
-                q.eq("client_id", clientId).gte("measured_at", from)
-            )
-            .filter((qq) => qq.lte(qq.field("measured_at"), to))
-            .order("asc");
-
-        const items = await q.take(limit);
-        const nextCursor = items.length === limit ? items[items.length - 1].measured_at : null;
-
-        return { items, nextCursor };
-    },
+  args: listHealthMetricsArgs,
+  handler: async (ctx, args) => {
+    const { client } = await getAuthenticatedClientData(ctx);
+    const from = args.payload?.from ?? 0;
+    const to = args.payload?.to ?? Date.now();
+    const limit = args.payload?.limit ?? 20;
+    const results = await ctx.db
+      .query("client_health_metrics")
+      .withIndex("by_client_measured", (q) =>
+        q
+          .eq("client_id", client._id)
+          .gte("measured_at", from)
+          .lte("measured_at", to)
+      )
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.payload?.cursor ?? null });
+    return {
+      items: results.page,
+      nextCursor: results.isDone ? null : results.continueCursor,
+    };
+  },
 });
 
-// Listar progreso con ventana temporal y paginación por timestamp (cursor = último recorded_at)
+/**
+ * (Client) Lista el progreso del cliente (paginado).
+ * Path: profiles/client/queries:listProgress
+ */
 export const listProgress = query({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            listProgressSchema,
-            args.payload,
-            "listProgress"
-        );
-        const clientId = data.client_id as Id<"clients">;
-        await requireClientOwnershipOrAdmin(ctx, clientId);
-
-        const { from, to } = normalizeRange(data.from, data.to);
-        const limit = clampLimit(data.limit, 50, 200);
-
-        const q = ctx.db
-            .query("client_progress")
-            .withIndex("by_client_time", (q) =>
-                q.eq("client_id", clientId).gte("recorded_at", from)
-            )
-            .filter((qq) => qq.lte(qq.field("recorded_at"), to))
-            .order("asc");
-
-        const items = await q.take(limit);
-        const nextCursor = items.length === limit ? items[items.length - 1].recorded_at : null;
-
-        return { items, nextCursor };
-    },
+  args: listProgressArgs,
+  handler: async (ctx, args) => {
+    const { client } = await getAuthenticatedClientData(ctx);
+    const from = args.payload?.from ?? 0;
+    const to = args.payload?.to ?? Date.now();
+    const limit = args.payload?.limit ?? 20;
+    const results = await ctx.db
+      .query("client_progress")
+      .withIndex("by_client_time", (q) =>
+        q
+          .eq("client_id", client._id)
+          .gte("recorded_at", from)
+          .lte("recorded_at", to)
+      )
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.payload?.cursor ?? null });
+    return {
+      items: results.page,
+      nextCursor: results.isDone ? null : results.continueCursor,
+    };
+  },
 });
 
-// Listar contratos del cliente (opcionalmente por status)
+/**
+ * (Client) Lista los contratos del cliente (paginado).
+ * Path: profiles/client/queries:listMyContracts
+ */
 export const listMyContracts = query({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            listMyContractsSchema,
-            args.payload,
-            "listMyContracts"
+  args: listMyContractsArgs,
+  handler: async (ctx, args) => {
+    const { client } = await getAuthenticatedClientData(ctx);
+    const limit = args.payload?.limit ?? 20;
+    const status = args.payload?.status;
+
+    let query: Query<DataModel["client_trainer_contracts"]>;
+
+    if (status) {
+      query = ctx.db
+        .query("client_trainer_contracts")
+        .withIndex("by_client_status", (q) =>
+          q.eq("client_id", client._id).eq("status", status)
         );
-        const clientId = data.client_id as Id<"clients">;
-        await requireClientOwnershipOrAdmin(ctx, clientId);
-
-        const limit = clampLimit(data.limit, 50, 200);
-
-        if (data.status) {
-            // Camino con índice cuando hay filtro por status
-            const items = await ctx.db
-                .query("client_trainer_contracts")
-                .withIndex("by_client_status", (q) =>
-                    q.eq("client_id", clientId).eq("status", data.status!)
-                )
-                .take(limit);
-
-            return { items, nextCursor: null };
-        } else {
-            // Camino sin status: filtramos por client_id (sin withIndex para evitar choque de tipos)
-            const items = await ctx.db
-                .query("client_trainer_contracts")
-                .filter((q) => q.eq(q.field("client_id"), clientId))
-                .take(limit);
-
-            return { items, nextCursor: null };
-        }
-    },
+    } else {
+      query = ctx.db
+        .query("client_trainer_contracts")
+        .withIndex("by_client_status", (q) => q.eq("client_id", client._id));
+    }
+    const results = await query
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.payload?.cursor ?? null });
+    return {
+      items: results.page,
+      nextCursor: results.isDone ? null : results.continueCursor,
+    };
+  },
 });

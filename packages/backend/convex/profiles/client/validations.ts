@@ -1,88 +1,106 @@
-import { z } from "zod";
+import { v } from "convex/values";
 
-export const timeRangeSchema = z.object({
-    start: z.string().min(1), // "HH:mm"
-    end: z.string().min(1),
+// *** NUEVO: Argumentos para la mutación de perfil unificada ***
+export const updateMyProfileArgs = v.object({
+  payload: v.object({
+    // 'phone' es opcional; si no se envía, no se actualiza.
+    phone: v.optional(v.string()),
+    // 'emergencyContact' es opcional
+    emergencyContact: v.optional(
+      v.object({
+        name: v.string(), // Permitimos strings vacíos para lógica de borrado
+        phone: v.string(),
+        relationship: v.string(),
+      })
+    ),
+  }),
 });
 
-export const routineTypeSchema = z.enum(["FUERZA", "CARDIO", "MIXTO", "MOVILIDAD"]);
-export const goalSchema = z.enum(["BAJAR_PESO", "TONIFICAR", "GANAR_MASA", "RESISTENCIA"]);
-
-export const upsertClientPreferencesSchema = z.object({
-    client_id: z.string().min(1),
-    preferred_time_range: z.optional(timeRangeSchema),
-    routine_type: z.optional(routineTypeSchema),
-    goal: z.optional(goalSchema),
-    notes: z.optional(z.string().max(500)),
+// *** AÑADIDO: Argumentos para eliminar una métrica de salud ***
+export const deleteHealthMetricArgs = v.object({
+  payload: v.object({
+    metric_id: v.id("client_health_metrics"),
+  }),
 });
 
-export const addHealthMetricSchema = z.object({
-    client_id: z.string().min(1),
-    measured_at: z.number().int().min(0),
-    weight_kg: z.optional(z.number().min(0).max(500)),
-    height_cm: z.optional(z.number().min(0).max(300)),
-    bmi: z.optional(z.number().min(0).max(100)),
-    body_fat_pct: z.optional(z.number().min(0).max(100)),
-    notes: z.optional(z.string().max(500)),
+// --- Validaciones existentes (sin cambios) ---
+
+// Schema para upsertClientPreferences (basado en el README)
+export const upsertClientPreferencesArgs = v.object({
+  payload: v.object({
+    preferred_time_range: v.optional(
+      v.object({ start: v.string(), end: v.string() })
+    ),
+    routine_type: v.optional(
+      v.union(
+        v.literal("FUERZA"),
+        v.literal("CARDIO"),
+        v.literal("MIXTO"),
+        v.literal("MOVILIDAD")
+      )
+    ),
+    goal: v.optional(
+      v.union(
+        v.literal("BAJAR_PESO"),
+        v.literal("TONIFICAR"),
+        v.literal("GANAR_MASA"),
+        v.literal("RESISTENCIA")
+      )
+    ),
+    notes: v.optional(v.string()),
+  }),
 });
 
-export const listHealthMetricsSchema = z.object({
-    client_id: z.string().min(1),
-    from: z.optional(z.number().int().min(0)),
-    to: z.optional(z.number().int().min(0)),
-    limit: z.optional(z.number().int().min(1).max(200)),
+// Schema para addHealthMetric (basado en el README)
+export const addHealthMetricArgs = v.object({
+  payload: v.object({
+    measured_at: v.number(),
+    weight_kg: v.optional(v.number()),
+    height_cm: v.optional(v.number()),
+    bmi: v.optional(v.number()),
+    body_fat_pct: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  }),
 });
 
-export const addProgressSchema = z.object({
-    client_id: z.string().min(1),
-    kind: z.enum(["MEDICION", "HITO", "RUTINA"]),
-    metric_key: z.optional(z.string().max(100)),
-    metric_value: z.optional(z.number()),
-    title: z.optional(z.string().max(120)),
-    description: z.optional(z.string().max(1000)),
-    recorded_at: z.number().int().min(0),
+// Schema para addProgress (basado en el README)
+export const addProgressArgs = v.object({
+  payload: v.object({
+    kind: v.union(v.literal("MEDICION"), v.literal("HITO"), v.literal("RUTINA")),
+    metric_key: v.optional(v.string()),
+    metric_value: v.optional(v.number()),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    recorded_at: v.number(),
+  }),
 });
 
-export const listProgressSchema = z.object({
-    client_id: z.string().min(1),
-    from: z.optional(z.number().int().min(0)),
-    to: z.optional(z.number().int().min(0)),
-    limit: z.optional(z.number().int().min(1).max(200)),
+// Schema para paginación genérica
+const paginationArgs = v.object({
+  from: v.optional(v.number()),
+  to: v.optional(v.number()),
+  cursor: v.optional(v.any()), // string | null
+  limit: v.optional(v.number()),
 });
 
-export const listMyContractsSchema = z.object({
-    client_id: z.string().min(1),
-    status: z.optional(z.enum(["ACTIVE", "INACTIVE", "BLOCKED"])),
-    limit: z.optional(z.number().int().min(1).max(200)),
+export const listHealthMetricsArgs = v.object({
+  payload: v.optional(paginationArgs),
 });
 
-/**
- * Helper estándar
- */
-export function validateWithZod<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
-    try {
-        return schema.parse(data);
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            const msg = error.issues
-                .map((i) => `${i.path.join(".")}: ${i.message}`)
-                .join(", ");
-            throw new Error(`Validación fallida en ${context}: ${msg}`);
-        }
-        throw new Error(`Error de validación en ${context}: ${String(error)}`);
-    }
-}
-export const phoneSchema = z
-    .string()
-    .min(1, "El teléfono es requerido")
-    .refine(
-        (val) => /^[0-9\s\-\+\(\)]{10,15}$/.test(val),
-        "El número de teléfono no es válido (10-15 dígitos)"
-    );
-    
-export const updateMyPhoneSchema = z.object({
-    client_id: z.string().min(1),
-    phone: phoneSchema,
+export const listProgressArgs = v.object({
+  payload: v.optional(paginationArgs),
 });
 
-
+export const listMyContractsArgs = v.object({
+  payload: v.object({
+    status: v.optional(
+      v.union(
+        v.literal("ACTIVE"),
+        v.literal("INACTIVE"), // Ajustado a tu schema
+        v.literal("BLOCKED")
+      )
+    ),
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.any()), // string | null
+  }),
+});
