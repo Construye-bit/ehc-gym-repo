@@ -21,13 +21,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { TrainerCard } from "@/components/trainer-catalog/TrainerCard";
 import { TrainerFilters } from "@/components/trainer-catalog/TrainerFilters";
 import { useTrainerCatalog } from "@/hooks/use-trainer-catalog";
+import { AppHeader } from "@/components/shared";
 import { AppColors } from "@/constants/Colors";
 
 export default function Home() {
     const { isLoading, isClient, isTrainer, person, roles } = useAuth();
     const router = useRouter();
-    const [newTodoText, setNewTodoText] = useState("");
-    
+
     // Estado para filtros del catálogo de entrenadores
     const [trainerFilters, setTrainerFilters] = useState({
         specialties: [] as string[], // Cambiado a array
@@ -35,15 +35,32 @@ export default function Home() {
         availableNow: false,
     });
 
+    // Mutations y queries para admins (todos)
+    const [newTodoText, setNewTodoText] = useState("");
     const todos = useQuery(api.todos.getAll);
     const createTodoMutation = useMutation(api.todos.create);
     const toggleTodoMutation = useMutation(api.todos.toggle);
     const deleteTodoMutation = useMutation(api.todos.deleteTodo);
+
     const createOrGetConversationMutation = useMutation(api.chat.conversations.mutations.createOrGet);
-    
+
     // Hook para el catálogo de entrenadores (solo para clientes)
     const { trainers, isLoading: isLoadingTrainers, hasMore, loadMore } = useTrainerCatalog(
         isClient ? trainerFilters : { specialties: [], branchId: undefined, availableNow: false }
+    );
+
+    // Queries para el dashboard del entrenador (siempre llamar hooks, pero skip si no es trainer)
+    const dashboardData = useQuery(
+        api.trainers.dashboard.getTrainerDashboard,
+        isTrainer ? {} : "skip"
+    );
+    const recentPosts = useQuery(
+        api.trainers.dashboard.getRecentPosts,
+        isTrainer ? { limit: 3 } : "skip"
+    );
+    const recentConversations = useQuery(
+        api.trainers.dashboard.getRecentConversations,
+        isTrainer ? { limit: 5 } : "skip"
     );
 
     const handleContactTrainer = async (trainerId: string) => {
@@ -100,31 +117,8 @@ export default function Home() {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-                
-                {/* Header Fijo */}
-                <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                    <View className="flex-row justify-between items-center mb-4">
-                        <View className="flex-1">
-                            <Text className="text-white text-2xl font-bold">
-                                ¡Hola, {person?.name || "Cliente"}! 👋
-                            </Text>
-                            <Text className="text-white opacity-80 text-sm mt-1">
-                                Bienvenido a tu espacio de entrenamiento
-                            </Text>
-                        </View>
-                        <View className="flex-row items-center gap-2">
-                            <View className="bg-white/20 px-3 py-1 rounded-full">
-                                <Text className="text-white text-xs font-semibold">CLIENTE</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => router.push('/(home)/settings')}
-                                className="bg-white/20 p-2 rounded-full"
-                            >
-                                <Ionicons name="settings-outline" size={20} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+
+                <AppHeader userType="CLIENT" />
 
                 {/* Lista con scroll */}
                 <FlatList
@@ -137,8 +131,8 @@ export default function Home() {
                                 <View className="bg-white rounded-t-2xl shadow-sm border border-gray-100">
                                     <View className="px-5 pt-5 pb-3">
                                         <View className="flex-row items-center mb-3">
-                                            <View 
-                                                className="w-10 h-10 rounded-full items-center justify-center mr-3" 
+                                            <View
+                                                className="w-10 h-10 rounded-full items-center justify-center mr-3"
                                                 style={{ backgroundColor: '#FFF4E6' }}
                                             >
                                                 <Ionicons name="people" size={20} color={AppColors.primary.yellow} />
@@ -156,7 +150,7 @@ export default function Home() {
                                         onSpecialtiesChange={(specialties) =>
                                             setTrainerFilters({ ...trainerFilters, specialties })
                                         }
-                                        onBranchChange={(branchId) => 
+                                        onBranchChange={(branchId) =>
                                             setTrainerFilters({ ...trainerFilters, branchId })
                                         }
                                         onAvailableNowChange={(availableNow) =>
@@ -242,135 +236,227 @@ export default function Home() {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
+
+                <AppHeader userType="TRAINER" />
+
                 <ScrollView className="flex-1 bg-gray-50">
-                    {/* Header */}
-                    <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                        <View className="flex-row justify-between items-center mb-4">
-                            <View className="flex-1">
-                                <Text className="text-white text-2xl font-bold">
-                                    ¡Hola, {person?.name || "Entrenador"}! 💪
-                                </Text>
-                                <Text className="text-white opacity-80 text-sm mt-1">
-                                    Panel de entrenador
-                                </Text>
-                            </View>
-                            <View className="flex-row items-center gap-2">
-                                <View className="bg-white/20 px-3 py-1 rounded-full">
-                                    <Text className="text-white text-xs font-semibold">ENTRENADOR</Text>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => router.push('/(home)/settings')}
-                                    className="bg-white/20 p-2 rounded-full"
-                                >
-                                    <Ionicons name="settings-outline" size={20} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-
                     <View className="px-5 py-6">
-                        {/* Stats Cards */}
-                        <View className="flex-row mb-6 gap-3">
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="people" size={20} color="AppColors.primary.yellow" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Clientes</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
+                        {/* Bienvenida */}
+                        {/* {dashboardData && (
+                            <View className="mb-6">
+                                <Text className="text-gray-900 text-2xl font-bold">
+                                    Hola, {dashboardData.trainer_info.name.split(' ')[0]} 👋
+                                </Text>
+                                <Text className="text-gray-500 text-sm mt-1">
+                                    {dashboardData.trainer_info.specialties.join(' • ')}
+                                </Text>
                             </View>
-                            <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                                <View className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#FFF4E6' }}>
-                                    <Ionicons name="calendar" size={20} color="AppColors.primary.yellow" />
-                                </View>
-                                <Text className="text-gray-600 text-xs">Sesiones</Text>
-                                <Text className="text-gray-900 text-2xl font-bold">0</Text>
-                            </View>
-                        </View>
+                        )} */}
 
-                        {/* Consejos Section */}
-                        <TouchableOpacity
-                            onPress={() => router.push('/(blog)/trainer-feed')}
-                            className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
-                        >
-                            <View className="flex-row items-center justify-between mb-2">
+                        {/* Estadísticas Principales */}
+                        {dashboardData && (
+                            <View className="flex-row gap-3 mb-6">{/*...rest of stats...*/}
+                                {/* Publicaciones */}
+                                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                                    <View className="flex-row items-center justify-between mb-2">
+                                        <Ionicons name="newspaper" size={20} color={AppColors.primary.yellow} />
+                                        <Text className="text-2xl font-bold text-gray-900">
+                                            {dashboardData.stats.total_posts}
+                                        </Text>
+                                    </View>
+                                    <Text className="text-xs text-gray-500">Publicaciones</Text>
+                                    <Text className="text-xs text-gray-400 mt-1">
+                                        {dashboardData.stats.total_likes} me gusta
+                                    </Text>
+                                </View>
+
+                                {/* Conversaciones */}
+                                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                                    <View className="flex-row items-center justify-between mb-2">
+                                        <Ionicons name="chatbubbles" size={20} color={AppColors.primary.yellow} />
+                                        <Text className="text-2xl font-bold text-gray-900">
+                                            {dashboardData.stats.active_conversations}
+                                        </Text>
+                                    </View>
+                                    <Text className="text-xs text-gray-500">Activos</Text>
+                                    {dashboardData.stats.unread_messages > 0 && (
+                                        <View className="flex-row items-center mt-1">
+                                            <View className="w-2 h-2 rounded-full bg-red-500 mr-1" />
+                                            <Text className="text-xs text-red-500 font-medium">
+                                                {dashboardData.stats.unread_messages} nuevos
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Accesos Rápidos */}
+                        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+                            <Text className="text-gray-900 text-lg font-bold mb-4">Accesos Rápidos</Text>
+
+                            {/* Gestionar Publicaciones */}
+                            <TouchableOpacity
+                                className="flex-row items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 mb-3"
+                                onPress={() => router.push('/(blog)/trainer-feed')}
+                            >
                                 <View className="flex-row items-center flex-1">
                                     <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF4E6' }}>
-                                        <Ionicons name="newspaper" size={20} color="AppColors.primary.yellow" />
+                                        <Ionicons name="newspaper" size={20} color={AppColors.primary.yellow} />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-gray-900 text-xl font-bold">Consejos</Text>
-                                        <Text className="text-gray-500 text-sm">Gestiona tus publicaciones</Text>
+                                        <Text className="text-gray-900 text-base font-semibold">Gestionar Publicaciones</Text>
+                                        <Text className="text-gray-500 text-xs">Crea y edita consejos</Text>
                                     </View>
                                 </View>
-                                <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-                            </View>
-                        </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            </TouchableOpacity>
 
-                        {/* Todos Section */}
-                        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
-                            <Text className="text-gray-900 text-xl font-bold mb-4">Mis Tareas</Text>
+                            {/* Mensajes */}
+                            <TouchableOpacity
+                                className="flex-row items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100"
+                                onPress={() => router.push('/(chat)')}
+                            >
+                                <View className="flex-row items-center flex-1">
+                                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#FFF4E6' }}>
+                                        <Ionicons name="chatbubbles" size={20} color={AppColors.primary.yellow} />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-gray-900 text-base font-semibold">Mensajes</Text>
+                                        <Text className="text-gray-500 text-xs">Conversaciones con clientes</Text>
+                                    </View>
+                                    {dashboardData && dashboardData.stats.unread_messages > 0 && (
+                                        <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center mr-2">
+                                            <Text className="text-white text-xs font-bold">
+                                                {dashboardData.stats.unread_messages > 9 ? '9+' : dashboardData.stats.unread_messages}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            </TouchableOpacity>
+                        </View>
 
-                            <View className="mb-4">
-                                <View className="flex-row items-center gap-2">
-                                    <TextInput
-                                        value={newTodoText}
-                                        onChangeText={setNewTodoText}
-                                        placeholder="Agregar nueva tarea..."
-                                        placeholderTextColor="#9ca3af"
-                                        className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 bg-gray-50"
-                                        onSubmitEditing={handleAddTodo}
-                                        returnKeyType="done"
-                                    />
-                                    <TouchableOpacity
-                                        onPress={handleAddTodo}
-                                        disabled={!newTodoText.trim()}
-                                        className="px-5 py-3 rounded-xl"
-                                        style={{ backgroundColor: !newTodoText.trim() ? "#e5e7eb" : "AppColors.primary.yellow" }}
-                                    >
-                                        <Ionicons name="add" size={20} color="white" />
+                        {/* Publicaciones Recientes */}
+                        {recentPosts && recentPosts.length > 0 && (
+                            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+                                <View className="flex-row items-center justify-between mb-4">
+                                    <Text className="text-gray-900 text-lg font-bold">Publicaciones Recientes</Text>
+                                    <TouchableOpacity onPress={() => router.push('/(blog)/trainer-feed')}>
+                                        <Text className="text-sm font-medium" style={{ color: AppColors.primary.yellow }}>
+                                            Ver todas
+                                        </Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
 
-                            {todos === undefined ? (
-                                <View className="flex justify-center py-8">
-                                    <ActivityIndicator size="large" color="AppColors.primary.yellow" />
-                                </View>
-                            ) : todos.length === 0 ? (
-                                <View className="py-8 items-center">
-                                    <Ionicons name="checkmark-circle-outline" size={48} color="#d1d5db" />
-                                    <Text className="text-gray-400 mt-2">No hay tareas pendientes</Text>
-                                </View>
-                            ) : (
-                                <View className="gap-2">
-                                    {todos.map((todo) => (
-                                        <View
-                                            key={todo._id}
-                                            className="flex-row items-center justify-between rounded-xl border border-gray-100 p-3 bg-gray-50"
-                                        >
-                                            <View className="flex-row items-center flex-1">
-                                                <TouchableOpacity
-                                                    onPress={() => handleToggleTodo(todo._id, todo.completed)}
-                                                    className="mr-3"
-                                                >
-                                                    <Ionicons
-                                                        name={todo.completed ? "checkmark-circle" : "ellipse-outline"}
-                                                        size={24}
-                                                        color={todo.completed ? "AppColors.primary.yellow" : "#9ca3af"}
-                                                    />
-                                                </TouchableOpacity>
-                                                <Text className={`flex-1 ${todo.completed ? "line-through text-gray-400" : "text-gray-900"}`}>
-                                                    {todo.text}
+                                {recentPosts.map((post, index) => (
+                                    <View
+                                        key={post._id}
+                                        className={`py-3 ${index !== recentPosts.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                    >
+                                        <Text className="text-gray-900 font-semibold mb-1" numberOfLines={1}>
+                                            {post.title}
+                                        </Text>
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className="text-gray-500 text-xs">
+                                                {new Date(post.published_at).toLocaleDateString('es-ES', {
+                                                    day: 'numeric',
+                                                    month: 'short'
+                                                })}
+                                            </Text>
+                                            <View className="flex-row items-center">
+                                                <Ionicons name="heart" size={14} color="#ef4444" />
+                                                <Text className="text-gray-600 text-xs ml-1">
+                                                    {post.likes_count}
                                                 </Text>
                                             </View>
-                                            <TouchableOpacity onPress={() => handleDeleteTodo(todo._id)} className="ml-2 p-1">
-                                                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                                            </TouchableOpacity>
                                         </View>
-                                    ))}
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+
+                        {/* Conversaciones Recientes */}
+                        {recentConversations && recentConversations.length > 0 && (
+                            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+                                <View className="flex-row items-center justify-between mb-4">
+                                    <Text className="text-gray-900 text-lg font-bold">Conversaciones Recientes</Text>
+                                    <TouchableOpacity onPress={() => router.push('/(chat)')}>
+                                        <Text className="text-sm font-medium" style={{ color: AppColors.primary.yellow }}>
+                                            Ver todas
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
-                            )}
-                        </View>
+
+                                {recentConversations.map((conversation, index) => (
+                                    <TouchableOpacity
+                                        key={conversation._id}
+                                        className={`py-3 ${index !== recentConversations.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                        onPress={() => router.push(`/(chat)/${conversation._id}` as any)}
+                                    >
+                                        <View className="flex-row items-center justify-between">
+                                            <View className="flex-1">
+                                                <Text className="text-gray-900 font-semibold mb-1">
+                                                    {conversation.client_name}
+                                                </Text>
+                                                <Text className="text-gray-500 text-xs" numberOfLines={1}>
+                                                    {conversation.last_message_text || 'Sin mensajes'}
+                                                </Text>
+                                            </View>
+                                            <View className="items-end ml-3">
+                                                <Text className="text-gray-400 text-xs mb-1">
+                                                    {new Date(conversation.last_message_at).toLocaleDateString('es-ES', {
+                                                        day: 'numeric',
+                                                        month: 'short'
+                                                    })}
+                                                </Text>
+                                                {conversation.unread_count > 0 && (
+                                                    <View className="w-5 h-5 rounded-full bg-red-500 items-center justify-center">
+                                                        <Text className="text-white text-xs font-bold">
+                                                            {conversation.unread_count}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+
+                        {/* Información de Sede */}
+                        {dashboardData && dashboardData.trainer_info.branch && (
+                            <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+                                <View className="flex-row items-center mb-3">
+                                    <Ionicons name="business" size={20} color={AppColors.primary.yellow} />
+                                    <Text className="text-gray-900 text-lg font-bold ml-2">Mi Sede</Text>
+                                </View>
+                                <Text className="text-gray-900 font-semibold mb-1">
+                                    {dashboardData.trainer_info.branch.name}
+                                </Text>
+                                {dashboardData.trainer_info.branch.city && (
+                                    <Text className="text-gray-500 text-sm">
+                                        {dashboardData.trainer_info.branch.city}
+                                    </Text>
+                                )}
+                                {dashboardData.trainer_info.branch.phone && (
+                                    <View className="flex-row items-center mt-2">
+                                        <Ionicons name="call" size={14} color="#6b7280" />
+                                        <Text className="text-gray-600 text-sm ml-1">
+                                            {dashboardData.trainer_info.branch.phone}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Estado de Carga */}
+                        {!dashboardData && (
+                            <View className="flex-1 justify-center items-center py-12">
+                                <ActivityIndicator size="large" color={AppColors.primary.yellow} />
+                                <Text className="text-gray-500 mt-4">Cargando dashboard...</Text>
+                            </View>
+                        )}
                     </View>
                 </ScrollView>
             </SafeAreaView>

@@ -187,19 +187,7 @@ export const getByIdForAdmin = query({
             throw new Error("Usuario no encontrado");
         }
 
-        // Buscar el admin asociado a este usuario
-        const admin = await ctx.db
-            .query("admins")
-            .withIndex("by_user", (q) => q.eq("user_id", user._id))
-            .filter((q) => q.eq(q.field("status"), "ACTIVE"))
-            .filter((q) => q.eq(q.field("active"), true))
-            .first();
-
-        if (!admin) {
-            throw new Error("No tienes permisos de administrador");
-        }
-
-        // Verificar si es super admin o si la sede corresponde a su branch_id
+        // Verificar si es super admin primero
         const roleAssignments = await ctx.db
             .query("role_assignments")
             .withIndex("by_user_active", (q) => q.eq("user_id", user._id).eq("active", true))
@@ -207,9 +195,23 @@ export const getByIdForAdmin = query({
 
         const isSuperAdmin = roleAssignments.some(ra => ra.role === "SUPER_ADMIN");
 
-        // Si no es super admin, verificar que la sede sea la asignada
-        if (!isSuperAdmin && admin.branch_id !== branchId) {
-            throw new Error("No tienes permiso para ver esta sede");
+        // Si no es super admin, buscar el admin asociado a este usuario
+        if (!isSuperAdmin) {
+            const admin = await ctx.db
+                .query("admins")
+                .withIndex("by_user", (q) => q.eq("user_id", user._id))
+                .filter((q) => q.eq(q.field("status"), "ACTIVE"))
+                .filter((q) => q.eq(q.field("active"), true))
+                .first();
+
+            if (!admin) {
+                throw new Error("No tienes permisos de administrador");
+            }
+
+            // Verificar que la sede sea la asignada
+            if (admin.branch_id !== branchId) {
+                throw new Error("No tienes permiso para ver esta sede");
+            }
         }
 
         // Obtener la sede

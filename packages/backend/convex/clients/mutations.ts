@@ -11,7 +11,6 @@ import {
 import { assertClientUniquePerson } from "./utils";
 import { getCurrentActiveAdmin } from "../admins/utils";
 import { createClerkClient } from '@clerk/backend';
-import { Resend } from 'resend';
 import { api } from "../_generated/api";
 import { internal } from "../_generated/api";
 
@@ -109,7 +108,7 @@ export const setClientPaymentActive = mutation({
         const clientId = data.client_id as Id<"clients">;
 
         const admin = await getCurrentActiveAdmin(ctx);
-        if (!admin || !admin.branch_id) throw new Error("Acceso denegado: requiere ADMIN asignado a una sede.");
+        if (!admin || !admin.branch_id) throw new Error("Requiere ADMIN asignado a una sede.");
 
         const link = await ctx.db
             .query("client_branches")
@@ -118,10 +117,85 @@ export const setClientPaymentActive = mutation({
             .filter((q) => q.eq(q.field("active"), true))
             .first();
 
-        if (!link) throw new Error("El cliente no pertenece a la sede del ADMIN.");
+        if (!link) throw new Error("El cliente no pertenece a su sede.");
 
         await ctx.db.patch(clientId, { is_payment_active: data.is_payment_active, updated_at: Date.now() });
         return clientId;
+    },
+});
+
+/**
+ * Mutation para actualizar únicamente el estado de pago de un cliente
+ * 
+ * Características:
+ * - Solo actualiza el campo is_payment_active
+ * - Retorna el estado actualizado completo
+ * - Valida permisos según el rol del usuario
+ * 
+ * Permisos:
+ * - SUPER_ADMIN: Acceso total
+ * - ADMIN: Solo clientes de su sede
+ * 
+ * @returns Objeto con el estado de pago actualizado
+ */
+export const updateClientPaymentStatus = mutation({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(setClientPaymentActiveSchema, args.payload, "updateClientPaymentStatus");
+        const clientId = data.client_id as Id<"clients">;
+
+        // Verificar que el cliente existe y está activo
+        const client = await ctx.db.get(clientId);
+        if (!client || !client.active) {
+            throw new Error("Cliente no encontrado o inactivo.");
+        }
+
+        // Verificar si es SUPER_ADMIN
+        if (await isSuperAdmin(ctx)) {
+            await ctx.db.patch(clientId, {
+                is_payment_active: data.is_payment_active,
+                updated_at: Date.now()
+            });
+
+            const updatedClient = await ctx.db.get(clientId);
+            return {
+                client_id: updatedClient!._id,
+                is_payment_active: updatedClient!.is_payment_active,
+                status: updatedClient!.status,
+                updated_at: updatedClient!.updated_at,
+            };
+        }
+
+        // Si es ADMIN, verificar que el cliente pertenezca a su sede
+        const admin = await getCurrentActiveAdmin(ctx);
+        if (!admin || !admin.branch_id) {
+            throw new Error("Acceso denegado: requiere ADMIN asignado a una sede.");
+        }
+
+        const link = await ctx.db
+            .query("client_branches")
+            .withIndex("by_client", (q) => q.eq("client_id", clientId))
+            .filter((q) => q.eq(q.field("branch_id"), admin.branch_id as Id<"branches">))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!link) {
+            throw new Error("Acceso denegado: el cliente no pertenece a la sede del ADMIN.");
+        }
+
+        // Actualizar el estado de pago
+        await ctx.db.patch(clientId, {
+            is_payment_active: data.is_payment_active,
+            updated_at: Date.now()
+        });
+
+        const updatedClient = await ctx.db.get(clientId);
+        return {
+            client_id: updatedClient!._id,
+            is_payment_active: updatedClient!.is_payment_active,
+            status: updatedClient!.status,
+            updated_at: updatedClient!.updated_at,
+        };
     },
 });
 
@@ -540,30 +614,13 @@ export const createClientComplete = action({
             // 9. Enviar email de bienvenida con credenciales
             console.log("Enviando email de bienvenida al cliente...");
             try {
-                const resendApiKey = process.env.RESEND_API_KEY;
-                if (!resendApiKey) {
-                    console.log("Advertencia: RESEND_API_KEY no está configurado, saltando envío de email");
-                } else {
-                    const resend = new Resend(resendApiKey);
-                    const clientName = `${personalData.personName} ${personalData.personLastName}`;
+                const clientName = `${personalData.personName} ${personalData.personLastName}`;
 
-                    console.log(`Enviando email de bienvenida a: ${personalData.personEmail}`);
-
-                    const emailHtml = getWelcomeClientEmailTemplate(
-                        clientName,
-                        personalData.personEmail,
-                        temporaryPassword
-                    );
-
-                    await resend.emails.send({
-                        from: 'EHC Gym <onboarding@resend.dev>',
-                        to: [personalData.personEmail],
-                        subject: '¡Bienvenido a EHC Gym! - Tus credenciales de acceso',
-                        html: emailHtml,
-                    });
-
-                    console.log("Email enviado exitosamente");
-                }
+                await ctx.scheduler.runAfter(0, internal.emails.sender.sendWelcomeClientEmail, {
+                    clientName,
+                    email: personalData.personEmail,
+                    temporaryPassword,
+                });
             } catch (emailError) {
                 console.error('Error al enviar email:', emailError);
                 // No lanzar error, el cliente ya fue creado exitosamente
@@ -761,120 +818,6 @@ function generateSecurePassword(): string {
     }
 
     return password.join('');
-}
-
-// Template de email de bienvenida para cliente
-function getWelcomeClientEmailTemplate(
-    clientName: string,
-    email: string,
-    temporaryPassword: string
-): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a EHC Gym</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="padding: 40px 0; text-align: center; background-color: #f4f4f4;">
-                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <!-- Header -->
-                    <tr>
-                        <td style="background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%); padding: 40px 20px; text-align: center;">
-                            <h1 style="margin: 0; color: #1F2937; font-size: 28px; font-weight: bold;">
-                                ¡Bienvenido a EHC Gym!
-                            </h1>
-                            <p style="margin: 10px 0 0 0; color: #374151; font-size: 16px;">
-                                Tu cuenta ha sido creada exitosamente
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Content -->
-                    <tr>
-                        <td style="padding: 40px 30px;">
-                            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                                Hola <strong>${clientName}</strong>,
-                            </p>
-                            
-                            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                                ¡Bienvenido a la familia EHC Gym! Estamos emocionados de tenerte con nosotros. Tu cuenta ha sido configurada y puedes acceder a nuestra app móvil con las siguientes credenciales:
-                            </p>
-                            
-                            <!-- Credentials Box -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0; background-color: #FEF3C7; border-radius: 8px; overflow: hidden;">
-                                <tr>
-                                    <td style="padding: 20px;">
-                                        <p style="margin: 0 0 15px 0; color: #92400E; font-size: 14px; font-weight: bold; text-transform: uppercase;">
-                                            Tus Credenciales de Acceso
-                                        </p>
-                                        
-                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #78350F; font-size: 14px; font-weight: bold;">
-                                                    Correo:
-                                                </td>
-                                                <td style="padding: 8px 0; color: #1F2937; font-size: 14px; font-family: monospace;">
-                                                    ${email}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #78350F; font-size: 14px; font-weight: bold;">
-                                                    Contraseña temporal:
-                                                </td>
-                                                <td style="padding: 8px 0; color: #1F2937; font-size: 14px; font-family: monospace; background-color: #FFFFFF; padding: 8px; border-radius: 4px;">
-                                                    ${temporaryPassword}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- Important Notice -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #FEE2E2; border-left: 4px solid #EF4444; border-radius: 4px;">
-                                <tr>
-                                    <td style="padding: 15px 20px;">
-                                        <p style="margin: 0; color: #991B1B; font-size: 14px; line-height: 1.6;">
-                                            <strong>⚠️ Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión por primera vez desde la app móvil.
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <p style="margin: 30px 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                                Descarga nuestra app móvil y comienza tu viaje fitness hoy mismo. Si tienes alguna pregunta, no dudes en contactar a nuestro equipo.
-                            </p>
-                            
-                            <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                                ¡Nos vemos en el gym!<br>
-                                <strong>Equipo EHC Gym</strong>
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background-color: #F3F4F6; padding: 30px; text-align: center;">
-                            <p style="margin: 0 0 10px 0; color: #6B7280; font-size: 12px;">
-                                Este es un correo automático, por favor no respondas a este mensaje.
-                            </p>
-                            <p style="margin: 0; color: #9CA3AF; font-size: 11px;">
-                                © 2025 EHC Gym. Todos los derechos reservados.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-    `.trim();
 }
 
 // Action para eliminar cliente completo

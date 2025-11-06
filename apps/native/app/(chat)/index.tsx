@@ -6,6 +6,7 @@ import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/hooks/use-auth';
 import { useConversations } from '@/hooks/use-conversations';
 import { ConversationCard, EmptyChatList } from '@/components/chat';
+import { AppHeader } from '@/components/shared';
 import type { Conversation } from '@/types/chat.types';
 
 export default function ChatScreen() {
@@ -30,38 +31,8 @@ export default function ChatScreen() {
             />
             <SafeAreaView className="flex-1 bg-gray-50">
                 <StatusBar backgroundColor={AppColors.primary.yellow} barStyle="light-content" />
-                {/* Header */}
-                <View className="px-5 pt-6 pb-8 rounded-b-3xl" style={{ backgroundColor: AppColors.primary.yellow }}>
-                    <View className="flex-row justify-between items-center mb-4">
-                        <View className="flex-1">
-                            <Text className="text-white text-2xl font-bold">
-                                {isTrainer 
-                                    ? `¡Hola, ${person?.name || "Entrenador"}! 💪`
-                                    : `¡Hola, ${person?.name || "Cliente"}! 👋`
-                                }
-                            </Text>
-                            <Text className="text-white opacity-80 text-sm mt-1">
-                                {isTrainer 
-                                    ? "Panel de entrenador"
-                                    : "Bienvenido a tu espacio de entrenamiento"
-                                }
-                            </Text>
-                        </View>
-                        <View className="flex-row items-center gap-2">
-                            <View className="bg-white/20 px-3 py-1 rounded-full">
-                                <Text className="text-white text-xs font-semibold">
-                                    {isTrainer ? "ENTRENADOR" : "CLIENTE"}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => router.push('/(home)/settings')}
-                                className="bg-white/20 p-2 rounded-full"
-                            >
-                                <Ionicons name="settings-outline" size={20} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+
+                <AppHeader />
 
                 {/* Lista de conversaciones */}
                 {isLoading ? (
@@ -76,8 +47,8 @@ export default function ChatScreen() {
                         data={conversations}
                         keyExtractor={(item) => item._id}
                         renderItem={({ item }) => (
-                            <ConversationCard 
-                                conversation={item} 
+                            <ConversationCard
+                                conversation={item}
                                 onPress={handleOpenConversation}
                             />
                         )}

@@ -343,3 +343,63 @@ export const getAdminByPersonId = internalQuery({
             .first();
     },
 });
+
+/**
+ * Obtiene el perfil del cliente autenticado actualmente
+ * 
+ * Permisos:
+ * - Solo el usuario autenticado puede obtener su propio cliente
+ */
+export const getMyClientProfile = query({
+    args: {},
+    handler: async (ctx) => {
+        const currentUser = await mustGetCurrentUser(ctx);
+
+        // Buscar el cliente asociado al usuario actual
+        const client = await ctx.db
+            .query("clients")
+            .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!client) {
+            return null;
+        }
+
+        return {
+            client_id: client._id,
+            is_payment_active: client.is_payment_active,
+            status: client.status,
+            join_date: client.join_date,
+            end_date: client.end_date,
+        };
+    },
+});
+
+/**
+ * Obtiene información básica de un cliente por su ID
+ * Usado para mostrar información del invitador en invitaciones
+ */
+export const getClientById = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const data = validateWithZod(getClientSchema, args.payload, "getClientById");
+        const clientId = data.client_id as Id<"clients">;
+
+        const client = await ctx.db.get(clientId);
+        if (!client) {
+            throw new Error("Cliente no encontrado");
+        }
+
+        const person = client.person_id ? await ctx.db.get(client.person_id) : null;
+
+        return {
+            _id: client._id,
+            person_name: person
+                ? `${person.name} ${person.last_name}`.trim()
+                : "Cliente",
+            is_payment_active: client.is_payment_active,
+            status: client.status,
+        };
+    },
+});

@@ -1,19 +1,13 @@
-import { useRouter, Stack, usePathname } from "expo-router";
-import { useAuth as useClerkAuth } from "@clerk/clerk-expo";
+import { Stack } from "expo-router";
+import { useMemo } from "react";
+import { View } from "react-native";
+import { BottomNavigation } from "@/components/botton-navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnreadCount } from "@/hooks/use-unread-count";
-import { useEffect, useRef, useMemo } from "react";
-import { View, ActivityIndicator } from "react-native";
-import { BottomNavigation } from "@/components/botton-navigation";
 
 export default function BlogRoutesLayout() {
-    const { isSignedIn } = useClerkAuth();
-    const { isTrainer, isClient, isAdmin, isSuperAdmin, isLoading } = useAuth();
+    const { isClient } = useAuth();
     const { unreadCount } = useUnreadCount();
-    const router = useRouter();
-    const pathname = usePathname();
-    const hasRedirected = useRef(false);
-    const lastPathname = useRef(pathname);
 
     // Memorizar las tabs para evitar re-renderizados innecesarios
     const navigationTabs = useMemo(() => [
@@ -43,58 +37,6 @@ export default function BlogRoutesLayout() {
             route: '/(home)/settings',
         },
     ], [isClient, unreadCount]);
-
-    useEffect(() => {
-        // Si la ruta cambió, resetear el flag
-        if (lastPathname.current !== pathname) {
-            hasRedirected.current = false;
-            lastPathname.current = pathname;
-        }
-
-        // Si no está cargado, no hacer nada aún
-        if (isLoading) return;
-
-        // Si no está autenticado, redirigir al login
-        if (!isSignedIn) {
-            if (!hasRedirected.current) {
-                hasRedirected.current = true;
-                router.replace("/(auth)/sign-in");
-            }
-            return;
-        }
-
-        // Solo redirigir si estamos en la ruta base de blog
-        const isBlogRoot = pathname === '/blog' || pathname === '/(blog)' || pathname === '/(blog)/';
-
-        if (isBlogRoot && !hasRedirected.current) {
-            hasRedirected.current = true;
-            // Redirigir según el rol del usuario
-            if (isClient) {
-                router.replace("/(blog)/client-feed");
-            } else if (isTrainer || isAdmin || isSuperAdmin) {
-                router.replace("/(blog)/trainer-feed");
-            }
-        }
-    }, [isSignedIn, isTrainer, isClient, isAdmin, isSuperAdmin, isLoading, router, pathname]);
-
-    // Mostrar loading mientras se cargan los roles
-    if (isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-                <ActivityIndicator size="large" color="#EBB303" />
-            </View>
-        );
-    }
-
-    // Guard: No renderizar UI autenticada si no está autenticado
-    // Esto evita mostrar Stack/BottomNavigation mientras se redirige al login
-    if (!isSignedIn) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-                <ActivityIndicator size="large" color="#EBB303" />
-            </View>
-        );
-    }
 
     return (
         <View className="flex-1">

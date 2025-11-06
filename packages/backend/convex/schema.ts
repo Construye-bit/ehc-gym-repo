@@ -281,6 +281,7 @@ export default defineSchema({
     invitee_name: v.string(),
     invitee_email: v.optional(v.string()),
     invitee_phone: v.optional(v.string()),
+    invitee_document_number: v.string(),
     preferred_branch_id: v.optional(v.id("branches")),
     token: v.string(),
     status: v.union(
@@ -297,7 +298,8 @@ export default defineSchema({
     .index("by_inviter_client", ["inviter_client_id"])
     .index("by_token", ["token"])
     .index("by_preferred_branch", ["preferred_branch_id"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_document_number", ["invitee_document_number"]),
   // ==================== CHAT: CONVERSACIONES ====================
 
   conversations: defineTable({

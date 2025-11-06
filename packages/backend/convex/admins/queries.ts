@@ -47,6 +47,60 @@ export const getAdminByUser = query({
     },
 });
 
+// Obtener admin actual por Clerk ID
+export const getCurrentAdmin = query({
+    args: { payload: v.any() },
+    handler: async (ctx, args) => {
+        const { clerk_id } = args.payload;
+
+        if (!clerk_id) {
+            throw new Error("clerk_id es requerido");
+        }
+
+        // Buscar usuario por clerk_id
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerk_id", clerk_id))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!user) {
+            throw new Error("Usuario no encontrado");
+        }
+
+        // Buscar admin activo del usuario
+        const admin = await ctx.db
+            .query("admins")
+            .withIndex("by_user", (q) => q.eq("user_id", user._id))
+            .filter((q) => q.eq(q.field("status"), "ACTIVE"))
+            .filter((q) => q.eq(q.field("active"), true))
+            .first();
+
+        if (!admin) {
+            throw new Error("Admin no encontrado");
+        }
+
+        return admin;
+    },
+});
+
+// Verificar si el usuario actual es SUPER_ADMIN
+export const isSuperAdmin = query({
+    args: {},
+    handler: async (ctx) => {
+        try {
+            const user = await mustGetCurrentUser(ctx);
+            const roles = await ctx.db
+                .query("role_assignments")
+                .withIndex("by_user_active", (q) => q.eq("user_id", user._id).eq("active", true))
+                .collect();
+            return roles.some((r) => r.role === "SUPER_ADMIN");
+        } catch {
+            return false;
+        }
+    },
+});
+
 // === Obtener la sede del admin autenticado ===
 export const getMyBranch = query({
     args: {},

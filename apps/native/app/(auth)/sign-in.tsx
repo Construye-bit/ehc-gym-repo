@@ -23,12 +23,7 @@ export default function SignInPage() {
 		password?: string;
 	}>({});
 
-	// Redirigir si ya está autenticado o cuando isSignedIn cambie
-	useEffect(() => {
-		if (isSignedIn) {
-			router.replace("/(home)");
-		}
-	}, [isSignedIn, router]);
+	// El AuthGuard manejará la redirección automáticamente cuando isSignedIn cambie
 
 	const validateForm = () => {
 		try {
@@ -104,9 +99,7 @@ export default function SignInPage() {
 							{
 								text: 'Ahora no',
 								style: 'cancel',
-								onPress: () => {
-									router.replace("/(home)");
-								},
+								// El AuthGuard manejará la redirección automáticamente
 							},
 							{
 								text: 'Activar',
@@ -119,13 +112,8 @@ export default function SignInPage() {
 											});
 											Alert.alert(
 												'¡Listo!',
-												`${biometricType === 'face-recognition' ? 'Face ID' : 'Huella dactilar'} activado. La próxima vez podrás iniciar sesión más rápido.`,
-												[
-													{
-														text: 'OK',
-														onPress: () => router.replace("/(home)"),
-													},
-												]
+												`${biometricType === 'face-recognition' ? 'Face ID' : 'Huella dactilar'} activado. La próxima vez podrás iniciar sesión más rápido.`
+												// El AuthGuard manejará la redirección automáticamente
 											);
 										} catch (error: any) {
 											console.error('Error saving biometric credentials:', error);
@@ -139,7 +127,7 @@ export default function SignInPage() {
 													{
 														text: 'Continuar sin biometría',
 														style: 'cancel',
-														onPress: () => router.replace("/(home)"),
+														// El AuthGuard manejará la redirección automáticamente
 													},
 													{
 														text: 'Reintentar',
@@ -157,9 +145,8 @@ export default function SignInPage() {
 						],
 						{ cancelable: false }
 					);
-				} else {
-					router.replace("/(home)");
 				}
+				// Si no hay biometría disponible, el AuthGuard manejará la redirección automáticamente
 			} else {
 				console.error(JSON.stringify(signInAttempt, null, 2));
 			}

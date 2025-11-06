@@ -11,6 +11,7 @@ export interface UseAdminAuthReturn {
     isLoading: boolean;
     error: string | null;
     user: ReturnType<typeof useUser>["user"];
+    adminData: { clerk_id: string } | null;
 }
 
 export function useAdminAuth(): UseAdminAuthReturn {
@@ -88,5 +89,6 @@ export function useAdminAuth(): UseAdminAuthReturn {
         isLoading: isLoading || !isLoaded,
         error,
         user,
+        adminData: user?.id ? { clerk_id: user.id } : null,
     };
 }

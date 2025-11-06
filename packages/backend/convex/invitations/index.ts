@@ -1,2 +1,2 @@
-export { inviteFriend, cancelInvitation } from "./mutations";
-export { listInvitationsByBranch, listInvitationsByInviter } from "./queries";
+export { inviteFriend, cancelInvitation, redeemInvitation } from "./mutations";
+export { listInvitationsByBranch, listInvitationsByInviter, getInvitationById, getMonthlyInvitationCount } from "./queries";

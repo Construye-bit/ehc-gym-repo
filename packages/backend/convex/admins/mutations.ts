@@ -236,7 +236,7 @@ export const createAdministratorComplete = action({
             try {
                 const adminName = `${personalData.personName} ${personalData.personLastName}`;
 
-                await ctx.runAction(api.emails.sender.sendWelcomeAdminEmail, {
+                await ctx.scheduler.runAfter(0, internal.emails.sender.sendWelcomeAdminEmail, {
                     adminName,
                     email: userData.userEmail,
                     temporaryPassword,
