@@ -1,91 +1,66 @@
+// convex/profiles/trainer/mutations.ts
 import { mutation } from "../../_generated/server";
-import { v } from "convex/values";
-import { Id } from "../../_generated/dataModel";
+import { getAuthenticatedTrainerData } from "../common/utils"; // <-- Ruta actualizada
 import {
-    updateTrainerSpecialtiesSchema,
-    updateTrainerScheduleSchema,
-    updateMyPhoneSchema,
-    validateWithZod,
+  updateTrainerSpecialtiesArgs,
+  updateTrainerScheduleArgs,
+  updateMyPhoneArgs,
 } from "./validations";
-import {
-    requireTrainerOwnershipOrAdmin,
-    getCurrentUser,
-} from "../common/utils";
 
-// Actualizar specialties (propio trainer o ADMIN/SA)
+/**
+ * (Trainer) Actualiza la lista de especialidades del entrenador.
+ * Path: profiles/trainer/mutations:updateTrainerSpecialties
+ */
 export const updateTrainerSpecialties = mutation({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            updateTrainerSpecialtiesSchema,
-            args.payload,
-            "updateTrainerSpecialties"
-        );
-        const trainerId = data.trainer_id as Id<"trainers">;
+  args: updateTrainerSpecialtiesArgs,
+  handler: async (ctx, args) => {
+    const { trainer } = await getAuthenticatedTrainerData(ctx);
+    const now = Date.now();
 
-        await requireTrainerOwnershipOrAdmin(ctx, trainerId);
+    await ctx.db.patch(trainer._id, {
+      specialties: args.payload.specialties,
+      updated_at: now,
+    });
 
-        const trainer = await ctx.db.get(trainerId);
-        if (!trainer) throw new Error("Entrenador no encontrado.");
-
-        const now = Date.now();
-        await ctx.db.patch(trainerId, {
-            specialties: data.specialties,
-            updated_at: now,
-        });
-        return trainerId;
-    },
+    return "ok";
+  },
 });
 
-// Actualizar work_schedule (propio trainer o ADMIN/SA)
+/**
+ * (Trainer) Actualiza el horario de trabajo del entrenador.
+ * Path: profiles/trainer/mutations:updateTrainerSchedule
+ */
 export const updateTrainerSchedule = mutation({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            updateTrainerScheduleSchema,
-            args.payload,
-            "updateTrainerSchedule"
-        );
-        const trainerId = data.trainer_id as Id<"trainers">;
+  args: updateTrainerScheduleArgs,
+  handler: async (ctx, args) => {
+    const { trainer } = await getAuthenticatedTrainerData(ctx);
+    const now = Date.now();
 
-        await requireTrainerOwnershipOrAdmin(ctx, trainerId);
+    await ctx.db.patch(trainer._id, {
+      work_schedule: args.payload.work_schedule,
+      updated_at: now,
+    });
 
-        const trainer = await ctx.db.get(trainerId);
-        if (!trainer) throw new Error("Entrenador no encontrado.");
-
-        const now = Date.now();
-        await ctx.db.patch(trainerId, {
-            work_schedule: data.work_schedule,
-            updated_at: now,
-        });
-        return trainerId;
-    },
+    return "ok";
+  },
 });
 
-// Actualizar phone en persons (propio trainer o ADMIN/SA)
+/**
+ * (Trainer) Actualiza el teléfono personal (en la tabla 'persons').
+ * Path: profiles/trainer/mutations:updateMyPhone
+ */
 export const updateMyPhone = mutation({
-    args: { payload: v.any() },
-    handler: async (ctx, args) => {
-        const data = validateWithZod(
-            updateMyPhoneSchema,
-            args.payload,
-            "updateMyPhone"
-        );
-        const trainerId = data.trainer_id as Id<"trainers">;
+  args: updateMyPhoneArgs,
+  handler: async (ctx, args) => {
+    const { person } = await getAuthenticatedTrainerData(ctx);
+    const now = Date.now();
 
-        await requireTrainerOwnershipOrAdmin(ctx, trainerId);
+    // El teléfono está en la tabla 'persons', no en 'trainers'
+    await ctx.db.patch(person._id, {
+      phone: args.payload.phone,
+      updated_at: now,
+    });
 
-        const trainer = await ctx.db.get(trainerId);
-        if (!trainer) throw new Error("Entrenador no encontrado.");
-
-        const person = await ctx.db.get(trainer.person_id as Id<"persons">);
-        if (!person) throw new Error("Persona no encontrada para el entrenador.");
-
-        const now = Date.now();
-        await ctx.db.patch(person._id, {
-            phone: data.phone,
-            updated_at: now,
-        });
-        return person._id;
-    },
+    return "ok";
+  },
 });

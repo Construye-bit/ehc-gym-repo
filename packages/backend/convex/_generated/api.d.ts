@@ -8,11 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 import type * as __tests___test_utils_builders from "../__tests__/test_utils/builders.js";
 import type * as __tests___test_utils_fakeCtx from "../__tests__/test_utils/fakeCtx.js";
 import type * as __tests___test_utils_run from "../__tests__/test_utils/run.js";
@@ -69,6 +64,9 @@ import type * as emails_templates from "../emails/templates.js";
 import type * as emergency_contact_index from "../emergency_contact/index.js";
 import type * as emergency_contact_mutations from "../emergency_contact/mutations.js";
 import type * as healthCheck from "../healthCheck.js";
+import type * as health_metrics_mutuations from "../health_metrics/mutuations.js";
+import type * as health_metrics_queries from "../health_metrics/queries.js";
+import type * as health_metrics_validations from "../health_metrics/validations.js";
 import type * as http from "../http.js";
 import type * as invitations_index from "../invitations/index.js";
 import type * as invitations_mutations from "../invitations/mutations.js";
@@ -111,6 +109,12 @@ import type * as trainers_utils from "../trainers/utils.js";
 import type * as trainers_validations from "../trainers/validations.js";
 import type * as users from "../users.js";
 import type * as utils_validation from "../utils/validation.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -177,6 +181,9 @@ declare const fullApi: ApiFromModules<{
   "emergency_contact/index": typeof emergency_contact_index;
   "emergency_contact/mutations": typeof emergency_contact_mutations;
   healthCheck: typeof healthCheck;
+  "health_metrics/mutuations": typeof health_metrics_mutuations;
+  "health_metrics/queries": typeof health_metrics_queries;
+  "health_metrics/validations": typeof health_metrics_validations;
   http: typeof http;
   "invitations/index": typeof invitations_index;
   "invitations/mutations": typeof invitations_mutations;
@@ -220,11 +227,15 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   "utils/validation": typeof utils_validation;
 }>;
+declare const fullApiWithMounts: typeof fullApi;
+
 export declare const api: FilterApi<
-  typeof fullApi,
+  typeof fullApiWithMounts,
   FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-  typeof fullApi,
+  typeof fullApiWithMounts,
   FunctionReference<any, "internal">
 >;
+
+export declare const components: {};
