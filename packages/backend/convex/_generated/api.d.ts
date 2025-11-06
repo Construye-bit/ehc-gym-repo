@@ -103,6 +103,7 @@ import type * as profiles_trainer_queries from "../profiles/trainer/queries.js";
 import type * as profiles_trainer_validations from "../profiles/trainer/validations.js";
 import type * as role_assignments_queries from "../role_assignments/queries.js";
 import type * as todos from "../todos.js";
+import type * as trainers_dashboard from "../trainers/dashboard.js";
 import type * as trainers_errors from "../trainers/errors.js";
 import type * as trainers_mutations from "../trainers/mutations.js";
 import type * as trainers_queries from "../trainers/queries.js";
@@ -110,12 +111,6 @@ import type * as trainers_utils from "../trainers/utils.js";
 import type * as trainers_validations from "../trainers/validations.js";
 import type * as users from "../users.js";
 import type * as utils_validation from "../utils/validation.js";
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 
 import type {
   ApiFromModules,
@@ -227,6 +222,7 @@ declare const fullApi: ApiFromModules<{
   "profiles/trainer/validations": typeof profiles_trainer_validations;
   "role_assignments/queries": typeof role_assignments_queries;
   todos: typeof todos;
+  "trainers/dashboard": typeof trainers_dashboard;
   "trainers/errors": typeof trainers_errors;
   "trainers/mutations": typeof trainers_mutations;
   "trainers/queries": typeof trainers_queries;
@@ -237,15 +233,11 @@ declare const fullApi: ApiFromModules<{
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
-declare const fullApiWithMounts: typeof fullApi;
-
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
   typeof fullApiWithMounts,
   FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
   typeof fullApiWithMounts,
   FunctionReference<any, "internal">
 >;
@@ -300,14 +292,14 @@ export declare const components: {
           resendId?: string;
           segment: number;
           status:
-          | "waiting"
-          | "queued"
-          | "cancelled"
-          | "sent"
-          | "delivered"
-          | "delivery_delayed"
-          | "bounced"
-          | "failed";
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
           subject: string;
           text?: string;
           to: string;
@@ -322,14 +314,14 @@ export declare const components: {
           errorMessage: string | null;
           opened: boolean;
           status:
-          | "waiting"
-          | "queued"
-          | "cancelled"
-          | "sent"
-          | "delivered"
-          | "delivery_delayed"
-          | "bounced"
-          | "failed";
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
         } | null
       >;
       handleEmailEvent: FunctionReference<
@@ -367,14 +359,14 @@ export declare const components: {
           errorMessage?: string;
           resendId?: string;
           status:
-          | "waiting"
-          | "queued"
-          | "cancelled"
-          | "sent"
-          | "delivered"
-          | "delivery_delayed"
-          | "bounced"
-          | "failed";
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
         },
         null
       >;

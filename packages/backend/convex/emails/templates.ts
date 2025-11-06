@@ -582,37 +582,12 @@ export const getInviteFriendEmailTemplate = (
                                 </tr>
                             </table>
                             
-                            <!-- CTA Button -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
-                                <tr>
-                                    <td style="text-align: center; padding: 20px 0;">
-                                        <a href="${invitationUrl}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                            ✨ Aceptar Invitación
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- Alternative Link -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #F3F4F6; border-radius: 6px;">
-                                <tr>
-                                    <td style="padding: 15px;">
-                                        <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 12px;">
-                                            Si el botón no funciona, copia y pega este enlace en tu navegador:
-                                        </p>
-                                        <p style="margin: 0; color: #3B82F6; font-size: 13px; word-break: break-all; font-family: monospace;">
-                                            ${invitationUrl}
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                            
                             <!-- Expiration Notice -->
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 4px;">
                                 <tr>
                                     <td style="padding: 15px 20px;">
                                         <p style="margin: 0; color: #92400E; font-size: 14px; line-height: 1.6;">
-                                            ⏰ <strong>Importante:</strong> Esta invitación expira el <strong>${expirationDate}</strong>. ¡No dejes pasar esta oportunidad!
+                                            ⏰ <strong>Importante:</strong> Esta invitación expira el <strong>${expirationDate}</strong>. <br> Recuerda llevar tu documento de identidad para el ingreso. ¡No dejes pasar esta oportunidad!
                                         </p>
                                     </td>
                                 </tr>

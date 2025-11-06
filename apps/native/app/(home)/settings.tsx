@@ -4,11 +4,13 @@ import { View, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button } from '@/components/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function SettingsPage() {
     const { user } = useUser();
     const { signOut } = useClerk();
     const router = useRouter();
+    const { isClient } = useAuth();
 
     const { userOwnsCredentials, clearCredentials, biometricType } = useLocalCredentials();
 
@@ -115,20 +117,22 @@ export default function SettingsPage() {
                         <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
-                        onPress={() => {
-                            router.push('/(invite-friend)')
-                        }}
-                    >
-                        <View className="flex-row items-center">
-                            <Ionicons name="people-outline" size={20} color="#1f2937" />
-                            <Text className="text-gray-900 ml-3 font-medium">
-                                Invitar amigo
-                            </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                    </TouchableOpacity>
+                    {isClient && (
+                        <TouchableOpacity
+                            className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"
+                            onPress={() => {
+                                router.push('/(invite-friend)')
+                            }}
+                        >
+                            <View className="flex-row items-center">
+                                <Ionicons name="people-outline" size={20} color="#1f2937" />
+                                <Text className="text-gray-900 ml-3 font-medium">
+                                    Invitar amigo
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        </TouchableOpacity>
+                    )}
 
                     <TouchableOpacity
                         className="bg-gray-50 rounded-lg p-4 mb-3 flex-row items-center justify-between"

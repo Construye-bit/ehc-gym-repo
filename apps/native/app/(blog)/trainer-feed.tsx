@@ -308,7 +308,7 @@ export default function TrainerFeedScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 4,
     flex: 1,
     backgroundColor: AppColors.background.gray50,
   },

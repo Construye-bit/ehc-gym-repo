@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '@/constants/Colors';
@@ -43,20 +43,17 @@ export function AppHeader({
     // Configuración según el tipo de usuario
     const config = {
         CLIENT: {
-            greeting: '👋',
-            defaultTitle: `¡Hola, ${person?.name || 'Cliente'}!`,
-            defaultSubtitle: 'Bienvenido a tu espacio de entrenamiento',
+            defaultTitle: `Hola, ${person?.name || 'Cliente'}`,
+            defaultSubtitle: 'Train like a warrior',
             badgeLabel: 'CLIENTE',
         },
         TRAINER: {
-            greeting: '💪',
-            defaultTitle: `¡Hola, ${person?.name || 'Entrenador'}!`,
+            defaultTitle: `Hola, ${person?.name || 'Entrenador'}`,
             defaultSubtitle: 'Panel de entrenador',
             badgeLabel: 'ENTRENADOR',
         },
         ADMIN: {
-            greeting: '👤',
-            defaultTitle: `¡Hola, ${person?.name || 'Admin'}!`,
+            defaultTitle: `Hola, ${person?.name || 'Admin'}`,
             defaultSubtitle: 'Panel de administrador',
             badgeLabel: 'ADMIN',
         },
@@ -68,35 +65,41 @@ export function AppHeader({
 
     return (
         <View
-            className="px-5 pt-6 pb-8 rounded-b-3xl"
+            className="px-5 pt-4 pb-6"
             style={{ backgroundColor: AppColors.primary.yellow }}
         >
-            <View className="flex-row justify-between items-center mb-4">
-                <View className="flex-1">
-                    <Text className="text-white text-2xl font-bold">
-                        {title} {currentConfig.greeting}
-                    </Text>
-                    <Text className="text-white opacity-80 text-sm mt-1">
-                        {subtitle}
-                    </Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                    {showRoleBadge && (
-                        <View className="bg-white/20 px-3 py-1 rounded-full">
-                            <Text className="text-white text-xs font-semibold">
-                                {currentConfig.badgeLabel}
+            <View className="flex-row justify-between items-center">
+                {/* Logo y Título */}
+                <View className="flex-row items-center flex-1 gap-3">
+                    <View className="bg-white rounded-full p-1.5">
+                        <Image
+                            source={require('@/assets/images/logo-rb.png')}
+                            className="w-8 h-8"
+                            resizeMode="contain"
+                        />
+                    </View>
+                    <View className="flex-1">
+                        <Text className="text-white text-xl font-bold">
+                            {title}
+                        </Text>
+                        {subtitle ? (
+                            <Text className="text-white/80 text-sm mt-0.5">
+                                {subtitle}
                             </Text>
-                        </View>
-                    )}
-                    {showSettings && (
-                        <TouchableOpacity
-                            onPress={() => router.push('/(home)/settings')}
-                            className="bg-white/20 p-2 rounded-full"
-                        >
-                            <Ionicons name="settings-outline" size={20} color="white" />
-                        </TouchableOpacity>
-                    )}
+                        ) : null}
+                    </View>
                 </View>
+
+                {/* Botón de perfil */}
+                {showSettings && (
+                    <TouchableOpacity
+                        onPress={() => router.push('/(profile)/edit-profile')}
+                        className="bg-white/20 p-2.5 rounded-full ml-2"
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="person-outline" size={22} color="white" />
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );

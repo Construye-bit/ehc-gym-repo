@@ -119,12 +119,12 @@ export default function ClientFeedScreen() {
         <AppHeader userType="CLIENT" />
 
         {/* Banner informativo */}
-        <View style={styles.infoBanner}>
+        {/* <View style={styles.infoBanner}>
           <Ionicons name="information-circle" size={20} color={AppColors.primary.yellow} />
           <Text style={styles.infoBannerText}>
             Descubre consejos y tips de nuestros entrenadores profesionales
           </Text>
-        </View>
+        </View> */}
 
         {/* Lista de Posts */}
         <FlatList
