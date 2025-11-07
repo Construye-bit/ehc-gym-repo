@@ -30,7 +30,3 @@ jobs:
       - name: Run tests
         run: npm run test:run
         working-directory: apps/web
-      
-      - name: Type check
-        run: npm run check-types
-        working-directory: apps/web

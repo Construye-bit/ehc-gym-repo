@@ -85,6 +85,7 @@ describe('Integration: Login Flow', () => {
       isLoading: false,
       error: null,
       user: null,
+      adminData: null,
     });
 
     vi.mocked(useAuth).mockReturnValue({
@@ -135,6 +136,7 @@ describe('Integration: Login Flow', () => {
       isLoading: false,
       error: null,
       user: { id: 'user_1' } as any,
+      adminData: { clerk_id: 'user_1' },
     });
 
     vi.mocked(useAuth).mockReturnValue({
@@ -241,6 +243,7 @@ describe('Integration: Login Flow', () => {
       isLoading: false,
       error: 'Credenciales inválidas',
       user: null,
+      adminData: null,
     });
 
     render(<MockAdminLoginForm />);
@@ -271,6 +274,7 @@ describe('Integration: Login Flow', () => {
       isLoading: true,
       error: null,
       user: null,
+      adminData: null,
     });
 
     rerender(<MockAdminLoginForm />);

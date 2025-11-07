@@ -82,6 +82,7 @@ describe('AdminLoginForm Component', () => {
       isLoading: false,
       error: null,
       user: null,
+      adminData: null,
     });
 
     // Mock useAuth
@@ -154,6 +155,7 @@ describe('AdminLoginForm Component', () => {
       isLoading: false,
       error: 'Credenciales inválidas',
       user: null,
+      adminData: null,
     });
 
     render(<MockAdminLoginForm />);
@@ -168,6 +170,7 @@ describe('AdminLoginForm Component', () => {
       logout: vi.fn(),
       isAuthenticated: false,
       isLoading: true,
+      adminData: null,
       error: null,
       user: null,
     });
