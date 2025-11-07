@@ -1,0 +1,70 @@
+name: Native App CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/native/**'
+      - '.github/workflows/native-ci-cd.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/native/**'
+      - '.github/workflows/native-ci-cd.yml'
+
+jobs:
+  test:
+    name: Run Native Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/native
+      
+      - name: Run tests
+        run: npm run test
+        working-directory: apps/native
+
+  deploy:
+    name: Build and Deploy Native App
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/native
+      
+      - name: EAS Build
+        run: eas build --platform android --profile preview --non-interactive
+        working-directory: apps/native
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
