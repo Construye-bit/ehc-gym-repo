@@ -17,13 +17,13 @@ const router = createRouter({
     context: {},
     Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
         return (
-            <ClerkProvider
-                publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-            >
-                <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                    {children}
-                </ConvexProviderWithClerk>
-            </ClerkProvider>
+                <ClerkProvider
+                    publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+                >
+                    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+                        {children}
+                    </ConvexProviderWithClerk>
+                </ClerkProvider>
         );
     },
 });

@@ -34,15 +34,15 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
     return (
         <div className="flex justify-center mt-6">
             <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <Button
+                {/* <Button
                     variant="outline"
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
                     Anterior
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                </Button> */}
+                {/* {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
                         key={page}
                         variant={currentPage === page ? "default" : "outline"}
@@ -63,7 +63,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
                     Siguiente
-                </Button>
+                </Button> */}
             </nav>
         </div>
     );
@@ -211,12 +211,21 @@ export function AdministratorsManagementContent() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                            <Button
+                                            {/* <Button
                                                 size="sm"
                                                 onClick={() => handleViewAdministrator(administrator)}
                                                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold p-2"
                                             >
                                                 Ver detalles
+                                            </Button> */}
+                                            <Button
+                                                onClick={() => handleViewAdministrator(administrator)}
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={isDeleting}
+                                                className="hover:bg-blue-50 border-blue-200 disabled:opacity-50 text-black hover:text-gray-900"
+                                            >
+                                                Ver
                                             </Button>
                                             <Button
                                                 size="sm"

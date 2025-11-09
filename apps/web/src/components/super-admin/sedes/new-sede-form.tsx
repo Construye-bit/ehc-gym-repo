@@ -1,5 +1,5 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { ProgressSteps } from "@/components/ui/progress-steps";
 import { FormHeader } from "./form-header";
 import { FormNavigation } from "./form-navigation";
 import { BasicInfoStep } from "./steps/basic-info-step";
@@ -70,41 +70,29 @@ export default function NewSedeForm() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-orange-50 p-6">
+        <div className="min-h-screen bg-yellow-50 p-6">
             <div className="max-w-4xl mx-auto">
+                {/* Header */}
                 <FormHeader currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
-                {/* Indicador de progreso */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between mb-2">
-                        {[1, 2, 3].map((step) => (
-                            <div
-                                key={step}
-                                className={`flex-1 h-2 mx-1 rounded-full transition-all ${
-                                    step <= currentStep
-                                        ? "bg-yellow-500"
-                                        : "bg-gray-200"
-                                }`}
-                            />
-                        ))}
-                    </div>
+                {/* Progress Steps */}
+                <ProgressSteps currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+
+                {/* Form Content */}
+                <div className="mb-6">
+                    {renderStepContent()}
                 </div>
 
-                <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl border-0">
-                    {renderStepContent()}
-                    
-                    <div className="mt-8">
-                        <FormNavigation
-                            currentStep={currentStep}
-                            totalSteps={TOTAL_STEPS}
-                            isLoading={isLoading}
-                            onPrev={handlePrev}
-                            onNext={handleNext}
-                            onSubmit={handleSubmit}
-                            onCancel={handleCancel}
-                        />
-                    </div>
-                </Card>
+                {/* Navigation Buttons */}
+                <FormNavigation
+                    currentStep={currentStep}
+                    totalSteps={TOTAL_STEPS}
+                    isLoading={isLoading}
+                    onPrev={handlePrev}
+                    onNext={handleNext}
+                    onSubmit={handleSubmit}
+                    onCancel={handleCancel}
+                />
             </div>
         </div>
     );

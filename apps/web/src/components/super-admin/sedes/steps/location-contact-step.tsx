@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { Label } from "@/components/ui/label";
+import { MapPin, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { FormSection } from "@/components/ui/form-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { AddCityModal } from "../add-city-modal";
 import { AddAddressModal } from "../add-address-modal";
 import type { LocationContactData, FormErrors } from "@/lib/sede-types";
@@ -45,12 +45,17 @@ export function LocationContactStep({
     };
 
     return (
-        <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
-            <CardContent className="space-y-6 pt-6">
-                <div className="space-y-2">
-                    <Label htmlFor="cityId" className="text-gray-700 font-semibold">
-                        Ciudad *
-                    </Label>
+        <FormSection
+            icon={<MapPin size={20} />}
+            title="Ubicación y Contacto"
+            description="Información de localización y datos de contacto"
+        >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                    label="Ciudad"
+                    required
+                    error={errors.cityId}
+                >
                     <div className="flex gap-2">
                         <Select
                             value={locationContact.cityId}
@@ -59,7 +64,7 @@ export function LocationContactStep({
                                 onUpdate("addressId", ""); // Resetear dirección al cambiar ciudad
                             }}
                         >
-                            <SelectTrigger className={`bg-white ${errors.cityId ? "border-red-500" : "border-gray-300"}`}>
+                            <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
                                 <SelectValue placeholder="Selecciona una ciudad" />
                             </SelectTrigger>
                             <SelectContent>
@@ -81,20 +86,20 @@ export function LocationContactStep({
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    {errors.cityId && <p className="text-sm text-red-500">{errors.cityId}</p>}
-                </div>
+                </FormField>
 
-                <div className="space-y-2">
-                    <Label htmlFor="addressId" className="text-gray-700 font-semibold">
-                        Dirección *
-                    </Label>
+                <FormField
+                    label="Dirección"
+                    required
+                    error={errors.addressId}
+                >
                     <div className="flex gap-2">
                         <Select
                             value={locationContact.addressId}
                             onValueChange={(value) => onUpdate("addressId", value)}
                             disabled={!locationContact.cityId}
                         >
-                            <SelectTrigger className={`bg-white ${errors.addressId ? "border-red-500" : "border-gray-300"}`}>
+                            <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
                                 <SelectValue placeholder={
                                     locationContact.cityId
                                         ? "Selecciona una dirección"
@@ -121,51 +126,46 @@ export function LocationContactStep({
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    {errors.addressId && <p className="text-sm text-red-500">{errors.addressId}</p>}
-                </div>
+                </FormField>
 
-                <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-gray-700 font-semibold">
-                        Teléfono
-                    </Label>
+                <FormField
+                    label="Teléfono"
+                    error={errors.phone}
+                >
                     <Input
-                        id="phone"
+                        className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                        placeholder="Ej: 3001234567"
                         value={locationContact.phone}
                         onChange={(e) => onUpdate("phone", e.target.value)}
-                        placeholder="Ej: 3001234567"
-                        className={`bg-white ${errors.phone ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-                </div>
+                </FormField>
 
-                <div className="space-y-2">
-                    <Label htmlFor="email" className="text-gray-700 font-semibold">
-                        Correo Electrónico
-                    </Label>
+                <FormField
+                    label="Correo Electrónico"
+                    error={errors.email}
+                >
                     <Input
-                        id="email"
                         type="email"
+                        className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                        placeholder="sede@ehcgym.com"
                         value={locationContact.email}
                         onChange={(e) => onUpdate("email", e.target.value)}
-                        placeholder="sede@ehcgym.com"
-                        className={`bg-white ${errors.email ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-                </div>
+                </FormField>
+            </div>
 
-                <AddCityModal
-                    isOpen={isCityModalOpen}
-                    onOpenChange={setIsCityModalOpen}
-                    onCityAdded={handleCityAdded}
-                />
+            <AddCityModal
+                isOpen={isCityModalOpen}
+                onOpenChange={setIsCityModalOpen}
+                onCityAdded={handleCityAdded}
+            />
 
-                <AddAddressModal
-                    isOpen={isAddressModalOpen}
-                    onOpenChange={setIsAddressModalOpen}
-                    cityId={locationContact.cityId as Id<"cities">}
-                    onAddressAdded={handleAddressAdded}
-                />
-            </CardContent>
-        </Card>
+            <AddAddressModal
+                isOpen={isAddressModalOpen}
+                onOpenChange={setIsAddressModalOpen}
+                cityId={locationContact.cityId as Id<"cities">}
+                onAddressAdded={handleAddressAdded}
+            />
+        </FormSection>
     );
 }

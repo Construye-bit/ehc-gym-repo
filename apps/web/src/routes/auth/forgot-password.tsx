@@ -33,7 +33,7 @@ function ForgotPasswordPage() {
 
     if (!isLoaded) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center">
                 <div className="text-center">
                     <span className="text-muted-foreground">Cargando...</span>
                 </div>

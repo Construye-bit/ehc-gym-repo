@@ -62,7 +62,7 @@ export function PageLoader({
     // Variant: Gym
     if (variant === "gym") {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex flex-col items-center justify-center">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 flex flex-col items-center justify-center">
                 <div className="relative">
                     {/* Gimnasio animation */}
                     <div className="flex items-center justify-center mb-4">
@@ -103,7 +103,7 @@ export function PageLoader({
     // Variant: Admin
     if (variant === "admin") {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex flex-col items-center justify-center">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 flex flex-col items-center justify-center">
                 <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 animate-scale-in">
                     {/* Admin icon */}
                     <div className="flex items-center justify-center mb-6">

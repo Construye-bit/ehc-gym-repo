@@ -1,8 +1,9 @@
 import React from "react";
-import { Label } from "@/components/ui/label";
+import { Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { FormSection } from "@/components/ui/form-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import type { BasicInfoData, FormErrors } from "@/lib/sede-types";
 import { SEDE_STATUSES } from "@/lib/sede-constants";
 
@@ -14,31 +15,35 @@ interface BasicInfoStepProps {
 
 export function BasicInfoStep({ basicInfo, errors, onUpdate }: BasicInfoStepProps) {
     return (
-        <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
-            <CardContent className="space-y-6 pt-6">
-                <div className="space-y-2">
-                    <Label htmlFor="name" className="text-gray-700 font-semibold">
-                        Nombre de la Sede *
-                    </Label>
+        <FormSection
+            icon={<Building2 size={20} />}
+            title="Información Básica"
+            description="Datos generales de la sede"
+        >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                    label="Nombre de la Sede"
+                    required
+                    error={errors.name}
+                >
                     <Input
-                        id="name"
+                        className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                        placeholder="Ej: EHC Gym Centro"
                         value={basicInfo.name}
                         onChange={(e) => onUpdate("name", e.target.value)}
-                        placeholder="Ej: EHC Gym Centro"
-                        className={`bg-white ${errors.name ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-                </div>
+                </FormField>
 
-                <div className="space-y-2">
-                    <Label htmlFor="status" className="text-gray-700 font-semibold">
-                        Estado *
-                    </Label>
+                <FormField
+                    label="Estado"
+                    required
+                    error={errors.status}
+                >
                     <Select
                         value={basicInfo.status}
                         onValueChange={(value) => onUpdate("status", value)}
                     >
-                        <SelectTrigger className={`bg-white ${errors.status ? "border-red-500" : "border-gray-300"}`}>
+                        <SelectTrigger className="bg-white border-gray-200 text-gray-900 focus:border-yellow-400 focus:ring-yellow-400">
                             <SelectValue placeholder="Selecciona un estado" />
                         </SelectTrigger>
                         <SelectContent>
@@ -49,25 +54,23 @@ export function BasicInfoStep({ basicInfo, errors, onUpdate }: BasicInfoStepProp
                             ))}
                         </SelectContent>
                     </Select>
-                    {errors.status && <p className="text-sm text-red-500">{errors.status}</p>}
-                </div>
+                </FormField>
 
-                <div className="space-y-2">
-                    <Label htmlFor="max_capacity" className="text-gray-700 font-semibold">
-                        Capacidad Máxima *
-                    </Label>
+                <FormField
+                    label="Capacidad Máxima"
+                    required
+                    error={errors.max_capacity}
+                >
                     <Input
-                        id="max_capacity"
                         type="number"
                         min="1"
+                        className="bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-yellow-400 focus:ring-yellow-400"
+                        placeholder="100"
                         value={basicInfo.max_capacity}
                         onChange={(e) => onUpdate("max_capacity", e.target.value)}
-                        placeholder="100"
-                        className={`bg-white ${errors.max_capacity ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.max_capacity && <p className="text-sm text-red-500">{errors.max_capacity}</p>}
-                </div>
-            </CardContent>
-        </Card>
+                </FormField>
+            </div>
+        </FormSection>
     );
 }
