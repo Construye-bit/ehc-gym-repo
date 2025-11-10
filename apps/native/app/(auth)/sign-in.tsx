@@ -116,8 +116,7 @@ export default function SignInPage() {
 												// El AuthGuard manejará la redirección automáticamente
 											);
 										} catch (error: any) {
-											console.error('Error saving biometric credentials:', error);
-
+											// Error saving biometric credentials
 											const errorMessage = error?.message || 'Error desconocido';
 
 											Alert.alert(
@@ -147,11 +146,9 @@ export default function SignInPage() {
 					);
 				}
 				// Si no hay biometría disponible, el AuthGuard manejará la redirección automáticamente
-			} else {
-				console.error(JSON.stringify(signInAttempt, null, 2));
 			}
 		} catch (err: any) {
-			console.error(JSON.stringify(err, null, 2));
+			// Handle sign-in errors
 
 			// Handle specific Clerk errors
 			if (err.errors && err.errors[0]) {

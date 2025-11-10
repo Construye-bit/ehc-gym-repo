@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import { useAuth } from '@/hooks/use-auth';
 import { useConversations } from '@/hooks/use-conversations';
 import { useAuth as useClerkAuth } from '@clerk/clerk-expo';
-import { useQuery } from 'convex/react';
+import { useQuery, useConvexAuth } from 'convex/react';
 
 jest.mock('@clerk/clerk-expo');
 jest.mock('convex/react');
@@ -29,9 +29,16 @@ jest.mock('@/api', () => ({
 describe('Integration Tests - Chat Flow', () => {
   const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>;
   const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
+  const mockUseConvexAuth = useConvexAuth as jest.MockedFunction<typeof useConvexAuth>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock default para useConvexAuth
+    mockUseConvexAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+    } as any);
   });
 
   describe('Usuario autenticado puede acceder al chat', () => {
@@ -140,6 +147,11 @@ describe('Integration Tests - Chat Flow', () => {
         userId: null,
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+      } as any);
+
       mockUseQuery.mockReturnValue('skip');
 
       const { result: authResult } = renderHook(() => useAuth());
@@ -153,9 +165,16 @@ describe('Integration Tests - Chat Flow', () => {
 describe('Integration Tests - Trainer Catalog Flow', () => {
   const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>;
   const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
+  const mockUseConvexAuth = useConvexAuth as jest.MockedFunction<typeof useConvexAuth>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock default para useConvexAuth
+    mockUseConvexAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+    } as any);
   });
 
   describe('Cliente puede buscar entrenadores', () => {
@@ -214,9 +233,16 @@ describe('Integration Tests - Trainer Catalog Flow', () => {
 describe('Integration Tests - Role-Based Access', () => {
   const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>;
   const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
+  const mockUseConvexAuth = useConvexAuth as jest.MockedFunction<typeof useConvexAuth>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock default para useConvexAuth
+    mockUseConvexAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+    } as any);
   });
 
   describe('Diferentes roles tienen diferentes permisos', () => {
