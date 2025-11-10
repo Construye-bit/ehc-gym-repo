@@ -23,7 +23,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.30",
     "@clerk/backend": "^2.14.0",
+    "@convex-dev/agent": "^0.2.12",
     "@convex-dev/resend": "^0.1.13",
     "convex": "^1.25.4",
     "resend": "^6.1.0",
