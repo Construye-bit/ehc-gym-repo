@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { useAuth } from '../use-auth';
 import { useAuth as useClerkAuth } from '@clerk/clerk-expo';
-import { useQuery } from 'convex/react';
+import { useQuery, useConvexAuth } from 'convex/react';
 
 jest.mock('@clerk/clerk-expo');
 jest.mock('convex/react');
@@ -9,9 +9,16 @@ jest.mock('convex/react');
 describe('useAuth Hook', () => {
   const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>;
   const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
+  const mockUseConvexAuth = useConvexAuth as jest.MockedFunction<typeof useConvexAuth>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Default mock for useConvexAuth
+    mockUseConvexAuth.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    });
   });
 
   describe('Estado de carga', () => {
@@ -21,6 +28,11 @@ describe('useAuth Hook', () => {
         isLoaded: false,
         userId: null,
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue(undefined);
 
@@ -37,6 +49,11 @@ describe('useAuth Hook', () => {
         userId: 'user_123',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue(undefined);
 
       const { result } = renderHook(() => useAuth());
@@ -51,6 +68,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
@@ -73,6 +95,11 @@ describe('useAuth Hook', () => {
         userId: null,
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue('skip');
 
       const { result } = renderHook(() => useAuth());
@@ -86,6 +113,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
@@ -106,6 +138,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
@@ -129,6 +166,11 @@ describe('useAuth Hook', () => {
         userId: 'user_456',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_456', email: 'trainer@test.com' },
         person: { name: 'Trainer User' },
@@ -150,6 +192,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_789',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_789', email: 'admin@test.com' },
@@ -173,6 +220,11 @@ describe('useAuth Hook', () => {
         userId: 'user_999',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_999', email: 'superadmin@test.com' },
         person: { name: 'Super Admin' },
@@ -194,6 +246,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_multi',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_multi', email: 'multi@test.com' },
@@ -218,6 +275,11 @@ describe('useAuth Hook', () => {
         userId: 'user_123',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
         person: { name: 'Test User' },
@@ -238,6 +300,11 @@ describe('useAuth Hook', () => {
         userId: 'user_123',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
         person: { name: 'Test User' },
@@ -256,6 +323,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
@@ -284,6 +356,11 @@ describe('useAuth Hook', () => {
         userId: 'user_123',
       } as any);
 
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
         person: mockPerson,
@@ -301,6 +378,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },
@@ -321,6 +403,11 @@ describe('useAuth Hook', () => {
         isLoaded: true,
         userId: 'clerk_user_123',
       } as any);
+
+      mockUseConvexAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
 
       mockUseQuery.mockReturnValue({
         user: { _id: 'user_123', email: 'test@test.com' },

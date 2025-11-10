@@ -13,7 +13,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
   const isOptimistic = 'status' in message && (message.status === 'SENDING' || message.status === 'ERROR');
   const isError = 'status' in message && message.status === 'ERROR';
   const isSending = 'status' in message && message.status === 'SENDING';
-  
+
   // Verificar si el mensaje fue leído (solo para mensajes reales, no optimistas)
   const isRead = !isOptimistic && 'read_at' in message && message.read_at !== undefined && message.read_at !== null;
 
@@ -32,26 +32,24 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
       className={`flex-row mb-3 px-4 ${isMine ? 'justify-end' : 'justify-start'}`}
     >
       <View
-        className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-          isMine
+        className={`max-w-[75%] rounded-2xl px-4 py-2 ${isMine
             ? isError
               ? 'bg-red-100'
               : 'bg-yellow-400'
             : 'bg-gray-200'
-        }`}
+          }`}
         style={{ opacity: isSending ? 0.7 : 1 }}
       >
         {/* Texto del mensaje */}
         <Text
-          className={`text-base ${
-            isMine ? (isError ? 'text-red-900' : 'text-gray-900') : 'text-gray-900'
-          }`}
+          className={`text-base ${isMine ? (isError ? 'text-red-900' : 'text-gray-900') : 'text-gray-900'
+            }`}
         >
           {message.text}
         </Text>
 
         {/* Footer: hora + estado */}
-        <View className="flex-row items-center justify-end mt-1 space-x-1">
+        <View className="flex-row items-center justify-end mt-1 gap-1">
           <Text className={`text-xs ${isMine ? 'text-gray-700' : 'text-gray-600'}`}>
             {formatTime(message.created_at)}
           </Text>
@@ -59,6 +57,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
           {/* Indicadores de estado */}
           {isMine && !isOptimistic && (
             <Ionicons
+              key="status-icon"
               name={isRead ? 'checkmark-done' : 'checkmark'}
               size={14}
               color="#4B5563"
@@ -66,15 +65,19 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
           )}
 
           {isSending && (
-            <View className="ml-1">
-              <Ionicons name="time-outline" size={14} color="#6B7280" />
-            </View>
+            <Ionicons
+              key="sending-icon"
+              name="time-outline"
+              size={14}
+              color="#6B7280"
+            />
           )}
 
           {isError && onRetry && (
             <TouchableOpacity
+              key="retry-button"
               onPress={() => onRetry(message._id)}
-              className="ml-1 p-1"
+              className="p-1"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="refresh" size={14} color="#DC2626" />

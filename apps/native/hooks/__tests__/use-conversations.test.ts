@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { useConversations } from '../use-conversations';
-import { useQuery } from 'convex/react';
+import { useQuery, useConvexAuth } from 'convex/react';
 
 jest.mock('convex/react');
 jest.mock('@/api', () => ({
@@ -15,9 +15,16 @@ jest.mock('@/api', () => ({
 
 describe('useConversations Hook', () => {
   const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
+  const mockUseConvexAuth = useConvexAuth as jest.MockedFunction<typeof useConvexAuth>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Default mock for useConvexAuth - authenticated by default
+    mockUseConvexAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+    });
   });
 
   describe('Estado inicial', () => {

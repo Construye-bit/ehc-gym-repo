@@ -1,29 +1,14 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '@/constants/Colors';
 import { useAuth } from '@/hooks/use-auth';
 
 interface AppHeaderProps {
-    /**
-     * Si no se especifica, se detecta automáticamente según el rol del usuario
-     */
     userType?: 'CLIENT' | 'TRAINER' | 'ADMIN';
-    /**
-     * Título personalizado. Si no se proporciona, usa el nombre de la persona
-     */
     customTitle?: string;
-    /**
-     * Subtítulo personalizado
-     */
     customSubtitle?: string;
-    /**
-     * Mostrar el botón de configuración
-     */
     showSettings?: boolean;
-    /**
-     * Mostrar el badge de rol
-     */
     showRoleBadge?: boolean;
 }
 
@@ -35,12 +20,14 @@ export function AppHeader({
     showRoleBadge = true,
 }: AppHeaderProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const { person, isTrainer, isClient } = useAuth();
 
-    // Determinar tipo de usuario
     const detectedType = userType || (isTrainer ? 'TRAINER' : isClient ? 'CLIENT' : 'ADMIN');
+    const isInChatRoute = pathname?.startsWith('/(chat)');
 
-    // Configuración según el tipo de usuario
+    console.log(pathname)
+
     const config = {
         CLIENT: {
             defaultTitle: `Hola, ${person?.name || 'Cliente'}`,
@@ -64,12 +51,8 @@ export function AppHeader({
     const subtitle = customSubtitle || currentConfig.defaultSubtitle;
 
     return (
-        <View
-            className="px-5 pt-4 pb-6"
-            style={{ backgroundColor: AppColors.primary.yellow }}
-        >
+        <View className="px-5 pt-4 pb-6" style={{ backgroundColor: AppColors.primary.yellow }}>
             <View className="flex-row justify-between items-center">
-                {/* Logo y Título */}
                 <View className="flex-row items-center flex-1 gap-3">
                     <View className="bg-white rounded-full p-1.5">
                         <Image
@@ -79,26 +62,34 @@ export function AppHeader({
                         />
                     </View>
                     <View className="flex-1">
-                        <Text className="text-white text-xl font-bold">
-                            {title}
-                        </Text>
+                        <Text className="text-white text-xl font-bold">{title}</Text>
                         {subtitle ? (
-                            <Text className="text-white/80 text-sm mt-0.5">
-                                {subtitle}
-                            </Text>
+                            <Text className="text-white/80 text-sm mt-0.5">{subtitle}</Text>
                         ) : null}
                     </View>
                 </View>
 
-                {/* Botón de perfil */}
                 {showSettings && (
-                    <TouchableOpacity
-                        onPress={() => router.push('/(profile)/edit-profile')}
-                        className="bg-white/20 p-2.5 rounded-full ml-2"
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="person-outline" size={22} color="white" />
-                    </TouchableOpacity>
+                    <View className="flex-row gap-2">
+                        {isClient && (
+                            <TouchableOpacity
+                                onPress={() => router.push('/(chat)/ai')}
+                                className="bg-white/20 p-2.5 rounded-full"
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="sparkles" size={22} color="white" />
+                            </TouchableOpacity>
+                        )}
+                        {isTrainer && (
+                            <TouchableOpacity
+                                onPress={() => router.push('/(profile)/edit-profile')}
+                                className="bg-white/20 p-2.5 rounded-full"
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="person-outline" size={22} color="white" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 )}
             </View>
         </View>

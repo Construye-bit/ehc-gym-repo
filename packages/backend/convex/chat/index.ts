@@ -5,6 +5,7 @@
  * - trainer_catalog: Catálogo público de entrenadores
  * - conversations: Gestión de conversaciones cliente-entrenador
  * - messages: Envío y consulta de mensajes
+ * - ai: Asistente de IA con acceso a información del cliente
  */
 
 // ==================== TRAINER CATALOG ====================
@@ -54,3 +55,23 @@ export type {
   GetMessagesData,
   MarkAsReadData,
 } from "./messages";
+
+// ==================== AI CHAT ====================
+export { chatAgent } from "./ai";
+export { chatTools } from "./ai/tools";
+export {
+  generateResponse as generateAIResponse,
+  generateStreamingResponse as generateStreamingAIResponse,
+  startConversation as startAIConversation,
+} from "./ai/actions";
+export {
+  listThreadMessages as listAIThreadMessages,
+  getThread as getAIThread,
+  listUserThreads as listUserAIThreads,
+} from "./ai/queries";
+export {
+  createThread as createAIThread,
+  saveUserMessage as saveAIUserMessage,
+  deleteMessage as deleteAIMessage,
+  deleteMessageRange as deleteAIMessageRange,
+} from "./ai/mutations";

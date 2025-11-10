@@ -71,6 +71,10 @@ jest.mock('convex/react', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
   useConvex: jest.fn(),
+  useConvexAuth: jest.fn(() => ({
+    isAuthenticated: false,
+    isLoading: false,
+  })),
   ConvexProvider: ({ children }) => children,
   ConvexReactClient: jest.fn(),
 }));
