@@ -67,3 +67,8 @@ ehc-gym2/
 - `npm run dev:setup`: Setup and configure your Convex project
 - `npm run check-types`: Check TypeScript types across all apps
 - `npm run dev:native`: Start the React Native/Expo development server
+
+## Documentation
+- Docs: [Documentation Doc] (https://docs.google.com/document/d/1xdY8uzzLSj79FdIuDiL4xp_QojdCVcxX7tmX4KEyx7M/edit?tab=t.ac70lifoc3ui)
+- Figma: [Mocks] (https://www.figma.com/design/xmfq0nX8GzbLPEG9Dj3mfZ/Design-System-EHC-GYM?node-id=49-7390&t=gnWnIHrg3r2z4ahp-1)
+- Notion: [Roles Docs] (https://www.notion.so/EHC-GYM-24e4722f677880d69fc2d0c17d2835fb?source=copy_link)
