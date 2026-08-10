@@ -4,7 +4,7 @@
 
 # EHC GYM
 
-**Gym management platform** — a full-stack monorepo with a web admin dashboard, a React Native mobile app for clients and trainers, and a Convex backend powered by an AI fitness coach.
+**Gym management platform** — a full-stack monorepo with a web admin dashboard, a React Native mobile app for clients and trainers powered by an AI fitness coach, and a Convex backend.
 
 </div>
 
